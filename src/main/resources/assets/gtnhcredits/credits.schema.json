@@ -1,0 +1,102 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "GTNH Credits",
+  "description": "Schema for the GTNH credits data file. Persons reference categories by their id value. Category id uniqueness and person-to-category reference validity cannot be expressed in JSON Schema and are enforced by additional semantic checks in the build tooling.",
+  "type": "object",
+  "required": ["category"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "description": "Schema version. Increment when making backwards-incompatible changes so readers can detect format mismatches. Defaults to 1 if absent.",
+      "type": "integer",
+      "minimum": 1
+    },
+    "category": {
+      "description": "Ordered list of credit categories. Each category's id field is its stable identifier.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/definitions/category"
+      }
+    },
+    "person": {
+      "description": "List of credited persons. Optional; may be absent or empty.",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/person"
+      }
+    }
+  },
+  "definitions": {
+    "key": {
+      "$comment": "A human-readable identifier used as a translation key suffix (after sanitization) and as fallback display text when no translation exists. Must start with a letter; may contain letters, digits, spaces, dots, underscores and hyphens; must end with a letter or digit. Before being appended to a translation key path the value is sanitized: dots and hyphens are removed, each run of spaces is collapsed to a single underscore, and the result is lowercased. The original unsanitized value is shown as fallback text when no translation is found.",
+      "x-characters": "Letters (A-Za-z), digits (0-9), space, `.` `_` `-`; must start with a letter; must end with a letter or digit",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 32,
+      "pattern": "^[A-Za-z]([A-Za-z0-9 ._-]*[A-Za-z0-9])?$"
+    },
+    "category": {
+      "description": "An entry in the category array. Its id is the stable identifier referenced by persons.",
+      "type": "object",
+      "required": ["id"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$comment": "Translation key suffix. The application prepends the namespace to form the full key and uses this value as the display fallback when no translation is found. Must be unique across all category objects; enforced by the build tooling.",
+          "allOf": [{ "$ref": "#/definitions/key" }]
+        },
+        "class": {
+          "$comment": "Semantic class markers for this category. Known values: `person` (render the persons list), `role` (include roles alongside each person), `detail` (render the category description from the lang file). Unknown values are silently ignored.",
+          "oneOf": [
+            { "type": "string" },
+            {
+              "type": "array",
+              "uniqueItems": true,
+              "items": { "type": "string" }
+            }
+          ]
+        }
+      }
+    },
+    "person": {
+      "description": "An entry in the person array, representing a single credited individual.",
+      "type": "object",
+      "required": ["name", "category"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "$comment": "Display name. Full printable UTF-8; no control characters. May be visually truncated if it exceeds the available display width.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80,
+          "pattern": "^[^\\x00-\\x1F\\x7F-\\x9F]+$"
+        },
+        "category": {
+          "$comment": "One or more category ids this person belongs to. Each value must match an id defined in the top-level category array; enforced by the build tooling.",
+          "oneOf": [
+            { "$ref": "#/definitions/key" },
+            {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": { "$ref": "#/definitions/key" }
+            }
+          ]
+        },
+        "role": {
+          "$comment": "Optional role or roles. Each value doubles as a translation key suffix and a human-readable fallback, same constraints as category id.",
+          "oneOf": [
+            { "$ref": "#/definitions/key" },
+            {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": { "$ref": "#/definitions/key" }
+            }
+          ]
+        }
+      }
+    }
+  }
+}

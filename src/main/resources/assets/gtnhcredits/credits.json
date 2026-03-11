@@ -1,0 +1,191 @@
+{
+  "version": 1,
+  "category": [
+    {
+      "id": "team",
+      "class": ["detail", "person", "role"]
+    },
+    {
+      "id": "dev",
+      "class": ["detail", "person", "role"]
+    },
+    {
+      "id": "contrib",
+      "class": ["detail", "person", "role"]
+    },
+    {
+      "id": "support",
+      "class": ["detail", "person"]
+    },
+    {
+      "id": "thanks",
+      "class": "detail"
+    },
+    {
+      "id": "loremipsum",
+      "class": "detail"
+    },
+    {
+      "id": "Key Test",
+      "class": ["detail", "person", "role"]
+    },
+    {
+      "id": "No-Trans Cat",
+      "class": ["detail", "person"]
+    },
+    {
+      "id": "Empty View",
+      "class": ["detail", "person"]
+    },
+    {
+      "id": "Indexed Detail",
+      "class": "detail"
+    }
+  ],
+  "person": [
+    {
+      "name": "DreamMasterXXL",
+      "category": ["team", "dev"],
+      "role": "gtnh-creator"
+    },
+    {
+      "name": "Technovangelist",
+      "category": ["team", "dev"],
+      "role": ["dev", "infra"]
+    },
+    {
+      "name": "Lea",
+      "category": "dev",
+      "role": "dev"
+    },
+    {
+      "name": "Glease",
+      "category": "dev",
+      "role": ["dev", "core-mods"]
+    },
+    {
+      "name": "Blood Asp",
+      "category": ["dev", "contrib"],
+      "role": "dev"
+    },
+    {
+      "name": "Steelux",
+      "category": "contrib"
+    },
+    {
+      "name": "Steelux",
+      "category": "contrib"
+    },
+    {
+      "name": "Albert",
+      "category": "contrib"
+    },
+    {
+      "name": "Marie",
+      "category": "contrib"
+    },
+    {
+      "name": "D2R2",
+      "category": "contrib"
+    },
+    {
+      "name": "Marvein",
+      "category": "contrib"
+    },
+    {
+      "name": "Skynet",
+      "category": "contrib"
+    },
+    {
+      "name": "Woper",
+      "category": "contrib"
+    },
+    {
+      "name": "Mother",
+      "category": "contrib"
+    },
+    {
+      "name": "Albert Einstein",
+      "category": "contrib"
+    },
+    {
+      "name": "Max Planck",
+      "category": "contrib"
+    },
+    {
+      "name": "Alan Turing",
+      "category": "contrib"
+    },
+    {
+      "name": "Ada Lovelace",
+      "category": "contrib"
+    },
+    {
+      "name": "Stephen Hawking",
+      "category": "contrib"
+    },
+    {
+      "name": "Lisa Meitner",
+      "category": "contrib"
+    },
+    {
+      "name": "Yuri Gagarin",
+      "category": "contrib"
+    },
+    {
+      "name": "Paul Dirac",
+      "category": "contrib"
+    },
+    {
+      "name": "Anachronist",
+      "category": "contrib",
+      "role": "recipes"
+    },
+    {
+      "name": "Supporter McSupportface",
+      "category": "support"
+    },
+    {
+      "name": "Generous Giver",
+      "category": "support"
+    },
+    {
+      "name": "Friendly Patron",
+      "category": "support"
+    },
+    {
+      "name": "Kind Donator",
+      "category": "support"
+    },
+    {
+      "name": "Helpful Backer",
+      "category": "support"
+    },
+    {
+      "name": "Loyal Fan",
+      "category": "support"
+    },
+    {
+      "name": "Amazing Sponsor",
+      "category": "support"
+    },
+    {
+      "name": "Rfctksxk",
+      "category": "thanks"
+    },
+    {
+      "name": "Translated Person",
+      "category": "Key Test",
+      "role": ["Test-Role", "Core.Mod"]
+    },
+    {
+      "name": "Fallback Role Person",
+      "category": "Key Test",
+      "role": "No.Trans Role"
+    },
+    {
+      "name": "Fallback Cat Person",
+      "category": "No-Trans Cat"
+    }
+  ]
+}

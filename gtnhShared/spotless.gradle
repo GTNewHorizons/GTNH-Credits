@@ -1,0 +1,96 @@
+
+apply plugin: 'com.diffplug.spotless'
+
+def gitDir = new File(rootDir, '.git')
+def packedRefs = new File(gitDir, 'packed-refs')
+
+def refExists = { String refPath ->
+    new File(gitDir, refPath).exists() ||
+    (packedRefs.exists() && packedRefs.readLines().any { line ->
+        !line.startsWith('#') && line.endsWith(" ${refPath}")
+    })
+}
+
+String spotlessRatchetRef = ''
+def requestedProp = findProperty('spotlessRatchetFrom')
+if (requestedProp != null) {
+    // Explicitly set: verify it exists; empty string means no ratchet
+    spotlessRatchetRef = requestedProp as String
+    if (spotlessRatchetRef) {
+        def refPath = spotlessRatchetRef.contains('/')
+            ? "refs/remotes/${spotlessRatchetRef}" : "refs/heads/${spotlessRatchetRef}"
+        if (!refExists(refPath)) spotlessRatchetRef = ''
+    }
+} else {
+    // Auto-detect: prefer origin/HEAD symref (set on clone or via git remote set-head origin -a)
+    def originHead = new File(gitDir, 'refs/remotes/origin/HEAD')
+    if (originHead.exists()) {
+        def line = originHead.text.trim()
+        if (line.startsWith('ref: refs/remotes/')) {
+            def ref = line.substring('ref: refs/remotes/'.length())
+            if (refExists("refs/remotes/${ref}")) spotlessRatchetRef = ref
+        }
+    }
+    // Fall back to probing common local branch names
+    if (!spotlessRatchetRef) {
+        spotlessRatchetRef = (['main', 'master'].find { refExists("refs/heads/${it}") }) ?: ''
+    }
+}
+
+// Spotless autoformatter
+// See https://github.com/diffplug/spotless/tree/main/plugin-gradle
+// Can be locally toggled via spotless:off/spotless:on comments
+spotless {
+    encoding 'UTF-8'
+
+    format 'misc', {
+        target '.gitignore'
+
+        trimTrailingWhitespace()
+        leadingTabsToSpaces(4)
+        endWithNewline()
+    }
+    java {
+        target 'src/*/java/**/*.java', 'src/*/scala/**/*.java'
+
+        toggleOffOn()
+        importOrderFile(Blowdryer.file('spotless.importorder'))
+        removeUnusedImports()
+        eclipse('4.19').configFile(Blowdryer.file('spotless.eclipseformat.xml'))
+    }
+    kotlin {
+        target 'src/*/kotlin/**/*.kt', 'src/*/java/**/*.kt'
+
+        toggleOffOn()
+        trimTrailingWhitespace()
+        endWithNewline()
+        ktlint('1.7.1').editorConfigOverride([
+            'ktlint_code_style': 'intellij_idea'
+        ])
+    }
+    scala {
+        target 'src/*/scala/**/*.scala'
+
+        scalafmt('3.7.15')
+    }
+    json {
+        if (spotlessRatchetRef) ratchetFrom spotlessRatchetRef
+        // override via -PspotlessRatchetFrom=<ref>; pass empty string to format all files
+
+        target(
+            'src/**/mcmod.info',
+            'src/**/*.json',
+            'src/**/*.mcmeta'
+        )
+
+        prettier().config([
+            parser: 'json',
+            printWidth: 100,
+            tabWidth: 2,
+            objectWrap: "collapse",
+            useTabs: false,
+            endOfLine: 'lf'
+        ])
+        endWithNewline()
+    }
+}

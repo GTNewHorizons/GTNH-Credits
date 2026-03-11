@@ -1,0 +1,36 @@
+gui.main_menu.button.credits=Crédits
+gui.credits.title=Crédits
+gui.credits.button.back=Retour
+gui.credits.filter.hint=Filtrer
+
+credits.category.team=Équipe principale
+credits.category.team.detail=L'équipe principale est responsable de la direction générale, de la maintenance et des versions de GT New Horizons.\nSon travail couvre la conception, la coordination, l'infrastructure et la vision à long terme du pack.
+
+credits.category.dev=Développeurs
+credits.category.dev.detail=Les développeurs conçoivent et implémentent les mods, scripts, configurations et outils qui rendent GT New Horizons possible.\nCela englobe aussi bien les nouveaux systèmes de gameplay que les améliorations du pipeline de build.
+
+credits.category.contrib=Contributeurs
+credits.category.contrib.detail=Les contributeurs ont soumis des correctifs, du contenu ou des améliorations qui ont trouvé leur place dans le pack. Chaque contribution compte.
+
+credits.category.support=Soutiens
+credits.category.support.detail=Les soutiens ont contribué à faire avancer le projet grâce à des dons, de l'hébergement, de la modération et d'autres formes d'aide communautaire. Nous sommes reconnaissants pour leur générosité et leur dévouement.
+
+credits.category.thanks=Remerciements
+credits.category.thanks.detail=Un grand merci à tous ceux qui ont signalé des bugs, rédigé de la documentation, créé des guides ou soutenu le projet de toutes les manières possibles.\nGT New Horizons n'existerait pas sans sa communauté.\n§7DreamMasterXXL§r
+
+credits.category.loremipsum=Lorem ipsum
+credits.category.loremipsum.detail=Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.\nSed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo. Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit.\nAt vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores et quas molestias excepturi sint occaecati cupiditate non provident, similique sunt in culpa qui officia deserunt mollitia animi.\nNam libero tempore, cum soluta nobis est eligendi optio cumque nihil impedit quo minus id quod maxime placeat facere possimus, omnis voluptas assumenda est, omnis dolor repellendus. Temporibus autem quibusdam et aut officiis debitis aut rerum necessitatibus saepe eveniet.\nItaque earum rerum hic tenetur a sapiente delectus, ut aut reiciendis voluptatibus maiores alias consequatur aut perferendis doloribus asperiores repellat. Quis autem vel eum iure reprehenderit qui in ea voluptate velit esse quam nihil molestiae consequatur.\nUt enim ad minima veniam, quis nostrum exercitationem ullam corporis suscipit laboriosam, nisi ut aliquid ex ea commodi consequatur? Quis autem vel eum iure reprehenderit qui in ea voluptate velit esse quam nihil molestiae consequatur, vel illum qui dolorem eum fugiat quo voluptas nulla pariatur?
+
+credits.person.role.gtnhcreator=Créateur de GTNH
+credits.person.role.dev=Développeur
+credits.person.role.contributor=Contributeur
+
+credits.category.key_test=Test de clé (traduit)
+credits.category.key_test.detail=Cette catégorie vérifie la désinfection des clés.\nL'id "Key Test" correspond à la clé de traduction credits.category.key_test.\nRôles : "Test-Role" -> testrole (traduit), "Core.Mod" -> coremod (traduit), "No.Trans Role" -> notrans_role (absent, affichage du texte brut).
+
+credits.person.role.testrole=Rôle de test (traduit)
+credits.person.role.coremod=Mod principal (traduit)
+
+# "Indexed Detail" uses different paragraph slicing in French (indexes 0 and 1 instead of 0, 2, 10).
+credits.category.indexed_detail.detail.0=Paragraphe zéro, première ligne.\nParagraphe zéro, deuxième ligne.
+credits.category.indexed_detail.detail.1=Paragraphe un (traduction française avec découpage différent).
