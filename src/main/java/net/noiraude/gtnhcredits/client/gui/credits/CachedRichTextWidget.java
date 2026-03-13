@@ -26,7 +26,7 @@ import cpw.mods.fml.relauncher.SideOnly;
  * The builder receives the {@link RichText} and the current content width so callers can perform
  * width-aware layout such as manual line-wrapping with custom alignment.
  * Recompilation is triggered by an explicit {@link #markDirty()} call or a significant width change.
- * Small width fluctuations (≤ {@value #SCROLLBAR_TOLERANCE}px) are ignored — they are caused by
+ * Small width fluctuations (≤ {@value #SCROLLBAR_TOLERANCE}px) are ignored; they are caused by
  * the scroll widget reserving/releasing space for its scrollbar, and a few pixels of difference
  * do not meaningfully affect text layout.
  */
@@ -37,7 +37,7 @@ class CachedRichTextWidget extends Widget<CachedRichTextWidget> {
      * Maximum width change (in pixels) that will NOT trigger a recompile.
      * This absorbs the per-category scrollbar toggle: the vertical scrollbar is 4px wide,
      * so content width oscillates ±4px as it appears/disappears. Compiled text at the
-     * wider width renders correctly at 4px narrower — no visible difference.
+     * wider width renders correctly at 4px narrower with no visible difference.
      */
     private static final int SCROLLBAR_TOLERANCE = 8;
     /** Vertical gap (px) between the title and the body text. */
@@ -144,7 +144,7 @@ class CachedRichTextWidget extends Widget<CachedRichTextWidget> {
      * pre-GL-scale space: the renderer has pushed a {@code scale(TITLE_SCALE)} matrix before
      * invoking each line. To appear horizontally centered inside {@code containerWidth} screen
      * pixels the unscaled x offset must be {@code (containerWidth/TITLE_SCALE - textWidth) / 2},
-     * which maps to {@code (containerWidth - textWidth*TITLE_SCALE) / 2} on screen — exactly the
+     * which maps to {@code (containerWidth - textWidth*TITLE_SCALE) / 2} on screen, exactly the
      * same centering formula used by {@code CenteredLine}, adjusted for scale.
      */
     private static final class TitleLine implements ITextLine {

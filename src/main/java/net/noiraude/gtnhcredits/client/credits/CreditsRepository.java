@@ -35,7 +35,7 @@ final class CreditsRepository {
     private static final Logger LOG = LogManager.getLogger(CreditsRepository.class);
     private static final ResourceLocation LOCATION = new ResourceLocation(GTNHCredits.MODID, "credits.json");
 
-    // Defensive limits — mirror the schema's maxLength/maxItems where applicable.
+    // Defensive limits; mirror the schema's maxLength/maxItems where applicable.
     private static final int MAX_CATEGORIES = 256;
     private static final int MAX_PERSONS = 10_000;
     private static final int MAX_STRING_SHORT = 32; // key (id, role)

@@ -125,7 +125,7 @@ final class CreditsContentRenderer {
     private static List<String> indexedDetailParagraphs(String prefix) {
         if (GET_INSTANCE_METHOD == null || TRANSLATION_MAP_FIELD == null) return Collections.emptyList();
         try {
-            // Cast to Map<?,?> — wildcard parameters are erased so this cast is fully checked at
+            // Cast to Map<?,?>: wildcard parameters are erased so this cast is fully checked at
             // runtime (just instanceof Map), no unchecked warning, and no heap pollution.
             Map<?, ?> map = (Map<?, ?>) TRANSLATION_MAP_FIELD.get(GET_INSTANCE_METHOD.invoke(null));
             List<IndexedParagraph> paragraphs = new ArrayList<>();
@@ -217,7 +217,7 @@ final class CreditsContentRenderer {
             int nameWidth = fr.getStringWidth(person.name);
             int rolesAvailable = contentWidth - nameWidth - separatorWidth;
             if (person.roles.isEmpty() || rolesAvailable <= 0) {
-                rt.addLine(new CenteredLine(person.name, nameWidth, contentWidth));
+                rt.addLine(new CenteredLine(person.name + "§r", nameWidth, contentWidth));
                 continue;
             }
             StringBuilder roles = new StringBuilder();
@@ -245,7 +245,7 @@ final class CreditsContentRenderer {
                     rolesWidth = ellipsisWidth;
                 }
             }
-            String lineText = person.name + separator + "§o" + roles + "§r";
+            String lineText = person.name + "§r" + separator + "§o" + roles + "§r";
             int lineWidth = nameWidth + separatorWidth + rolesWidth;
             rt.addLine(new CenteredLine(lineText, lineWidth, contentWidth));
         }
@@ -264,15 +264,17 @@ final class CreditsContentRenderer {
                 if (lineWidth + separatorWidth + nameWidth > contentWidth) {
                     // Not the last line: append trailing comma to the flushed line.
                     rt.addLine(new CenteredLine(line + ",", lineWidth + commaWidth, contentWidth));
-                    line = new StringBuilder(person.name);
+                    line = new StringBuilder(person.name).append("§r");
                     lineWidth = nameWidth;
                 } else {
                     line.append(", ")
-                        .append(person.name);
+                        .append(person.name)
+                        .append("§r");
                     lineWidth += separatorWidth + nameWidth;
                 }
             } else {
-                line.append(person.name);
+                line.append(person.name)
+                    .append("§r");
                 lineWidth = nameWidth;
             }
         }
