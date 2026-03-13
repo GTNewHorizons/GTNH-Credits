@@ -4,6 +4,8 @@ A Minecraft 1.7.10 Forge mod that adds a **Credits** screen to the
 main menu, giving GT New Horizons one official place to recognize
 everyone who contributed to the pack.
 
+It is an implementation for the [Centralized Credits Page #23582](https://github.com/GTNewHorizons/GT-New-Horizons-Modpack/issues/23582) proposal.
+
 ## Access
 
 - **Credits** button on the main menu
