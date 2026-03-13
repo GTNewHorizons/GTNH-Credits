@@ -6,6 +6,8 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
 
 import net.minecraft.util.EnumChatFormatting;
@@ -25,6 +27,8 @@ public final class CreditsController {
     private final CreditsData data;
     private int selectedIndex = 0;
     private String personFilter = "";
+    /** Compiled regex for {@link #personFilter}, or {@code null} when the pattern is invalid. */
+    private Pattern personFilterPattern = null;
 
     public CreditsController() {
         this.data = CreditsRepository.load();
@@ -48,6 +52,16 @@ public final class CreditsController {
 
     public void setPersonFilter(String filter) {
         this.personFilter = filter == null ? "" : filter;
+        if (this.personFilter.isEmpty()) {
+            this.personFilterPattern = null;
+        } else {
+            try {
+                this.personFilterPattern = Pattern
+                    .compile(this.personFilter, Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
+            } catch (PatternSyntaxException e) {
+                this.personFilterPattern = null; // fall back to literal substring match
+            }
+        }
     }
 
     /** Returns the currently selected category, or {@code null} if there are no categories. */
@@ -70,13 +84,18 @@ public final class CreditsController {
                     .addAll(p.roles);
             }
         }
+        Pattern filter = personFilterPattern;
         String lowerFilter = personFilter.toLowerCase();
         return rolesByName.entrySet()
             .stream()
-            .filter(
-                e -> lowerFilter.isEmpty() || EnumChatFormatting.getTextWithoutFormattingCodes(e.getKey())
-                    .toLowerCase()
-                    .contains(lowerFilter))
+            .filter(e -> {
+                if (personFilter.isEmpty()) return true;
+                String name = EnumChatFormatting.getTextWithoutFormattingCodes(e.getKey());
+                return filter != null ? filter.matcher(name)
+                    .find()
+                    : name.toLowerCase()
+                        .contains(lowerFilter);
+            })
             .sorted(Map.Entry.comparingByKey(String.CASE_INSENSITIVE_ORDER))
             .map(
                 e -> new CreditsPerson(
