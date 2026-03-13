@@ -8,6 +8,7 @@
 !/.idea/dictionaries/**
 /run/
 /build/
+/build-logic/build/
 /eclipse/
 .classpath
 .project

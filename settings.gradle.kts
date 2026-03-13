@@ -1,5 +1,6 @@
 
 pluginManagement {
+    includeBuild("build-logic")
     repositories {
         maven {
             // RetroFuturaGradle
