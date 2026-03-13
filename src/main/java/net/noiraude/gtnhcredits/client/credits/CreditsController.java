@@ -56,9 +56,8 @@ public final class CreditsController {
             this.personFilterPattern = null;
         } else {
             try {
-                this.personFilterPattern = Pattern.compile(
-                    this.personFilter,
-                    Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
+                this.personFilterPattern = Pattern
+                    .compile(this.personFilter, Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
             } catch (PatternSyntaxException e) {
                 this.personFilterPattern = null; // fall back to literal substring match
             }
@@ -92,8 +91,10 @@ public final class CreditsController {
             .filter(e -> {
                 if (personFilter.isEmpty()) return true;
                 String name = EnumChatFormatting.getTextWithoutFormattingCodes(e.getKey());
-                return filter != null ? filter.matcher(name).find()
-                                     : name.toLowerCase().contains(lowerFilter);
+                return filter != null ? filter.matcher(name)
+                    .find()
+                    : name.toLowerCase()
+                        .contains(lowerFilter);
             })
             .sorted(Map.Entry.comparingByKey(String.CASE_INSENSITIVE_ORDER))
             .map(
