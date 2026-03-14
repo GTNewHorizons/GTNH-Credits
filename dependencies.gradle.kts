@@ -36,5 +36,8 @@
 dependencies {
     //add("runtimeOnlyNonPublishable", "com.github.GTNewHorizons:NotEnoughItems:2.7.69-GTNH:dev")
     add("compileOnly", "org.jetbrains:annotations:26.0.2-1")
-    add("api", "com.github.GTNewHorizons:ModularUI2:2.3.45-1.7.10:dev")
+    //add("api", "com.github.GTNewHorizons:ModularUI2:2.3.45-1.7.10:dev")
+    add("api", "com.github.GTNewHorizons:ModularUI2")
+    add("runtimeOnlyNonPublishable", "com.github.GTNewHorizons:Baubles-Expanded:2.2.6-GTNH:dev")
+
 }

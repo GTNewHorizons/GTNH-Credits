@@ -20,3 +20,10 @@ pluginManagement {
 plugins {
     id("com.gtnewhorizons.gtnhsettingsconvention") version("2.0.24")
 }
+
+includeBuild("../ModularUI2") {
+    dependencySubstitution {
+        substitute(module("com.github.GTNewHorizons:ModularUI2")).using(project(":"))
+        substitute(module("com.cleanroommc.modularui:modularui2")).using(project(":"))
+    }
+}
