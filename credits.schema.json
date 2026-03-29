@@ -6,6 +6,9 @@
   "required": ["category"],
   "additionalProperties": false,
   "properties": {
+    "$schema": {
+      "type": "string"
+    },
     "version": {
       "description": "Schema version. Increment when making backwards-incompatible changes so readers can detect format mismatches. Defaults to 1 if absent.",
       "type": "integer",

@@ -13,7 +13,7 @@ public class CreditsPlugin implements Plugin<Project> {
             task.setGroup("documentation");
             task.setDescription("Generates credits.schema.md from credits.schema.json.");
             task.setSchemaFile(project.getLayout().getProjectDirectory()
-                .file("src/main/resources/assets/gtnhcredits/credits.schema.json").getAsFile());
+                .file("credits.schema.json").getAsFile());
             task.setOutputFile(project.getLayout().getProjectDirectory()
                 .file("credits.schema.md").getAsFile());
         });
@@ -26,7 +26,7 @@ public class CreditsPlugin implements Plugin<Project> {
             task.setJsonFile(project.getLayout().getProjectDirectory()
                 .file("src/main/resources/assets/gtnhcredits/credits.json").getAsFile());
             task.setSchemaFile(project.getLayout().getProjectDirectory()
-                .file("src/main/resources/assets/gtnhcredits/credits.schema.json").getAsFile());
+                .file("credits.schema.json").getAsFile());
             task.setMarkerFile(project.getLayout().getBuildDirectory().get()
                 .file("validations/credits-json.txt").getAsFile());
         });
@@ -42,6 +42,32 @@ public class CreditsPlugin implements Plugin<Project> {
                 task.dependsOn("validateCreditsJson");
                 task.dependsOn("generateCreditsSchemaDoc");
             });
+        });
+
+        String clientDir = String.valueOf(project.findProperty("runClientWorkingDirectory") != null
+            ? project.findProperty("runClientWorkingDirectory") : "run/client");
+        String serverDir = String.valueOf(project.findProperty("runServerWorkingDirectory") != null
+            ? project.findProperty("runServerWorkingDirectory") : "run/server");
+
+        project.getTasks().register("syncDevClient", org.gradle.api.tasks.Copy.class, task -> {
+            task.setDescription("Copies dev files into the run/client directory.");
+            task.from("src/dev/client");
+            task.into(clientDir);
+        });
+
+        project.getTasks().register("syncDevServer", org.gradle.api.tasks.Copy.class, task -> {
+            task.setDescription("Copies dev files into the run/server directory.");
+            task.from("src/dev/server");
+            task.into(serverDir);
+        });
+
+        project.getTasks().configureEach(task -> {
+            String name = task.getName();
+            if (name.startsWith("runClient")) {
+                task.dependsOn("syncDevClient");
+            } else if (name.startsWith("runServer")) {
+                task.dependsOn("syncDevServer");
+            }
         });
     }
 }

@@ -7,7 +7,7 @@
       "description": "Adds a credits display for the GTNH mod-pack.",
       "version": "${modVersion}",
       "mcversion": "${minecraftVersion}",
-      "url": "https://github.com/leagris/gtnhcredits",
+      "url": "https://github.com/GTNewHorizons/GTNH-Credits/",
       "updateUrl": "",
       "authorList": ["Léa Gris"],
       "credits": "",

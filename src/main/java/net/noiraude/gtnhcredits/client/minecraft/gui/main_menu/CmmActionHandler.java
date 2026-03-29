@@ -9,15 +9,15 @@ import cpw.mods.fml.common.Optional;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
-import lumien.custommainmenu.events.SendIMCEvent;
+import lumien.custommainmenu.events.ActionIMCEvent;
 
-/** Handles {@link SendIMCEvent} messages addressed to this mod. */
+/** Handles {@link ActionIMCEvent} messages addressed to this mod. */
 @SideOnly(Side.CLIENT)
 public class CmmActionHandler {
 
     @SubscribeEvent
     @Optional.Method(modid = "custommainmenu")
-    public void onSendIMC(SendIMCEvent event) {
+    public void onActionIMC(ActionIMCEvent event) {
         if (!GTNHCredits.MODID.equals(event.modId)) return;
         if ("openCredits".equals(event.message)) {
             ClientGUI.open(CreditsScreen.create());

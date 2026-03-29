@@ -1,6 +1,6 @@
 # GTNH Credits: `credits.json` Schema Reference
 
-_Auto-generated from [`credits.schema.json`](src/main/resources/assets/gtnhcredits/credits.schema.json)._
+_Auto-generated from [`credits.schema.json`](credits.schema.json)._
 
 ## Contents
 

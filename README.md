@@ -13,11 +13,12 @@ It is an implementation for the [Centralized Credits Page #23582](https://github
 
 ## Custom Main Menu integration
 
-[Custom Main Menu](https://github.com/GTNewHorizons/Custom-Main-Menu) 1.13.0 adds a
+[Custom Main Menu](https://github.com/GTNewHorizons/Custom-Main-Menu) 1.14.0 adds a
 `sendIMC` action type. When a button with that action is clicked, CMM fires a
-`SendIMCEvent` on `MinecraftForge.EVENT_BUS`. GTNH-Credits subscribes to this event and
+`ActionIMCEvent` on `MinecraftForge.EVENT_BUS`. GTNH-Credits subscribes to this event and
 opens the Credits screen when it receives `modid = "gtnhcredits"` and
-`message = "openCredits"`. Neither mod needs a compile-time dependency on the other.
+`message = "openCredits"`. GTNH-Credits has a compile-only dependency on CMM for
+`ActionIMCEvent`; CMM has no dependency on GTNH-Credits.
 
 ### Button configuration
 
@@ -156,7 +157,7 @@ category. Runs automatically as part of `check`.
 ```
 
 Regenerates [`credits.schema.md`](credits.schema.md) from
-[`credits.schema.json`](src/main/resources/assets/gtnhcredits/credits.schema.json).
+[`credits.schema.json`](credits.schema.json).
 Runs automatically as part of `check` and `docs`.
 
 ```sh
