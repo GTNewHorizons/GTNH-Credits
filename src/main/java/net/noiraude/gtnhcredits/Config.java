@@ -14,6 +14,7 @@ public final class Config {
     private static Config instance;
 
     // menu_button
+    public final boolean menuButtonEnabled;
     /** X position. >= 0: absolute. < 0: margin from right edge (button right = screen_width - abs(buttonX)). */
     public final int menuButtonX;
     /** Y position. >= 0: absolute. < 0: margin from bottom edge (button bottom = screen_height - abs(buttonY)). */
@@ -28,6 +29,8 @@ public final class Config {
         @NotNull
         Configuration cfg = new Configuration(new File(configDir, "gtnh-credits.cfg"));
 
+        menuButtonEnabled = cfg
+            .getBoolean("enabled", SECTION_MENU_BUTTON, false, "Show the Credits button in the vanilla main menu.");
         menuButtonX = cfg.getInt(
             "buttonX",
             SECTION_MENU_BUTTON,

@@ -11,6 +11,57 @@ It is an implementation for the [Centralized Credits Page #23582](https://github
 - **Credits** button on the main menu
 - **ESC** / **Back** returns to the menu
 
+## Custom Main Menu integration
+
+When [Custom Main Menu](https://github.com/GTNewHorizons/Custom-Main-Menu) is present,
+pack authors can add a Credits button to their CMM menu layout using the `sendIMC` action
+type (requires Custom Main Menu 1.14.0 or later).
+
+### Button configuration
+
+Add an entry to the `"buttons"` object in your `mainmenu.json`:
+
+```json
+"credits": {
+    "text": "Credits",
+    "posX": 0,
+    "posY": -160,
+    "width": 150,
+    "height": 20,
+    "alignment": "column_bottom",
+    "action": {
+        "type": "sendIMC",
+        "modid": "gtnhcredits",
+        "message": "openCredits"
+    }
+}
+```
+
+The `sendIMC` action fires a `SendIMCEvent` on `MinecraftForge.EVENT_BUS` when the
+button is clicked. GTNH-Credits subscribes to this event and opens the Credits screen
+when it receives `modid = "gtnhcredits"` and `message = "openCredits"`.
+
+Using a lang key for the button label is also valid:
+
+```json
+"text": "menu.gtnh.credits"
+```
+
+### Disabling the vanilla button
+
+When CMM is managing the main menu, the built-in Credits button added by this mod to
+the vanilla `GuiMainMenu` is redundant. It can be disabled in
+`config/gtnh-credits.cfg`:
+
+```ini
+[menu_button]
+    # Show the Credits button in the vanilla main menu.
+    enabled=false
+```
+
+The default is `false`. Set it to `true` to show the vanilla button regardless of
+whether CMM is installed.
+
 ## Resource files
 
 Credits data is driven by a `credits.json` for the semantic credits

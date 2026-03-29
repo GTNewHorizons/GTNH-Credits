@@ -22,7 +22,6 @@ public class GuiMainMenuHandler {
     @SubscribeEvent
     public void onGuiInit(@NotNull GuiScreenEvent.InitGuiEvent.Post event) {
         if (!(event.gui instanceof GuiMainMenu)) return;
-
         // noinspection unchecked
         creditsButton = CreditsButton.create(Config.getInstance(), event.gui, event.buttonList);
     }
