@@ -13,9 +13,11 @@ It is an implementation for the [Centralized Credits Page #23582](https://github
 
 ## Custom Main Menu integration
 
-When [Custom Main Menu](https://github.com/GTNewHorizons/Custom-Main-Menu) is present,
-pack authors can add a Credits button to their CMM menu layout using the `sendIMC` action
-type (requires Custom Main Menu 1.14.0 or later).
+[Custom Main Menu](https://github.com/GTNewHorizons/Custom-Main-Menu) 1.13.0 adds a
+`sendIMC` action type. When a button with that action is clicked, CMM fires a
+`SendIMCEvent` on `MinecraftForge.EVENT_BUS`. GTNH-Credits subscribes to this event and
+opens the Credits screen when it receives `modid = "gtnhcredits"` and
+`message = "openCredits"`. Neither mod needs a compile-time dependency on the other.
 
 ### Button configuration
 
@@ -36,10 +38,6 @@ Add an entry to the `"buttons"` object in your `mainmenu.json`:
     }
 }
 ```
-
-The `sendIMC` action fires a `SendIMCEvent` on `MinecraftForge.EVENT_BUS` when the
-button is clicked. GTNH-Credits subscribes to this event and opens the Credits screen
-when it receives `modid = "gtnhcredits"` and `message = "openCredits"`.
 
 Using a lang key for the button label is also valid:
 
