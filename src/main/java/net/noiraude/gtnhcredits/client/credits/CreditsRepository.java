@@ -1,5 +1,7 @@
 package net.noiraude.gtnhcredits.client.credits;
 
+import static net.noiraude.gtnhcredits.GTNHCredits.LOG;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -52,10 +54,10 @@ final class CreditsRepository {
                 new JsonParser().parse(reader)
                     .getAsJsonObject());
         } catch (IOException e) {
-            GTNHCredits.LOG.error("Failed to load credits.json", e);
+            LOG.error("Failed to load credits.json", e);
             return CreditsData.EMPTY;
         } catch (Exception e) {
-            GTNHCredits.LOG.error("credits.json is malformed or invalid, falling back to empty credits", e);
+            LOG.error("credits.json is malformed or invalid, falling back to empty credits", e);
             return CreditsData.EMPTY;
         }
     }
@@ -72,7 +74,7 @@ final class CreditsRepository {
         int count = 0;
         for (JsonElement el : root.getAsJsonArray("category")) {
             if (count++ >= MAX_CATEGORIES) {
-                GTNHCredits.LOG.warn("credits.json: too many categories, truncating at {}", MAX_CATEGORIES);
+                LOG.warn("credits.json: too many categories, truncating at {}", MAX_CATEGORIES);
                 break;
             }
             JsonObject obj = el.getAsJsonObject();
@@ -82,7 +84,7 @@ final class CreditsRepository {
                 MAX_STRING_SHORT,
                 "category id");
             if (!isValidKey(id)) {
-                GTNHCredits.LOG.warn("credits.json: skipping category with invalid id \"{}\"", id);
+                LOG.warn("credits.json: skipping category with invalid id \"{}\"", id);
                 continue;
             }
             Set<String> classes = new HashSet<>();
@@ -98,7 +100,7 @@ final class CreditsRepository {
         int count = 0;
         for (JsonElement el : root.getAsJsonArray("person")) {
             if (count++ >= MAX_PERSONS) {
-                GTNHCredits.LOG.warn("credits.json: too many persons, truncating at {}", MAX_PERSONS);
+                LOG.warn("credits.json: too many persons, truncating at {}", MAX_PERSONS);
                 break;
             }
             JsonObject obj = el.getAsJsonObject();
@@ -121,8 +123,7 @@ final class CreditsRepository {
             if (isValidKey(value)) {
                 result.add(value);
             } else {
-                GTNHCredits.LOG
-                    .warn("credits.json: skipping invalid {} \"{}\" on person \"{}\"", kind, value, personName);
+                LOG.warn("credits.json: skipping invalid {} \"{}\" on person \"{}\"", kind, value, personName);
             }
         }
         return result;
@@ -146,7 +147,7 @@ final class CreditsRepository {
     /** Truncates {@code s} to {@code max} characters, logging a warning if truncation occurs. */
     private static String cap(String s, int max, String field) {
         if (s.length() <= max) return s;
-        GTNHCredits.LOG.warn("credits.json: {} value too long ({}), truncating to {} chars", field, s.length(), max);
+        LOG.warn("credits.json: {} value too long ({}), truncating to {} chars", field, s.length(), max);
         return s.substring(0, max);
     }
 }

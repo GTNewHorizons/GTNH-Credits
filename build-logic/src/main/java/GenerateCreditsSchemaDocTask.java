@@ -1,12 +1,15 @@
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.tasks.InputFile;
 import org.gradle.api.tasks.OutputFile;
 import org.gradle.api.tasks.TaskAction;
 
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 
 /**
@@ -15,7 +18,6 @@ import java.nio.file.Files;
  * All descriptions and constraints are pulled directly from the schema so the
  * generated file stays in sync automatically whenever the schema changes.
  */
-@SuppressWarnings("Since15")
 public class GenerateCreditsSchemaDocTask extends DefaultTask {
 
     private File schemaFile;
@@ -31,31 +33,35 @@ public class GenerateCreditsSchemaDocTask extends DefaultTask {
 
     @TaskAction
     public void generate() throws IOException {
-        final JsonNode schema    = new ObjectMapper().readTree(schemaFile);
-        final JsonNode defs      = schema.path("definitions");
-        final JsonNode rootProps = schema.path("properties");
-        final JsonNode typeKey   = defs.path("key");
-        final JsonNode catDef    = defs.path("category");
-        final JsonNode catProps  = catDef.path("properties");
-        final JsonNode perDef    = defs.path("person");
-        final JsonNode perProps  = perDef.path("properties");
+        JsonObject schema;
+        try (FileReader reader = new FileReader(schemaFile, StandardCharsets.UTF_8)) {
+            schema = JsonParser.parseReader(reader).getAsJsonObject();
+        }
 
-        final String rootDesc      = schema.path("description").asText();
-        final int    versionMin    = rootProps.path("version").path("minimum").asInt();
-        final String categoriesDesc = rootProps.path("category").path("description").asText();
-        final String personsDesc   = rootProps.path("person").path("description").asText();
-        final String catDesc       = catDef.path("description").asText();
-        final String idCell        = cell(catProps.path("id"));
-        final String classesCell   = cell(catProps.path("class"));
-        final String perDesc       = perDef.path("description").asText();
-        final int    nameMax       = perProps.path("name").path("maxLength").asInt();
-        final String nameCell      = cell(perProps.path("name"));
-        final String categoriesCell = cell(perProps.path("category"));
-        final String rolesCell     = cell(perProps.path("role"));
-        final String tkComment     = comment(typeKey);
-        final int    tkMin         = typeKey.path("minLength").asInt();
-        final int    tkMax         = typeKey.path("maxLength").asInt();
-        final String tkChars       = typeKey.path("x-characters").asText();
+        JsonObject defs      = obj(schema, "definitions");
+        JsonObject rootProps = obj(schema, "properties");
+        JsonObject typeKey   = obj(defs, "key");
+        JsonObject catDef    = obj(defs, "category");
+        JsonObject catProps  = obj(catDef, "properties");
+        JsonObject perDef    = obj(defs, "person");
+        JsonObject perProps  = obj(perDef, "properties");
+
+        final String rootDesc       = str(schema, "description");
+        final int    versionMin     = integer(obj(rootProps, "version"), "minimum", 1);
+        final String categoriesDesc = str(obj(rootProps, "category"), "description");
+        final String personsDesc    = str(obj(rootProps, "person"), "description");
+        final String catDesc        = str(catDef, "description");
+        final String idCell         = cell(obj(catProps, "id"));
+        final String classesCell    = cell(obj(catProps, "class"));
+        final String perDesc        = str(perDef, "description");
+        final int    nameMax        = integer(obj(perProps, "name"), "maxLength", 0);
+        final String nameCell       = cell(obj(perProps, "name"));
+        final String categoriesCell = cell(obj(perProps, "category"));
+        final String rolesCell      = cell(obj(perProps, "role"));
+        final String tkComment      = comment(typeKey);
+        final int    tkMin          = integer(typeKey, "minLength", 0);
+        final int    tkMax          = integer(typeKey, "maxLength", 0);
+        final String tkChars        = str(typeKey, "x-characters");
 
         final String doc = """
             # GTNH Credits: `credits.json` Schema Reference
@@ -142,18 +148,35 @@ public class GenerateCreditsSchemaDocTask extends DefaultTask {
                 tkChars          // key x-characters
             );
 
-        //noinspection BlockingMethodInNonBlockingContext
         Files.writeString(outputFile.toPath(), doc);
         getLogger().lifecycle("Generated {} -> {}", schemaFile.getName(), outputFile.getName());
     }
 
-    /** Returns the {@code $comment} field of this node as plain text. */
-    private static String comment(JsonNode node) {
-        return node.path("$comment").asText();
+    /** Returns the nested object at {@code key}, or an empty object if absent. */
+    private static JsonObject obj(JsonObject parent, String key) {
+        JsonElement el = parent.get(key);
+        return (el != null && el.isJsonObject()) ? el.getAsJsonObject() : new JsonObject();
     }
 
-    /** Returns the {@code $comment} field of this node with pipes escaped for Markdown tables. */
-    private static String cell(JsonNode node) {
-        return node.path("$comment").asText().replace("|", "\\|");
+    /** Returns a string field, or {@code ""} if absent. */
+    private static String str(JsonObject node, String key) {
+        JsonElement el = node.get(key);
+        return (el != null && el.isJsonPrimitive()) ? el.getAsString() : "";
+    }
+
+    /** Returns an integer field, or {@code defaultValue} if absent. */
+    private static int integer(JsonObject node, String key, int defaultValue) {
+        JsonElement el = node.get(key);
+        return (el != null && el.isJsonPrimitive()) ? el.getAsInt() : defaultValue;
+    }
+
+    /** Returns the {@code $comment} field as plain text. */
+    private static String comment(JsonObject node) {
+        return str(node, "$comment");
+    }
+
+    /** Returns the {@code $comment} field with pipes escaped for Markdown tables. */
+    private static String cell(JsonObject node) {
+        return str(node, "$comment").replace("|", "\\|");
     }
 }
