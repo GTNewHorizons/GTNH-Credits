@@ -2,6 +2,7 @@ package net.noiraude.gtnhcredits.client.minecraft.gui.main_menu;
 
 import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Arrays;
 import java.util.List;
 
@@ -120,7 +121,9 @@ public final class CreditsButton extends GuiButton {
                 .getResourceManager()
                 .getResource(resourceLocation);
             // noinspection BlockingMethodInNonBlockingContext
-            return ImageIO.read(resource.getInputStream());
+            try (InputStream is = resource.getInputStream()) {
+                return ImageIO.read(is);
+            }
         } catch (IOException ignored) {
             return null;
         }
