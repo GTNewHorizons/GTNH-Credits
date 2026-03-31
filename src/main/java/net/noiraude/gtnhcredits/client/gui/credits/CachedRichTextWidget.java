@@ -89,45 +89,61 @@ class CachedRichTextWidget extends Widget<CachedRichTextWidget> {
     @Override
     public void draw(ModularGuiContext context, WidgetThemeEntry<?> widgetTheme) {
         super.draw(context, widgetTheme);
-        Area area = getArea();
-        int px = area.getPadding()
-            .getLeft();
-        int py = area.getPadding()
-            .getTop();
-        int pw = area.paddedWidth();
-        WidgetTheme wt = getActiveWidgetTheme(widgetTheme, isHovering());
-        // Recompile only when explicitly marked dirty (category change) or when the width
-        // changes significantly. Small fluctuations from the scrollbar appearing/disappearing
-        // (SCROLLBAR_TOLERANCE) are intentionally ignored to prevent spurious recompiles.
-        boolean widthChangedSignificantly = Math.abs(pw - lastCompiledWidth) > SCROLLBAR_TOLERANCE;
-        boolean needsRecompile = (dirty || widthChangedSignificantly) && pw > 0;
+        boolean needsRecompile = checkAndUpdateRecompile(getArea().paddedWidth());
+        int bodyPy = drawTitle(context, widgetTheme, needsRecompile);
+        drawBody(context, widgetTheme, bodyPy, needsRecompile);
+    }
+
+    /**
+     * @param width available content width in pixels (widget width minus padding)
+     * @return {@code true} if text needs to be recompiled; also resets compile state
+     */
+    private boolean checkAndUpdateRecompile(int width) {
+        boolean widthChangedSignificantly = Math.abs(width - lastCompiledWidth) > SCROLLBAR_TOLERANCE;
+        boolean needsRecompile = (dirty || widthChangedSignificantly) && width > 0;
         if (needsRecompile) {
-            lastCompiledWidth = pw;
+            lastCompiledWidth = width;
             dirty = false;
             cachedLines = null;
         }
+        return needsRecompile;
+    }
 
-        // --- Title (TITLE_SCALE, gold, centered) ---
-        int bodyPy = py;
-        if (titleTextSupplier != null) {
-            if (needsRecompile) {
-                String title = titleTextSupplier.get();
-                FontRenderer fr = Minecraft.getMinecraft().fontRenderer;
-                titleRichText.clearText();
-                titleRichText.scale(TITLE_SCALE);
-                titleRichText.addLine(new TitleLine(title, fr.getStringWidth(title), pw));
-            }
-            titleRichText.setupRenderer(titleRenderer, px, py, pw, -1, TITLE_COLOR, wt.getTextShadow());
-            titleRichText.compileAndDraw(titleRenderer, context, false);
-            lastTitleHeight = (int) titleRenderer.getLastTrimmedHeight();
-            bodyPy = py + lastTitleHeight + TITLE_BODY_GAP;
+    /** Draws the title (TITLE_SCALE, gold, centered) and returns the y offset for the body. */
+    private int drawTitle(ModularGuiContext context, WidgetThemeEntry<?> widgetTheme, boolean needsRecompile) {
+        Area area = getArea();
+        int py = area.getPadding()
+            .getTop();
+        if (titleTextSupplier == null) return py;
+        int px = area.getPadding()
+            .getLeft();
+        int pw = area.paddedWidth();
+        if (needsRecompile) {
+            String title = titleTextSupplier.get();
+            FontRenderer fr = Minecraft.getMinecraft().fontRenderer;
+            titleRichText.clearText();
+            titleRichText.scale(TITLE_SCALE);
+            titleRichText.addLine(new TitleLine(title, fr.getStringWidth(title), pw));
         }
+        WidgetTheme wt = widgetTheme.getTheme(isHovering());
+        titleRichText.setupRenderer(titleRenderer, px, py, pw, -1, TITLE_COLOR, wt.getTextShadow());
+        titleRichText.compileAndDraw(titleRenderer, context, false);
+        lastTitleHeight = (int) titleRenderer.getLastTrimmedHeight();
+        return py + lastTitleHeight + TITLE_BODY_GAP;
+    }
 
-        // --- Body ---
+    /** Draws the body text, compiling it when needed and using the cached lines otherwise. */
+    private void drawBody(ModularGuiContext context, WidgetThemeEntry<?> widgetTheme, int bodyPy,
+        boolean needsRecompile) {
+        Area area = getArea();
+        int px = area.getPadding()
+            .getLeft();
+        int pw = area.paddedWidth();
         if (needsRecompile) {
             richText.clearText();
             if (builder != null) builder.accept(richText, pw);
         }
+        WidgetTheme wt = widgetTheme.getTheme(isHovering());
         richText.setupRenderer(textRenderer, px, bodyPy, pw, -1, wt.getTextColor(), wt.getTextShadow());
         if (cachedLines == null && pw > 0) {
             cachedLines = richText.compileAndDraw(textRenderer, context, false);
