@@ -194,6 +194,7 @@
     <inspection_tool class="JavaRequiresAutoModule" enabled="true" level="WARNING" enabled_by_default="false">
       <scope name="Project Files" level="WARNING" enabled="true" />
     </inspection_tool>
+    <inspection_tool class="JavadocBlankLines" enabled="false" level="WARNING" enabled_by_default="false" />
     <inspection_tool class="LambdaCanBeMethodCall" enabled="true" level="INFORMATION" enabled_by_default="false">
       <scope name="Project Files" level="INFORMATION" enabled="true" />
     </inspection_tool>
@@ -243,8 +244,10 @@
     <inspection_tool class="SimplifyForEach" enabled="true" level="INFORMATION" enabled_by_default="false">
       <scope name="Project Files" level="INFORMATION" enabled="true" />
     </inspection_tool>
-    <inspection_tool class="Since15" enabled="true" level="ERROR" enabled_by_default="true">
-      <effectiveLL value="JDK_1_8" />
+    <inspection_tool class="Since15" enabled="false" level="ERROR" enabled_by_default="true">
+      <scope name="Project sources" level="ERROR" enabled="true">
+        <effectiveLL value="JDK_1_8" />
+      </scope>
     </inspection_tool>
     <inspection_tool class="SpellCheckingInspection" enabled="true" level="TYPO" enabled_by_default="false">
       <scope name="Project except resources" level="TYPO" enabled="true">
@@ -292,7 +295,6 @@
     <inspection_tool class="UnnecessaryBoxing" enabled="true" level="WARNING" enabled_by_default="false">
       <scope name="Project Files" level="WARNING" enabled="true" />
     </inspection_tool>
-    <inspection_tool class="UnnecessaryFinalOnLocalVariableOrParameter" enabled="true" level="WARNING" enabled_by_default="true" />
     <inspection_tool class="UnnecessaryModuleDependencyInspection" enabled="false" level="WARNING" enabled_by_default="false" />
     <inspection_tool class="UnnecessaryUnboxing" enabled="true" level="WARNING" enabled_by_default="false">
       <scope name="Project Files" level="WARNING" enabled="true" />

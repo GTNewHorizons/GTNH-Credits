@@ -1,5 +1,7 @@
 package net.noiraude.gtnhcredits.client.credits;
 
+import static net.noiraude.gtnhcredits.GTNHCredits.LOG;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -19,9 +21,6 @@ import net.noiraude.gtnhcredits.credits.CreditsCategory;
 import net.noiraude.gtnhcredits.credits.CreditsData;
 import net.noiraude.gtnhcredits.credits.CreditsPerson;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -32,7 +31,6 @@ import cpw.mods.fml.relauncher.SideOnly;
 @SideOnly(Side.CLIENT)
 final class CreditsRepository {
 
-    private static final Logger LOG = LogManager.getLogger(CreditsRepository.class);
     private static final ResourceLocation LOCATION = new ResourceLocation(GTNHCredits.MODID, "credits.json");
 
     // Defensive limits; mirror the schema's maxLength/maxItems where applicable.

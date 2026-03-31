@@ -38,4 +38,5 @@ dependencies {
     add("compileOnly", "org.jetbrains:annotations:26.0.2-1")
     add("api", "com.github.GTNewHorizons:ModularUI2:2.3.45-1.7.10:dev")
     add("devOnlyNonPublishable", "com.github.GTNewHorizons:Custom-Main-Menu:1.14.0:dev")
+    add("testImplementation", "junit:junit:4.13.2")
 }
