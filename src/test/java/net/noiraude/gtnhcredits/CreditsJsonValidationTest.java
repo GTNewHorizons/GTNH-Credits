@@ -14,6 +14,7 @@ import org.junit.Test;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.google.gson.JsonPrimitive;
 
 /**
  * Validates {@code credits.json} against the credits' schema.
@@ -68,8 +69,21 @@ public class CreditsJsonValidationTest {
     }
 
     @Test
-    public void version_absentIsAllowed() {
-        assertValid(minimalValid());
+    public void version_isRequired() {
+        JsonObject root = new JsonObject();
+        JsonArray cats = new JsonArray();
+        JsonObject cat = new JsonObject();
+        cat.addProperty("id", "alpha");
+        cats.add(cat);
+        root.add("category", cats);
+        assertInvalid(root);
+    }
+
+    @Test
+    public void version_mustBeAtLeastTwo() {
+        JsonObject root = minimalValid();
+        root.addProperty("version", 1);
+        assertInvalid(root);
     }
 
     // -------------------------------------------------------------------------
@@ -121,8 +135,8 @@ public class CreditsJsonValidationTest {
     public void categoryClass_acceptsArray() {
         JsonObject root = rootWithOneCategory("cats");
         JsonArray cls = new JsonArray();
-        cls.add(new com.google.gson.JsonPrimitive("person"));
-        cls.add(new com.google.gson.JsonPrimitive("role"));
+        cls.add(new JsonPrimitive("person"));
+        cls.add(new JsonPrimitive("role"));
         root.getAsJsonArray("category")
             .get(0)
             .getAsJsonObject()
@@ -195,12 +209,78 @@ public class CreditsJsonValidationTest {
     }
 
     @Test
+    public void personCategory_objectFormAccepted() {
+        // {"cats": "some-role"} is a valid category entry with a role.
+        JsonObject root = rootWithOneCategory("cats");
+        JsonObject catEntry = new JsonObject();
+        catEntry.addProperty("cats", "some-role");
+        JsonObject person = new JsonObject();
+        person.addProperty("name", "Alice");
+        person.add("category", catEntry);
+        JsonArray persons = new JsonArray();
+        persons.add(person);
+        root.add("person", persons);
+        assertValid(root);
+    }
+
+    @Test
+    public void personCategory_objectFormWithArrayRolesAccepted() {
+        // {"cats": ["role-a", "role-b"]} is a valid category entry with multiple roles.
+        JsonObject root = rootWithOneCategory("cats");
+        JsonArray roleArray = new JsonArray();
+        roleArray.add(new JsonPrimitive("role-a"));
+        roleArray.add(new JsonPrimitive("role-b"));
+        JsonObject catEntry = new JsonObject();
+        catEntry.add("cats", roleArray);
+        JsonObject person = new JsonObject();
+        person.addProperty("name", "Alice");
+        person.add("category", catEntry);
+        JsonArray persons = new JsonArray();
+        persons.add(person);
+        root.add("person", persons);
+        assertValid(root);
+    }
+
+    @Test
+    public void personCategory_mixedArrayAccepted() {
+        // ["cats", {"other": "role"}] mixes plain string and object entries.
+        JsonObject root = new JsonObject();
+        root.addProperty("version", 2);
+        JsonArray cats = new JsonArray();
+        JsonObject cat1 = new JsonObject();
+        cat1.addProperty("id", "cats");
+        JsonObject cat2 = new JsonObject();
+        cat2.addProperty("id", "other");
+        cats.add(cat1);
+        cats.add(cat2);
+        root.add("category", cats);
+
+        JsonObject catEntry = new JsonObject();
+        catEntry.addProperty("other", "role");
+        JsonArray personCategories = new JsonArray();
+        personCategories.add(new JsonPrimitive("cats"));
+        personCategories.add(catEntry);
+        JsonObject person = new JsonObject();
+        person.addProperty("name", "Alice");
+        person.add("category", personCategories);
+        JsonArray persons = new JsonArray();
+        persons.add(person);
+        root.add("person", persons);
+        assertValid(root);
+    }
+
+    @Test
     public void personRole_keyFormatEnforced() {
-        JsonObject root = rootWithOnePerson("Alice", "cats");
-        root.getAsJsonArray("person")
-            .get(0)
-            .getAsJsonObject()
-            .addProperty("role", "bad key!");
+        // A role key embedded in a category object must match the key pattern.
+        JsonObject root = rootWithOneCategory("cats");
+        JsonObject catEntry = new JsonObject();
+        catEntry.addProperty("cats", "bad role!");
+        JsonObject person = new JsonObject();
+        person.addProperty("name", "Alice");
+        person.add("category", catEntry);
+        JsonArray persons = new JsonArray();
+        persons.add(person);
+        root.add("person", persons);
         assertInvalid(root);
     }
 
@@ -211,6 +291,7 @@ public class CreditsJsonValidationTest {
     @Test
     public void duplicateCategoryIds_rejected() {
         JsonObject root = new JsonObject();
+        root.addProperty("version", 2);
         JsonArray cats = new JsonArray();
         JsonObject c1 = new JsonObject();
         c1.addProperty("id", "alpha");
@@ -227,6 +308,21 @@ public class CreditsJsonValidationTest {
         assertHasError(rootWithOnePerson("Alice", "nonexistent"), "unknown category id \"nonexistent\"");
     }
 
+    @Test
+    public void personUnknownCategoryRef_rejectedForObjectEntry() {
+        // Unknown category id supplied via the object form.
+        JsonObject root = rootWithOneCategory("cats");
+        JsonObject catEntry = new JsonObject();
+        catEntry.addProperty("nonexistent", "some-role");
+        JsonObject person = new JsonObject();
+        person.addProperty("name", "Alice");
+        person.add("category", catEntry);
+        JsonArray persons = new JsonArray();
+        persons.add(person);
+        root.add("person", persons);
+        assertHasError(root, "unknown category id \"nonexistent\"");
+    }
+
     // -------------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------------
@@ -237,6 +333,7 @@ public class CreditsJsonValidationTest {
 
     private static JsonObject rootWithOneCategory(String id) {
         JsonObject root = new JsonObject();
+        root.addProperty("version", 2);
         JsonArray cats = new JsonArray();
         JsonObject cat = new JsonObject();
         cat.addProperty("id", id);

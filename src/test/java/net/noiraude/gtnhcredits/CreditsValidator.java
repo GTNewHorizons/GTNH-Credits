@@ -1,10 +1,12 @@
 package net.noiraude.gtnhcredits;
 
+import java.io.FileInputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import com.google.gson.Gson;
@@ -33,7 +35,6 @@ import com.networknt.schema.SpecificationVersion;
  */
 public final class CreditsValidator {
 
-    private static final String SCHEMA_RESOURCE = "/assets/gtnhcredits/credits.schema.json";
     private static final Gson GSON = new Gson();
 
     private CreditsValidator() {}
@@ -45,11 +46,7 @@ public final class CreditsValidator {
     public static List<String> validate(JsonObject root) {
         List<String> errors = new ArrayList<>();
 
-        try (InputStream schemaStream = CreditsValidator.class.getResourceAsStream(SCHEMA_RESOURCE)) {
-            if (schemaStream == null) {
-                errors.add("credits schema not found on classpath: " + SCHEMA_RESOURCE);
-                return errors;
-            }
+        try (InputStream schemaStream = new FileInputStream("credits.schema.json")) {
             Schema schema = SchemaRegistry.withDefaultDialect(SpecificationVersion.DRAFT_7)
                 .getSchema(schemaStream);
             for (Error e : schema.validate(GSON.toJson(root), InputFormat.JSON)) {
@@ -110,7 +107,7 @@ public final class CreditsValidator {
             if (!person.has("name") || !person.has("category")) continue;
             String name = person.get("name")
                 .getAsString();
-            for (String catId : readStringOrArray(person.get("category"))) {
+            for (String catId : extractCategoryIds(person.get("category"))) {
                 if (!categoryIdSet.contains(catId)) {
                     errors.add("person[" + i + "] (\"" + name + "\"): unknown category id \"" + catId + "\"");
                 }
@@ -118,14 +115,29 @@ public final class CreditsValidator {
         }
     }
 
-    static List<String> readStringOrArray(JsonElement el) {
-        List<String> result = new ArrayList<>();
-        if (el.isJsonPrimitive()) {
-            result.add(el.getAsString());
-        } else if (el.isJsonArray()) {
-            el.getAsJsonArray()
-                .forEach(e -> result.add(e.getAsString()));
+    /**
+     * Extracts all category ids from a person's {@code category} field.
+     * Each entry is either a plain string (the id) or a single-property object (the property name is the id).
+     */
+    static List<String> extractCategoryIds(JsonElement categoryEl) {
+        List<String> ids = new ArrayList<>();
+        List<JsonElement> entries = new ArrayList<>();
+        if (categoryEl.isJsonArray()) {
+            categoryEl.getAsJsonArray()
+                .forEach(entries::add);
+        } else {
+            entries.add(categoryEl);
         }
-        return result;
+        for (JsonElement entry : entries) {
+            if (entry.isJsonPrimitive()) {
+                ids.add(entry.getAsString());
+            } else if (entry.isJsonObject()) {
+                for (Map.Entry<String, JsonElement> kv : entry.getAsJsonObject()
+                    .entrySet()) {
+                    ids.add(kv.getKey());
+                }
+            }
+        }
+        return ids;
     }
 }

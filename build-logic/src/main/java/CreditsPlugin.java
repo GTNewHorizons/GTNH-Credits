@@ -2,13 +2,13 @@ import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 
 /**
- * Registers the generateCreditsSchemaDoc and docs tasks,
- * and wires generateCreditsSchemaDoc into the check lifecycle.
+ * Registers the {@code generateCreditsSchemaDoc} and {@code docs} tasks.
  *
  * <p>credits.json conformance is enforced by unit tests in
  * {@code src/test/java/.../CreditsJsonValidationTest.java}, which run as part of
  * the {@code test} task (itself a dependency of {@code check}).
  */
+@SuppressWarnings("unused")
 public class CreditsPlugin implements Plugin<Project> {
 
     @Override
@@ -17,7 +17,7 @@ public class CreditsPlugin implements Plugin<Project> {
             task.setGroup("documentation");
             task.setDescription("Generates credits.schema.md from credits.schema.json.");
             task.setSchemaFile(project.getLayout().getProjectDirectory()
-                .file("src/main/resources/assets/gtnhcredits/credits.schema.json").getAsFile());
+                .file("credits.schema.json").getAsFile());
             task.setOutputFile(project.getLayout().getProjectDirectory()
                 .file("credits.schema.md").getAsFile());
         });
@@ -26,12 +26,6 @@ public class CreditsPlugin implements Plugin<Project> {
             task.setGroup("documentation");
             task.setDescription("Generates all project documentation.");
             task.dependsOn("generateCreditsSchemaDoc");
-        });
-
-        project.getPluginManager().withPlugin("java-base", appliedPlugin -> {
-            project.getTasks().named("check").configure(task -> {
-                task.dependsOn("generateCreditsSchemaDoc");
-            });
         });
     }
 }

@@ -4,6 +4,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -214,17 +215,21 @@ final class CreditsContentRenderer {
         int commaSpaceWidth = fr.getStringWidth(", ");
         int ellipsisWidth = fr.getStringWidth("...");
         for (CreditsPerson person : persons) {
+            // Persons returned by getPersonsForCategory have exactly one category entry.
+            Iterator<List<String>> it = person.categoryRoles.values()
+                .iterator();
+            List<String> personRoles = it.hasNext() ? it.next() : Collections.emptyList();
             int nameWidth = fr.getStringWidth(person.name);
             int rolesAvailable = contentWidth - nameWidth - separatorWidth;
-            if (person.roles.isEmpty() || rolesAvailable <= 0) {
+            if (personRoles.isEmpty() || rolesAvailable <= 0) {
                 rt.addLine(new CenteredLine(person.name + "§r", nameWidth, contentWidth));
                 continue;
             }
             StringBuilder roles = new StringBuilder();
             int rolesWidth = 0;
             boolean truncated = false;
-            for (int i = 0; i < person.roles.size(); i++) {
-                String roleName = roleDisplayName(person.roles.get(i));
+            for (int i = 0; i < personRoles.size(); i++) {
+                String roleName = roleDisplayName(personRoles.get(i));
                 int roleWidth = fr.getStringWidth(roleName);
                 int addedWidth = (i == 0) ? roleWidth : commaSpaceWidth + roleWidth;
                 if (rolesWidth + addedWidth <= rolesAvailable) {
