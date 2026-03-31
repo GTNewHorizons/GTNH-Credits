@@ -7,12 +7,12 @@ repositories {
 }
 
 dependencies {
-    implementation("com.networknt:json-schema-validator:1.0.87")
+    implementation("com.google.code.gson:gson:2.13.1")
 }
 
 gradlePlugin {
     plugins {
-        create("credits") {
+        register("credits") {
             id = "net.noiraude.gtnhcredits.build"
             implementationClass = "CreditsPlugin"
         }

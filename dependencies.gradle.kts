@@ -37,4 +37,5 @@ dependencies {
     //add("runtimeOnlyNonPublishable", "com.github.GTNewHorizons:NotEnoughItems:2.7.69-GTNH:dev")
     add("compileOnly", "org.jetbrains:annotations:26.0.2-1")
     add("api", "com.github.GTNewHorizons:ModularUI2:2.3.45-1.7.10:dev")
+    add("testImplementation", "junit:junit:4.13.2")
 }

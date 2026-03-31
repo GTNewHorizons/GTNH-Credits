@@ -51,7 +51,7 @@ public final class Config {
         creditsScreenLogo = cfg.getString(
             "logo",
             SECTION_CREDITS_SCREEN,
-            GTNHCredits.MODID + ":textures/gui/credis/logo.png",
+            GTNHCredits.MODID + ":textures/gui/credits/logo.png",
             "Resource location of the credits screen logo texture (domain:path).");
         if (cfg.hasChanged()) cfg.save();
     }

@@ -92,13 +92,12 @@ The two `detail` forms are mutually exclusive per locale: if any `detail.<suffix
 ### Validate `credits.json`
 
 ```bash
-./gradlew validateCreditsJson
+./gradlew test
 ```
 
-Checks schema compliance
-([JSON Schema draft-07](https://json-schema.org/draft-07)),
+Runs `CreditsJsonValidationTest`, which checks schema compliance,
 category id uniqueness, and that every person references a defined
-category. Runs automatically as part of `check`.
+category. Runs automatically as part of `check` and `build`.
 
 ### Generate schema documentation
 
