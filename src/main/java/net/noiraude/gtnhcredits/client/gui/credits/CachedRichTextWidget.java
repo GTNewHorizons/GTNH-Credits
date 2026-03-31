@@ -22,29 +22,19 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * A rich text widget that compiles its text content only when dirty.
- * The builder receives the {@link RichText} and the current content width so callers can perform
- * width-aware layout such as manual line-wrapping with custom alignment.
- * Recompilation is triggered by an explicit {@link #markDirty()} call or a significant width change.
- * Small width fluctuations (≤ {@value #SCROLLBAR_TOLERANCE}px) are ignored; they are caused by
- * the scroll widget reserving/releasing space for its scrollbar, and a few pixels of difference
- * do not meaningfully affect text layout.
+ * Widget displaying a credits category page as an optional title followed by body rich text,
+ * with lazy recompilation via {@link #markDirty()}.
  */
 @SideOnly(Side.CLIENT)
 class CachedRichTextWidget extends Widget<CachedRichTextWidget> {
 
-    /**
-     * Maximum width change (in pixels) that will NOT trigger a recompile.
-     * This absorbs the per-category scrollbar toggle: the vertical scrollbar is 4px wide,
-     * so content width oscillates ±4px as it appears/disappears. Compiled text at the
-     * wider width renders correctly at 4px narrower with no visible difference.
-     */
+    /** Maximum width delta (px) ignored by recompile checks to absorb scrollbar appearance. */
     private static final int SCROLLBAR_TOLERANCE = 8;
     /** Vertical gap (px) between the title and the body text. */
     private static final int TITLE_BODY_GAP = 10;
     /** Font scale applied to the category title. */
     private static final float TITLE_SCALE = 1.5f;
-    /** Gold colour for the category title. */
+    /** Gold color for the category title. */
     private static final int TITLE_COLOR = 0xFFAA00;
 
     private final RichText titleRichText = new RichText();
@@ -109,7 +99,11 @@ class CachedRichTextWidget extends Widget<CachedRichTextWidget> {
         return needsRecompile;
     }
 
-    /** Draws the title (TITLE_SCALE, gold, centered) and returns the y offset for the body. */
+    /**
+     * Draws the category title.
+     *
+     * @return top y offset for the body text
+     */
     private int drawTitle(ModularGuiContext context, WidgetThemeEntry<?> widgetTheme, boolean needsRecompile) {
         Area area = getArea();
         int py = area.getPadding()
@@ -152,17 +146,7 @@ class CachedRichTextWidget extends Widget<CachedRichTextWidget> {
         }
     }
 
-    /**
-     * A centered, gold, scaled title line.
-     *
-     * <p>
-     * {@link TextRenderer#drawCompiled} calls {@code draw()} with coordinates already in the
-     * pre-GL-scale space: the renderer has pushed a {@code scale(TITLE_SCALE)} matrix before
-     * invoking each line. To appear horizontally centered inside {@code containerWidth} screen
-     * pixels the unscaled x offset must be {@code (containerWidth/TITLE_SCALE - textWidth) / 2},
-     * which maps to {@code (containerWidth - textWidth*TITLE_SCALE) / 2} on screen, exactly the
-     * same centering formula used by {@code CenteredLine}, adjusted for scale.
-     */
+    /** The credits category title, rendered as the first line above the body text. */
     private static final class TitleLine implements ITextLine {
 
         private final String text;
@@ -175,6 +159,12 @@ class CachedRichTextWidget extends Widget<CachedRichTextWidget> {
             this.containerWidth = containerWidth;
         }
 
+        /**
+         * {@inheritDoc}
+         * 
+         * @implNote Ignores {@code color}; always renders in {@link #TITLE_COLOR}, centered within
+         *           {@link #containerWidth}.
+         */
         @Override
         public void draw(GuiContext context, FontRenderer fr, float x, float y, int color, boolean shadow,
             int availableWidth, int availableHeight) {
