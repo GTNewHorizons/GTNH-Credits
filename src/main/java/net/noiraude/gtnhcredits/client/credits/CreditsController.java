@@ -2,6 +2,7 @@ package net.noiraude.gtnhcredits.client.credits;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -79,9 +80,9 @@ public final class CreditsController {
         // Accumulate roles per name, preserving first-encounter order with LinkedHashMap.
         Map<String, LinkedHashSet<String>> rolesByName = new LinkedHashMap<>();
         for (CreditsPerson p : data.persons) {
-            if (p.categories.contains(category.id)) {
+            if (p.categoryRoles.containsKey(category.id)) {
                 rolesByName.computeIfAbsent(p.name, k -> new LinkedHashSet<>())
-                    .addAll(p.roles);
+                    .addAll(p.categoryRoles.getOrDefault(category.id, Collections.emptyList()));
             }
         }
         Pattern filter = personFilterPattern;
@@ -97,11 +98,11 @@ public final class CreditsController {
                         .contains(lowerFilter);
             })
             .sorted(Map.Entry.comparingByKey(String.CASE_INSENSITIVE_ORDER))
-            .map(
-                e -> new CreditsPerson(
-                    e.getKey(),
-                    Collections.singletonList(category.id),
-                    new ArrayList<>(e.getValue())))
+            .map(e -> {
+                Map<String, List<String>> catRoles = new HashMap<>();
+                catRoles.put(category.id, new ArrayList<>(e.getValue()));
+                return new CreditsPerson(e.getKey(), catRoles);
+            })
             .collect(Collectors.toList());
     }
 

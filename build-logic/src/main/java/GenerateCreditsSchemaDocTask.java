@@ -1,3 +1,4 @@
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -11,6 +12,9 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Generates a Markdown-formatted reference document from credits.schema.json.
@@ -38,30 +42,31 @@ public class GenerateCreditsSchemaDocTask extends DefaultTask {
             schema = JsonParser.parseReader(reader).getAsJsonObject();
         }
 
-        JsonObject defs      = obj(schema, "definitions");
-        JsonObject rootProps = obj(schema, "properties");
-        JsonObject typeKey   = obj(defs, "key");
-        JsonObject catDef    = obj(defs, "category");
-        JsonObject catProps  = obj(catDef, "properties");
-        JsonObject perDef    = obj(defs, "person");
-        JsonObject perProps  = obj(perDef, "properties");
+        JsonObject defs   = obj(schema, "definitions");
+        JsonObject typeKey = obj(defs, "key");
+        JsonObject catDef  = obj(defs, "category");
+        JsonObject perDef  = obj(defs, "person");
+        JsonObject pceDef  = obj(defs, "personCategoryEntry");
+        JsonObject pceAddlProps = pceObjFormAdditionalProperties(pceDef);
 
-        final String rootDesc       = str(schema, "description");
-        final int    versionMin     = integer(obj(rootProps, "version"), "minimum", 1);
-        final String categoriesDesc = str(obj(rootProps, "category"), "description");
-        final String personsDesc    = str(obj(rootProps, "person"), "description");
-        final String catDesc        = str(catDef, "description");
-        final String idCell         = cell(obj(catProps, "id"));
-        final String classesCell    = cell(obj(catProps, "class"));
-        final String perDesc        = str(perDef, "description");
-        final int    nameMax        = integer(obj(perProps, "name"), "maxLength", 0);
-        final String nameCell       = cell(obj(perProps, "name"));
-        final String categoriesCell = cell(obj(perProps, "category"));
-        final String rolesCell      = cell(obj(perProps, "role"));
-        final String tkComment      = comment(typeKey);
-        final int    tkMin          = integer(typeKey, "minLength", 0);
-        final int    tkMax          = integer(typeKey, "maxLength", 0);
-        final String tkChars        = str(typeKey, "x-characters");
+        final String rootDesc    = str(schema, "description");
+        final String rootRows    = rootTableRows(requiredSet(schema), obj(schema, "properties"));
+
+        final String catDesc     = str(catDef, "description");
+        final String catRows     = defTableRows(requiredSet(catDef), obj(catDef, "properties"));
+
+        final String perDesc     = str(perDef, "description");
+        final String perRows     = defTableRows(requiredSet(perDef), obj(perDef, "properties"));
+
+        final String pceDesc     = str(pceDef, "description");
+        final String pceTypeLabel = xCell(pceAddlProps, "x-type-label");
+        final String pceRolesDesc = descCell(pceAddlProps);
+
+        final String tkComment   = comment(typeKey);
+        final String tkType      = str(typeKey, "type");
+        final int    tkMin       = integer(typeKey, "minLength");
+        final int    tkMax       = integer(typeKey, "maxLength");
+        final String tkChars     = str(typeKey, "x-characters");
 
         final String doc = """
             # GTNH Credits: `credits.json` Schema Reference
@@ -73,6 +78,7 @@ public class GenerateCreditsSchemaDocTask extends DefaultTask {
             - [Root Object](#root-object)
             - [Category](#category)
             - [Person](#person)
+            - [PersonCategoryEntry](#personcategoryentry)
             - [Shared Types](#shared-types)
               - [`key`](#key)
 
@@ -84,9 +90,7 @@ public class GenerateCreditsSchemaDocTask extends DefaultTask {
 
             | Property | Type | Required | Description |
             |---|---|---|---|
-            | `version` | `integer` | - | Integer >= %d; defaults to 1 if absent. |
-            | [`category`](#category) | `Category[]` | yes | %s |
-            | [`person`](#person) | `Person[]` | - | %s |
+            %s
 
             ---
 
@@ -96,8 +100,7 @@ public class GenerateCreditsSchemaDocTask extends DefaultTask {
 
             | Property | Type | Required | Constraints | Description |
             |---|---|---|---|---|
-            | `id` | [`key`](#key) | yes | Unique across all categories *(build-enforced)* | %s |
-            | `class` | `string` or `string[]` | - | Unique items if array | %s |
+            %s
 
             ---
 
@@ -107,9 +110,17 @@ public class GenerateCreditsSchemaDocTask extends DefaultTask {
 
             | Property | Type | Required | Constraints | Description |
             |---|---|---|---|---|
-            | `name` | `string` | yes | Printable UTF-8, 1-%d chars, no control characters | %s |
-            | `category` | [`key`](#key) or `key[]` | yes | Non-empty, unique items if array, each must match a defined category id *(build-enforced)* | %s |
-            | `role` | [`key`](#key) or `key[]` | - | Non-empty if array form, unique items | %s |
+            %s
+
+            ---
+
+            ## PersonCategoryEntry
+
+            %s
+
+            | Property key | Value type | Description |
+            |---|---|---|
+            | (category id) | %s | %s |
 
             ---
 
@@ -121,7 +132,7 @@ public class GenerateCreditsSchemaDocTask extends DefaultTask {
 
             | Constraint | Value |
             |---|---|
-            | Type | `string` |
+            | Type | `%s` |
             | Min length | %d |
             | Max length | %d |
             | Characters | %s |
@@ -130,27 +141,132 @@ public class GenerateCreditsSchemaDocTask extends DefaultTask {
 
             _JSON Schema draft: [draft-07](https://json-schema.org/draft-07/schema)._
             """.formatted(
-                rootDesc,        // Root Object description
-                versionMin,      // version minimum
-                categoriesDesc,  // categories description
-                personsDesc,     // persons description
-                catDesc,         // Category intro
-                idCell,          // id $comment
-                classesCell,     // classes $comment
-                perDesc,         // Person intro
-                nameMax,         // name maxLength
-                nameCell,        // name $comment
-                categoriesCell,  // categories $comment
-                rolesCell,       // roles $comment
-                tkComment,       // key $comment
-                tkMin,           // key minLength
-                tkMax,           // key maxLength
-                tkChars          // key x-characters
+                rootDesc,
+                rootRows,
+                catDesc,
+                catRows,
+                perDesc,
+                perRows,
+                pceDesc,
+                pceTypeLabel,
+                pceRolesDesc,
+                tkComment,
+                tkType,
+                tkMin,
+                tkMax,
+                tkChars
             );
 
+        //noinspection BlockingMethodInNonBlockingContext
         Files.writeString(outputFile.toPath(), doc);
         getLogger().lifecycle("Generated {} -> {}", schemaFile.getName(), outputFile.getName());
     }
+
+    // -------------------------------------------------------------------------
+    // Table row generators
+    // -------------------------------------------------------------------------
+
+    /**
+     * Generates rows for a 4-column root-level table (Property, Type, Required, Description).
+     * Reads {@code description} for the description column.
+     * Property names that carry an {@code x-ref} field are rendered as Markdown links.
+     */
+    private static String rootTableRows(Set<String> required, JsonObject properties) {
+        StringBuilder sb = new StringBuilder();
+        for (Map.Entry<String, JsonElement> entry : properties.entrySet()) {
+            if (!entry.getValue().isJsonObject()) continue;
+            String name = entry.getKey();
+            JsonObject prop = entry.getValue().getAsJsonObject();
+            String nameDisplay = nameDisplay(name, prop);
+            String typeLabel   = typeLabel(prop);
+            String req         = required.contains(name) ? "yes" : "-";
+            String desc        = str(prop, "description").replace("|", "\\|");
+            sb.append("| ").append(nameDisplay).append(" | ").append(typeLabel)
+              .append(" | ").append(req).append(" | ").append(desc).append(" |");
+            sb.append('\n');
+        }
+        return sb.toString().stripTrailing();
+    }
+
+    /**
+     * Generates rows for a 5-column definition table (Property, Type, Required, Constraints, Description).
+     * Reads {@code $comment} for the description column and {@code x-constraints} for constraints.
+     */
+    private static String defTableRows(Set<String> required, JsonObject properties) {
+        StringBuilder sb = new StringBuilder();
+        for (Map.Entry<String, JsonElement> entry : properties.entrySet()) {
+            if (!entry.getValue().isJsonObject()) continue;
+            String name = entry.getKey();
+            JsonObject prop = entry.getValue().getAsJsonObject();
+            String nameDisplay  = nameDisplay(name, prop);
+            String typeLabel    = typeLabel(prop);
+            String req          = required.contains(name) ? "yes" : "-";
+            String constraints  = xCell(prop, "x-constraints");
+            String desc         = commentCell(prop);
+            sb.append("| ").append(nameDisplay).append(" | ").append(typeLabel)
+              .append(" | ").append(req).append(" | ").append(constraints)
+              .append(" | ").append(desc).append(" |");
+            sb.append('\n');
+        }
+        return sb.toString().stripTrailing();
+    }
+
+    // -------------------------------------------------------------------------
+    // Field helpers
+    // -------------------------------------------------------------------------
+
+    /**
+     * Returns the {@code required} array of {@code node} as a set, preserving order.
+     */
+    private static Set<String> requiredSet(JsonObject node) {
+        Set<String> result = new LinkedHashSet<>();
+        JsonElement req = node.get("required");
+        if (req != null && req.isJsonArray()) {
+            for (JsonElement el : req.getAsJsonArray()) {
+                if (el.isJsonPrimitive()) result.add(el.getAsString());
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Returns the Markdown display form of a property name.
+     * If the property has an {@code x-ref} field the name is wrapped in a link;
+     * otherwise it is wrapped in backticks.
+     */
+    private static String nameDisplay(String name, JsonObject prop) {
+        String ref = str(prop, "x-ref");
+        return ref.isEmpty() ? "`" + name + "`" : "[`" + name + "`](" + ref + ")";
+    }
+
+    /**
+     * Returns the type label for a property.
+     * Uses {@code x-type-label} if present, otherwise wraps the {@code type} field in backticks.
+     */
+    private static String typeLabel(JsonObject prop) {
+        String xLabel = str(prop, "x-type-label");
+        if (!xLabel.isEmpty()) return xLabel;
+        String type = str(prop, "type");
+        return type.isEmpty() ? "" : "`" + type + "`";
+    }
+
+    /**
+     * Returns the {@code additionalProperties} object from the object-form branch of a
+     * {@code personCategoryEntry}-style definition (the second element of its {@code oneOf} array).
+     */
+    private static JsonObject pceObjFormAdditionalProperties(JsonObject pceDef) {
+        JsonElement oneOfEl = pceDef.get("oneOf");
+        if (oneOfEl == null || !oneOfEl.isJsonArray()) return new JsonObject();
+        JsonArray oneOf = oneOfEl.getAsJsonArray();
+        if (oneOf.size() < 2) return new JsonObject();
+        JsonElement objForm = oneOf.get(1);
+        if (!objForm.isJsonObject()) return new JsonObject();
+        return obj(objForm.getAsJsonObject(), "additionalProperties");
+    }
+
+    // -------------------------------------------------------------------------
+    // Primitive readers
+    // -------------------------------------------------------------------------
 
     /** Returns the nested object at {@code key}, or an empty object if absent. */
     private static JsonObject obj(JsonObject parent, String key) {
@@ -165,9 +281,9 @@ public class GenerateCreditsSchemaDocTask extends DefaultTask {
     }
 
     /** Returns an integer field, or {@code defaultValue} if absent. */
-    private static int integer(JsonObject node, String key, int defaultValue) {
+    private static int integer(JsonObject node, String key) {
         JsonElement el = node.get(key);
-        return (el != null && el.isJsonPrimitive()) ? el.getAsInt() : defaultValue;
+        return (el != null && el.isJsonPrimitive()) ? el.getAsInt() : 0;
     }
 
     /** Returns the {@code $comment} field as plain text. */
@@ -176,7 +292,17 @@ public class GenerateCreditsSchemaDocTask extends DefaultTask {
     }
 
     /** Returns the {@code $comment} field with pipes escaped for Markdown tables. */
-    private static String cell(JsonObject node) {
+    private static String commentCell(JsonObject node) {
         return str(node, "$comment").replace("|", "\\|");
+    }
+
+    /** Returns the {@code description} field with pipes escaped for Markdown tables. */
+    private static String descCell(JsonObject node) {
+        return str(node, "description").replace("|", "\\|");
+    }
+
+    /** Returns a custom {@code x-*} extension field with pipes escaped for Markdown tables. */
+    private static String xCell(JsonObject node, String xKey) {
+        return str(node, xKey).replace("|", "\\|");
     }
 }

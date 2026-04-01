@@ -14,9 +14,10 @@ import org.junit.Test;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.google.gson.JsonPrimitive;
 
 /**
- * Validates {@code credits.json} against the credits schema rules.
+ * Validates {@code credits.json} against the credits' schema.
  *
  * <p>
  * Two groups of tests:
@@ -24,6 +25,12 @@ import com.google.gson.JsonParser;
  * <li>Integration: the bundled {@code credits.json} must produce no errors.</li>
  * <li>Unit: individual rules are verified with crafted synthetic documents.</li>
  * </ul>
+ *
+ * <p>
+ * Structural error message format is owned by the JSON Schema library; tests assert only
+ * that an error is reported, not its exact text. Semantic error messages (duplicate ids,
+ * unknown category references) come from this project's own code and are tested by
+ * substring.
  */
 public class CreditsJsonValidationTest {
 
@@ -51,19 +58,32 @@ public class CreditsJsonValidationTest {
     public void version_mustBeInteger() {
         JsonObject root = minimalValid();
         root.addProperty("version", "foo");
-        assertHasError(root, "version: must be an integer");
+        assertInvalid(root);
     }
 
     @Test
     public void version_mustBeAtLeastOne() {
         JsonObject root = minimalValid();
         root.addProperty("version", 0);
-        assertHasError(root, "version: must be >= 1");
+        assertInvalid(root);
     }
 
     @Test
-    public void version_absentIsAllowed() {
-        assertValid(minimalValid());
+    public void version_isRequired() {
+        JsonObject root = new JsonObject();
+        JsonArray cats = new JsonArray();
+        JsonObject cat = new JsonObject();
+        cat.addProperty("id", "alpha");
+        cats.add(cat);
+        root.add("category", cats);
+        assertInvalid(root);
+    }
+
+    @Test
+    public void version_mustBeAtLeastTwo() {
+        JsonObject root = minimalValid();
+        root.addProperty("version", 1);
+        assertInvalid(root);
     }
 
     // -------------------------------------------------------------------------
@@ -72,37 +92,33 @@ public class CreditsJsonValidationTest {
 
     @Test
     public void category_isRequired() {
-        JsonObject root = new JsonObject();
-        assertHasError(root, "category: required array is missing or not an array");
+        assertInvalid(new JsonObject());
     }
 
     @Test
     public void category_mustBeArray() {
         JsonObject root = new JsonObject();
         root.addProperty("category", "not-an-array");
-        assertHasError(root, "category: required array is missing or not an array");
+        assertInvalid(root);
     }
 
     @Test
     public void categoryId_mustBePresent() {
         JsonObject root = new JsonObject();
         JsonArray cats = new JsonArray();
-        cats.add(new JsonObject()); // object without id
+        cats.add(new JsonObject());
         root.add("category", cats);
-        assertHasError(root, "category[0].id: required field is missing");
+        assertInvalid(root);
     }
 
     @Test
     public void categoryId_patternEnforced() {
-        assertHasError(rootWithOneCategory("1startsWithDigit"), "category[0].id: invalid key format");
+        assertInvalid(rootWithOneCategory("1startsWithDigit"));
     }
 
     @Test
     public void categoryId_lengthEnforced() {
-        String longId = nChars('x', CreditsValidator.MAX_KEY_LENGTH + 1);
-        assertHasError(
-            rootWithOneCategory(longId),
-            "category[0].id: exceeds max length " + CreditsValidator.MAX_KEY_LENGTH);
+        assertInvalid(rootWithOneCategory(nChars('x', 33))); // schema maxLength is 32
     }
 
     @Test
@@ -119,8 +135,8 @@ public class CreditsJsonValidationTest {
     public void categoryClass_acceptsArray() {
         JsonObject root = rootWithOneCategory("cats");
         JsonArray cls = new JsonArray();
-        cls.add(new com.google.gson.JsonPrimitive("person"));
-        cls.add(new com.google.gson.JsonPrimitive("role"));
+        cls.add(new JsonPrimitive("person"));
+        cls.add(new JsonPrimitive("role"));
         root.getAsJsonArray("category")
             .get(0)
             .getAsJsonObject()
@@ -135,7 +151,7 @@ public class CreditsJsonValidationTest {
             .get(0)
             .getAsJsonObject()
             .addProperty("class", 42);
-        assertHasError(root, "category[0].class: must be a string");
+        assertInvalid(root);
     }
 
     // -------------------------------------------------------------------------
@@ -151,26 +167,22 @@ public class CreditsJsonValidationTest {
     public void person_mustBeArray() {
         JsonObject root = rootWithOneCategory("cats");
         root.addProperty("person", "oops");
-        assertHasError(root, "person: must be an array");
+        assertInvalid(root);
     }
 
     @Test
     public void personName_isRequired() {
-        JsonObject root = rootWithOnePerson(null, "cats");
-        assertHasError(root, "person[0].name: required string is missing");
+        assertInvalid(rootWithOnePerson(null, "cats"));
     }
 
     @Test
     public void personName_mustNotBeEmpty() {
-        JsonObject root = rootWithOnePerson("", "cats");
-        assertHasError(root, "person[0].name: must not be empty");
+        assertInvalid(rootWithOnePerson("", "cats"));
     }
 
     @Test
     public void personName_lengthEnforced() {
-        String longName = nChars('a', CreditsValidator.MAX_NAME_LENGTH + 1);
-        JsonObject root = rootWithOnePerson(longName, "cats");
-        assertHasError(root, "person[0].name: exceeds max length " + CreditsValidator.MAX_NAME_LENGTH);
+        assertInvalid(rootWithOnePerson(nChars('a', 81), "cats")); // schema maxLength is 80
     }
 
     @Test
@@ -181,7 +193,7 @@ public class CreditsJsonValidationTest {
         JsonArray persons = new JsonArray();
         persons.add(person);
         root.add("person", persons);
-        assertHasError(root, "person[0].category: required field is missing");
+        assertInvalid(root);
     }
 
     @Test
@@ -193,26 +205,93 @@ public class CreditsJsonValidationTest {
         JsonArray persons = new JsonArray();
         persons.add(person);
         root.add("person", persons);
-        assertHasError(root, "person[0].category: array must not be empty");
+        assertInvalid(root);
+    }
+
+    @Test
+    public void personCategory_objectFormAccepted() {
+        // {"cats": "some-role"} is a valid category entry with a role.
+        JsonObject root = rootWithOneCategory("cats");
+        JsonObject catEntry = new JsonObject();
+        catEntry.addProperty("cats", "some-role");
+        JsonObject person = new JsonObject();
+        person.addProperty("name", "Alice");
+        person.add("category", catEntry);
+        JsonArray persons = new JsonArray();
+        persons.add(person);
+        root.add("person", persons);
+        assertValid(root);
+    }
+
+    @Test
+    public void personCategory_objectFormWithArrayRolesAccepted() {
+        // {"cats": ["role-a", "role-b"]} is a valid category entry with multiple roles.
+        JsonObject root = rootWithOneCategory("cats");
+        JsonArray roleArray = new JsonArray();
+        roleArray.add(new JsonPrimitive("role-a"));
+        roleArray.add(new JsonPrimitive("role-b"));
+        JsonObject catEntry = new JsonObject();
+        catEntry.add("cats", roleArray);
+        JsonObject person = new JsonObject();
+        person.addProperty("name", "Alice");
+        person.add("category", catEntry);
+        JsonArray persons = new JsonArray();
+        persons.add(person);
+        root.add("person", persons);
+        assertValid(root);
+    }
+
+    @Test
+    public void personCategory_mixedArrayAccepted() {
+        // ["cats", {"other": "role"}] mixes plain string and object entries.
+        JsonObject root = new JsonObject();
+        root.addProperty("version", 2);
+        JsonArray cats = new JsonArray();
+        JsonObject cat1 = new JsonObject();
+        cat1.addProperty("id", "cats");
+        JsonObject cat2 = new JsonObject();
+        cat2.addProperty("id", "other");
+        cats.add(cat1);
+        cats.add(cat2);
+        root.add("category", cats);
+
+        JsonObject catEntry = new JsonObject();
+        catEntry.addProperty("other", "role");
+        JsonArray personCategories = new JsonArray();
+        personCategories.add(new JsonPrimitive("cats"));
+        personCategories.add(catEntry);
+        JsonObject person = new JsonObject();
+        person.addProperty("name", "Alice");
+        person.add("category", personCategories);
+        JsonArray persons = new JsonArray();
+        persons.add(person);
+        root.add("person", persons);
+        assertValid(root);
     }
 
     @Test
     public void personRole_keyFormatEnforced() {
-        JsonObject root = rootWithOnePerson("Alice", "cats");
-        root.getAsJsonArray("person")
-            .get(0)
-            .getAsJsonObject()
-            .addProperty("role", "bad key!");
-        assertHasError(root, "person[0].role: invalid key format");
+        // A role key embedded in a category object must match the key pattern.
+        JsonObject root = rootWithOneCategory("cats");
+        JsonObject catEntry = new JsonObject();
+        catEntry.addProperty("cats", "bad role!");
+        JsonObject person = new JsonObject();
+        person.addProperty("name", "Alice");
+        person.add("category", catEntry);
+        JsonArray persons = new JsonArray();
+        persons.add(person);
+        root.add("person", persons);
+        assertInvalid(root);
     }
 
     // -------------------------------------------------------------------------
-    // Semantic checks
+    // Semantic checks (duplicate ids, unknown refs -- checked by our own code)
     // -------------------------------------------------------------------------
 
     @Test
     public void duplicateCategoryIds_rejected() {
         JsonObject root = new JsonObject();
+        root.addProperty("version", 2);
         JsonArray cats = new JsonArray();
         JsonObject c1 = new JsonObject();
         c1.addProperty("id", "alpha");
@@ -226,7 +305,21 @@ public class CreditsJsonValidationTest {
 
     @Test
     public void personUnknownCategoryRef_rejected() {
-        JsonObject root = rootWithOnePerson("Alice", "nonexistent");
+        assertHasError(rootWithOnePerson("Alice", "nonexistent"), "unknown category id \"nonexistent\"");
+    }
+
+    @Test
+    public void personUnknownCategoryRef_rejectedForObjectEntry() {
+        // Unknown category id supplied via the object form.
+        JsonObject root = rootWithOneCategory("cats");
+        JsonObject catEntry = new JsonObject();
+        catEntry.addProperty("nonexistent", "some-role");
+        JsonObject person = new JsonObject();
+        person.addProperty("name", "Alice");
+        person.add("category", catEntry);
+        JsonArray persons = new JsonArray();
+        persons.add(person);
+        root.add("person", persons);
         assertHasError(root, "unknown category id \"nonexistent\"");
     }
 
@@ -234,13 +327,13 @@ public class CreditsJsonValidationTest {
     // Helpers
     // -------------------------------------------------------------------------
 
-    /** Minimal valid document: one category, no persons. */
     private static JsonObject minimalValid() {
         return rootWithOneCategory("alpha");
     }
 
     private static JsonObject rootWithOneCategory(String id) {
         JsonObject root = new JsonObject();
+        root.addProperty("version", 2);
         JsonArray cats = new JsonArray();
         JsonObject cat = new JsonObject();
         cat.addProperty("id", id);
@@ -250,7 +343,7 @@ public class CreditsJsonValidationTest {
     }
 
     /**
-     * Document with one category {@code catId} and one person. Pass {@code null}
+     * Document with one category {@code cats} and one person. Pass {@code null}
      * for {@code personName} to omit the name field entirely.
      */
     private static JsonObject rootWithOnePerson(String personName, String personCatRef) {
@@ -264,7 +357,6 @@ public class CreditsJsonValidationTest {
         return root;
     }
 
-    /** Returns a string of {@code n} copies of {@code c}, using only Java 8 APIs. */
     private static String nChars(char c, int n) {
         char[] buf = new char[n];
         Arrays.fill(buf, c);
@@ -274,6 +366,11 @@ public class CreditsJsonValidationTest {
     private static void assertValid(JsonObject root) {
         List<String> errors = CreditsValidator.validate(root);
         assertTrue("Expected no errors but got: " + errors, errors.isEmpty());
+    }
+
+    private static void assertInvalid(JsonObject root) {
+        List<String> errors = CreditsValidator.validate(root);
+        assertFalse("Expected at least one error but document was accepted", errors.isEmpty());
     }
 
     private static void assertHasError(JsonObject root, String substring) {
