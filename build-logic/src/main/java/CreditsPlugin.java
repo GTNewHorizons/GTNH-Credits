@@ -28,7 +28,7 @@ public class CreditsPlugin implements Plugin<Project> {
             task.dependsOn("generateCreditsSchemaDoc");
         });
 
-        project.getPluginManager().withPlugin("java-base", ignored -> {
+        project.getPluginManager().withPlugin("java-base", _plugin -> {
             project.getTasks().named("check").configure(task -> {
                 task.dependsOn("generateCreditsSchemaDoc");
             });
