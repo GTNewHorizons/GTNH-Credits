@@ -27,7 +27,7 @@ public final class CreditsController {
     private int selectedIndex = 0;
     private String personFilter = "";
 
-    private final double FUZZY_THRESHOLD = 40.0;
+    private final double FUZZY_THRESHOLD = 30.0;
 
     public CreditsController() {
         this.data = CreditsRepository.load();
@@ -78,6 +78,8 @@ public final class CreditsController {
                     .addAll(p.roles);
             }
         }
+
+        // If no filter, return full list of ordered people
         if (personFilter.isEmpty()) return rolesByName.entrySet()
             .stream()
             .sorted(Map.Entry.comparingByKey(String.CASE_INSENSITIVE_ORDER))
@@ -88,6 +90,7 @@ public final class CreditsController {
                     new ArrayList<>(e.getValue())))
             .collect(Collectors.toList());
 
+        // If filter given, use fuzzy finder to get most relevant names and return
         List<String> matchedNames = FuzzyFinder.findMatchesWithThreshold(
             rolesByName.entrySet()
                 .stream()
@@ -99,24 +102,6 @@ public final class CreditsController {
         return matchedNames.stream()
             .map(e -> new CreditsPerson(e, Collections.singletonList(category.id), new ArrayList<>(rolesByName.get(e))))
             .collect(Collectors.toList());
-        // return rolesByName.entrySet()
-        // .stream()
-        // .filter(e -> {
-        // if (personFilter.isEmpty())
-        // return true;
-        // String name = EnumChatFormatting.getTextWithoutFormattingCodes(e.getKey());
-        // return filter != null ? filter.matcher(name)
-        // .find()
-        // : name.toLowerCase()
-        // .contains(lowerFilter);
-        // })
-        // .sorted(Map.Entry.comparingByKey(String.CASE_INSENSITIVE_ORDER))
-        // .map(
-        // e -> new CreditsPerson(
-        // e.getKey(),
-        // Collections.singletonList(category.id),
-        // new ArrayList<>(e.getValue())))
-        // .collect(Collectors.toList());
     }
 
     /**
