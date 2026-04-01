@@ -34,9 +34,9 @@
  * For more details, see https://docs.gradle.org/8.0.1/userguide/java_library_plugin.html#sec:java_library_configurations_graph
  */
 dependencies {
-    //add("runtimeOnlyNonPublishable", "com.github.GTNewHorizons:NotEnoughItems:2.7.69-GTNH:dev")
     add("compileOnly", "org.jetbrains:annotations:26.0.2-1")
     add("api", "com.github.GTNewHorizons:ModularUI2:2.3.45-1.7.10:dev")
     add("devOnlyNonPublishable", "com.github.GTNewHorizons:Custom-Main-Menu:1.14.0:dev")
     add("testImplementation", "junit:junit:4.13.2")
+    add("testImplementation", "com.networknt:json-schema-validator:3.0.1")
 }

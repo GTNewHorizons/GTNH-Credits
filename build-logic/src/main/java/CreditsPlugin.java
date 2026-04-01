@@ -2,13 +2,13 @@ import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 
 /**
- * Registers the generateCreditsSchemaDoc and docs tasks,
- * and wires generateCreditsSchemaDoc into the check lifecycle.
+ * Registers the {@code generateCreditsSchemaDoc} and {@code docs} tasks.
  *
  * <p>credits.json conformance is enforced by unit tests in
  * {@code src/test/java/.../CreditsJsonValidationTest.java}, which run as part of
  * the {@code test} task (itself a dependency of {@code check}).
  */
+@SuppressWarnings("unused")
 public class CreditsPlugin implements Plugin<Project> {
 
     @Override
