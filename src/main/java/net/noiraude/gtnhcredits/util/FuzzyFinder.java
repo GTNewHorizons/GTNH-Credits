@@ -91,6 +91,7 @@ public class FuzzyFinder {
      *
      * @return The list of matched names based on results
      */
+    @SuppressWarnings("unused")
     public static List<String> findClosestMatches(List<String> usernames, String searchTerm, int maxResults) {
         // Normalise search term
         String lowerSearch = searchTerm.toLowerCase();
