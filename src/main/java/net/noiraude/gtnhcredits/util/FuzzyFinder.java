@@ -8,6 +8,15 @@ import com.github.bsideup.jabel.Desugar;
 
 public class FuzzyFinder {
 
+    private static final double PREFIX_DEFAULT_COST = 0.1;
+    private static final double SUBSTRING_DEFAULT_COST = 5.0;
+    private static final double SUBSTRING_INDEX_COST = 0.5;
+    private static final double FUZZY_COST = 10.0;
+    private static final double EXTRA_CHAR_COST = 0.01;
+
+    private static final double FUZZY_PREFIX_COST = 3.0;
+    private static final double FUZZY_FULL_COST = 0.5;
+
     public static int damerauLevenshteinDist(String source, String target) {
         if (source.equals(target)) return 0;
         int sourceLength = source.length();
@@ -44,8 +53,8 @@ public class FuzzyFinder {
         String lowerSearch = searchTerm.toLowerCase();
 
         List<ScoredUsername> scoredNames = usernames.stream()
-            .map(username -> new ScoredUsername(username, damerauLevenshteinDist(username.toLowerCase(), lowerSearch)))
-            .sorted(Comparator.comparingInt(s -> s.distance()))
+            .map(username -> new ScoredUsername(username, calculateSmartScore(username, searchTerm)))
+            .sorted(Comparator.comparingDouble(s -> s.score()))
             .collect(Collectors.toList());
 
         if (maxResults > 0 && scoredNames.size() > maxResults) {
@@ -57,16 +66,46 @@ public class FuzzyFinder {
             .collect(Collectors.toList());
     }
 
-    public static List<String> findMatchesWithThreshold(List<String> usernames, String searchTerm, int maxDistance) {
+    public static List<String> findMatchesWithThreshold(List<String> usernames, String searchTerm, double maxDistance) {
 
         String lowerSearch = searchTerm.toLowerCase();
 
         return usernames.stream()
-            .map(username -> new ScoredUsername(username, damerauLevenshteinDist(username.toLowerCase(), lowerSearch)))
-            .filter(s -> s.distance() <= maxDistance)
-            .sorted(Comparator.comparingInt(s -> s.distance()))
+            .map(username -> new ScoredUsername(username, calculateSmartScore(username.toLowerCase(), lowerSearch)))
+            .filter(s -> s.score() <= maxDistance)
+            .sorted(Comparator.comparingDouble(s -> s.score()))
             .map(s -> s.username())
             .collect(Collectors.toList());
+    }
+
+    public static double calculateSmartScore(String username, String searchTerm) {
+        String usernameLower = username.toLowerCase();
+        String searchLower = searchTerm.toLowerCase();
+
+        // Perfect Match
+        if (usernameLower.equals(searchLower)) {
+            return 0.0;
+        }
+
+        // Prefix matching
+        if (usernameLower.startsWith(searchLower)) {
+            return PREFIX_DEFAULT_COST + (username.length() - searchTerm.length()) * EXTRA_CHAR_COST;
+        }
+
+        int substringIndex = usernameLower.indexOf(searchLower);
+        if (substringIndex != -1) {
+            return SUBSTRING_DEFAULT_COST + substringIndex * SUBSTRING_INDEX_COST
+                + (username.length() - searchTerm.length()) * EXTRA_CHAR_COST;
+        }
+
+        int prefixLength = Math.min(username.length(), searchTerm.length() + 5); // Allow a few extra characters
+
+        String usernamePrefix = usernameLower.substring(0, prefixLength);
+        int prefixDistance = damerauLevenshteinDist(usernamePrefix, searchLower);
+
+        int fullDistance = damerauLevenshteinDist(usernameLower, searchLower);
+
+        return FUZZY_COST + (prefixDistance * 3.0) + (fullDistance * 0.5);
     }
 
     private static boolean transpositionPairFrom(int i, int j, String source, String target) {
@@ -78,5 +117,5 @@ public class FuzzyFinder {
     }
 
     @Desugar
-    public record ScoredUsername(String username, int distance) {}
+    public record ScoredUsername(String username, double score) {}
 }

@@ -27,6 +27,8 @@ public final class CreditsController {
     private int selectedIndex = 0;
     private String personFilter = "";
 
+    private final double FUZZY_THRESHOLD = 40.0;
+
     public CreditsController() {
         this.data = CreditsRepository.load();
     }
@@ -92,7 +94,7 @@ public final class CreditsController {
                 .map(e -> e.getKey())
                 .collect(Collectors.toList()),
             personFilter,
-            10);
+            FUZZY_THRESHOLD);
 
         return matchedNames.stream()
             .map(e -> new CreditsPerson(e, Collections.singletonList(category.id), new ArrayList<>(rolesByName.get(e))))
