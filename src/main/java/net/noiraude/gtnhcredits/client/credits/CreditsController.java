@@ -101,7 +101,11 @@ public final class CreditsController {
             FUZZY_THRESHOLD);
 
         return matchedNames.stream()
-            .map(e -> new CreditsPerson(e, Collections.singletonList(category.id), new ArrayList<>(rolesByName.get(e))))
+            .map(e -> {
+                Map<String, List<String>> catRoles = new HashMap<>();
+                catRoles.put(category.id, new ArrayList<>(rolesByName.get(e)));
+                return new CreditsPerson(e, catRoles);
+            })
             .collect(Collectors.toList());
     }
 
