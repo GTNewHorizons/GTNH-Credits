@@ -1,5 +1,6 @@
 {
-  "version": 1,
+  "$schema": "https://raw.githubusercontent.com/GTNewHorizons/GTNH-Credits/master/credits.schema.json",
+  "version": 2,
   "category": [
     {
       "id": "team",
@@ -45,28 +46,23 @@
   "person": [
     {
       "name": "DreamMasterXXL",
-      "category": ["team", "dev"],
-      "role": "gtnh-creator"
+      "category": [{ "team": "gtnh-creator" }, { "dev": "gtnh-creator" }]
     },
     {
       "name": "Technovangelist",
-      "category": ["team", "dev"],
-      "role": ["dev", "infra"]
+      "category": [{ "team": ["dev", "infra"] }, { "dev": ["dev", "infra"] }]
     },
     {
       "name": "Lea",
-      "category": "dev",
-      "role": "dev"
+      "category": { "dev": "dev" }
     },
     {
       "name": "Glease",
-      "category": "dev",
-      "role": ["dev", "core-mods"]
+      "category": { "dev": ["dev", "core-mods"] }
     },
     {
       "name": "Blood Asp",
-      "category": ["dev", "contrib"],
-      "role": "dev"
+      "category": [{ "dev": "dev" }, "contrib"]
     },
     {
       "name": "Steelux",
@@ -138,8 +134,7 @@
     },
     {
       "name": "Anachronist",
-      "category": "contrib",
-      "role": "recipes"
+      "category": { "contrib": "recipes" }
     },
     {
       "name": "Supporter McSupportface",
@@ -175,13 +170,11 @@
     },
     {
       "name": "Translated Person",
-      "category": "Key Test",
-      "role": ["Test-Role", "Core.Mod"]
+      "category": { "Key Test": ["Test-Role", "Core.Mod"] }
     },
     {
       "name": "Fallback Role Person",
-      "category": "Key Test",
-      "role": "No.Trans Role"
+      "category": { "Key Test": "No.Trans Role" }
     },
     {
       "name": "Fallback Cat Person",

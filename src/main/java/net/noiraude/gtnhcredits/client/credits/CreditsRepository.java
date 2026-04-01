@@ -10,7 +10,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -109,21 +111,58 @@ final class CreditsRepository {
                     .getAsString(),
                 MAX_STRING_NAME,
                 "person name");
-            List<String> catIds = parseValidKeys(obj.get("category"), "person category id", name, "category id");
-            List<String> roles = obj.has("role") ? parseValidKeys(obj.get("role"), "role", name, "role")
-                : new ArrayList<>();
-            persons.add(new CreditsPerson(name, catIds, roles));
+            Map<String, List<String>> categoryRoles = parseCategoryRoles(obj.get("category"), name);
+            persons.add(new CreditsPerson(name, categoryRoles));
         }
         return persons;
     }
 
-    private static List<String> parseValidKeys(JsonElement el, String field, String personName, String kind) {
-        List<String> result = new ArrayList<>();
-        for (String value : readStringOrArray(el, field)) {
-            if (isValidKey(value)) {
-                result.add(value);
-            } else {
-                LOG.warn("credits.json: skipping invalid {} \"{}\" on person \"{}\"", kind, value, personName);
+    /**
+     * Parses the {@code category} field of a person into a map from category id to roles.
+     * Each entry is either a plain key string (no roles) or a single-property object
+     * mapping the category key to one role key or an array of role keys.
+     */
+    private static Map<String, List<String>> parseCategoryRoles(JsonElement catEl, String personName) {
+        List<JsonElement> entries = new ArrayList<>();
+        if (catEl.isJsonArray()) {
+            for (JsonElement e : catEl.getAsJsonArray()) entries.add(e);
+        } else {
+            entries.add(catEl);
+        }
+        Map<String, List<String>> result = new LinkedHashMap<>();
+        for (JsonElement entry : entries) {
+            if (entry.isJsonPrimitive()) {
+                String catId = cap(entry.getAsString(), MAX_STRING_SHORT, "category id");
+                if (!isValidKey(catId)) {
+                    LOG.warn("credits.json: skipping invalid category id \"{}\" on person \"{}\"", catId, personName);
+                    continue;
+                }
+                result.put(catId, Collections.emptyList());
+            } else if (entry.isJsonObject()) {
+                for (Map.Entry<String, JsonElement> kv : entry.getAsJsonObject()
+                    .entrySet()) {
+                    String catId = cap(kv.getKey(), MAX_STRING_SHORT, "category id");
+                    if (!isValidKey(catId)) {
+                        LOG.warn(
+                            "credits.json: skipping invalid category id \"{}\" on person \"{}\"",
+                            catId,
+                            personName);
+                        continue;
+                    }
+                    List<String> roles = new ArrayList<>();
+                    for (String role : readStringOrArray(kv.getValue(), "role")) {
+                        if (isValidKey(role)) {
+                            roles.add(role);
+                        } else {
+                            LOG.warn(
+                                "credits.json: skipping invalid role \"{}\" on person \"{}\" category \"{}\"",
+                                role,
+                                personName,
+                                catId);
+                        }
+                    }
+                    result.put(catId, roles);
+                }
             }
         }
         return result;

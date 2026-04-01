@@ -7,6 +7,7 @@ _Auto-generated from [`credits.schema.json`](src/main/resources/assets/gtnhcredi
 - [Root Object](#root-object)
 - [Category](#category)
 - [Person](#person)
+- [PersonCategoryEntry](#personcategoryentry)
 - [Shared Types](#shared-types)
   - [`key`](#key)
 
@@ -18,9 +19,10 @@ Schema for the GTNH credits data file. Persons reference categories by their id 
 
 | Property | Type | Required | Description |
 |---|---|---|---|
-| `version` | `integer` | - | Integer >= 1; defaults to 1 if absent. |
-| [`category`](#category) | `Category[]` | yes | Ordered list of credit categories. Each category's id field is its stable identifier. |
-| [`person`](#person) | `Person[]` | - | List of credited persons. Optional; may be absent or empty. |
+| `$schema` | `string` | - | JSON Schema dialect URI. Present for editor tooling; ignored by the application. |
+| `version` | `integer` | yes | Schema version. Must be 2 or higher. Increment when making backwards-incompatible changes so readers can detect format mismatches. |
+| [`category`](#category) | [`Category`](#category)[] | yes | Ordered list of credit categories. Each category's id field is its stable identifier. |
+| [`person`](#person) | [`Person`](#person)[] | - | List of credited persons. Optional; may be absent or empty. |
 
 ---
 
@@ -41,9 +43,18 @@ An entry in the person array, representing a single credited individual.
 
 | Property | Type | Required | Constraints | Description |
 |---|---|---|---|---|
-| `name` | `string` | yes | Printable UTF-8, 1-80 chars, no control characters | Display name. Full printable UTF-8; no control characters. May be visually truncated if it exceeds the available display width. |
-| `category` | [`key`](#key) or `key[]` | yes | Non-empty, unique items if array, each must match a defined category id *(build-enforced)* | One or more category ids this person belongs to. Each value must match an id defined in the top-level category array; enforced by the build tooling. |
-| `role` | [`key`](#key) or `key[]` | - | Non-empty if array form, unique items | Optional role or roles. Each value doubles as a translation key suffix and a human-readable fallback, same constraints as category id. |
+| `name` | `string` | yes | Printable UTF-8, 1–80 chars, no control characters | Display name. Full printable UTF-8; no control characters. May be visually truncated if it exceeds the available display width. |
+| `category` | [`PersonCategoryEntry`](#personcategoryentry) or `PersonCategoryEntry[]` | yes | Non-empty; each id must match a defined category *(build-enforced)* | One or more category memberships for this person. Each entry is either a plain category key (no roles) or a single-property object whose key is the category id and whose value is one or more role keys for that category. Category id uniqueness within the list and cross-reference validity are enforced by the build tooling. |
+
+---
+
+## PersonCategoryEntry
+
+A single category membership for a person. Either a plain category key (no roles) or a single-property object mapping the category key to one or more role keys for that category.
+
+| Property key | Value type | Description |
+|---|---|---|
+| (category id) | [`key`](#key) or `key[]` | Role or roles held by this person in the category named by the enclosing property key. Either a single role key or an array of role keys. |
 
 ---
 
