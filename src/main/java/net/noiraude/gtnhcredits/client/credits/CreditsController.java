@@ -95,7 +95,7 @@ public final class CreditsController {
         List<String> matchedNames = FuzzyFinder.findMatchesWithThreshold(
             rolesByName.entrySet()
                 .stream()
-                .map(e -> e.getKey())
+                .map(e -> EnumChatFormatting.getTextWithoutFormattingCodes(e.getKey()))
                 .collect(Collectors.toList()),
             personFilter,
             FUZZY_THRESHOLD);
