@@ -9,6 +9,38 @@ import com.github.bsideup.jabel.Desugar;
 /**
  * Helper class for use in "Fuzzy-Finding" Strings for use in a search bar
  * within the Credits screen
+ *
+ * Algorithm Explonation:
+ *
+ * This algorithm can be broken down into 4 "Phases" as detailed below:
+ *
+ * - Exact Match: If the search term exactly matches a username, it gets a
+ * perfect score (0)
+ *
+ * - Prefix Match: If the first n characters of a search term match the first n
+ * characters
+ * of any username, it is given a score of PREFIX_DEFAULT + EXTRA_CHAR *
+ * (remaining_chars_of_username)
+ *
+ * - Substring Match: If the search term exists as a substring anywhere in a
+ * given username, it is scored as
+ * SUBSTRING_DEFAULT + (substring_start_index * SUBSTRING_INDEX_COST) +
+ * (EXTRA_CHAR * remaining_chars_of_username)
+ *
+ * - Failing all of these match types, the "fallback" scoring is as follows:
+ * FUZZY_COST + prefix_distance * FUZZY_PREFIX_COST + full_distance *
+ * FUZZY_FULL_COST
+ * Where prefix/full_distance are the Damerau-Levenshtein (D-L) distances
+ * between the search term and the username
+ *
+ * In short, the D-L distance can be summarised as "How many character changes
+ * need to be made for the strings to match".
+ * Valid changes are:
+ * - Deletion
+ * - Replacement
+ * - Addition
+ * - Transposition (i.e. swap character placements adjacently)
+ *
  */
 public class FuzzyFinder {
 
