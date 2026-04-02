@@ -16,6 +16,7 @@ import net.minecraft.util.StatCollector;
 import net.noiraude.gtnhcredits.credits.CreditsCategory;
 import net.noiraude.gtnhcredits.credits.CreditsData;
 import net.noiraude.gtnhcredits.credits.CreditsPerson;
+import net.noiraude.gtnhcredits.util.FuzzyFinder;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -28,8 +29,33 @@ public final class CreditsController {
     private final CreditsData data;
     private int selectedIndex = 0;
     private String personFilter = "";
-    /** Compiled regex for {@link #personFilter}, or {@code null} when the pattern is invalid. */
     private Pattern personFilterPattern = null;
+    private FilterMethod filterMethod = FilterMethod.EXACT;
+
+    public static enum FilterMethod {
+
+        EXACT("gui.credits.button.filter.exact"),
+        FUZZY("gui.credits.button.filter.fuzzy");
+
+        final String lang;
+
+        FilterMethod(String lang) {
+            this.lang = lang;
+        }
+
+        public String getLang() {
+            return this.lang;
+        }
+    }
+
+    /**
+     * FUZZY_THRESHOLD is the threshold score for the filtering system to consider
+     * the username a "match". There is no particular mathematical formula I have
+     * for this, and is more a case of manual tweaking for desired results.
+     *
+     * The lower the threshold score, the stricter the filter
+     */
+    private final double FUZZY_THRESHOLD = 30.0;
 
     public CreditsController() {
         this.data = CreditsRepository.load();
@@ -51,6 +77,10 @@ public final class CreditsController {
         return personFilter;
     }
 
+    public FilterMethod getFilterMethod() {
+        return filterMethod;
+    }
+
     public void setPersonFilter(String filter) {
         this.personFilter = filter == null ? "" : filter;
         if (this.personFilter.isEmpty()) {
@@ -65,7 +95,13 @@ public final class CreditsController {
         }
     }
 
-    /** Returns the currently selected category, or {@code null} if there are no categories. */
+    public void setFilterMethod(FilterMethod method) {
+        this.filterMethod = method;
+    }
+
+    /**
+     * Returns the currently selected category, or {@code null} if there are no categories.
+     */
     public @Nullable CreditsCategory getSelectedCategory() {
         if (data.categories.isEmpty()) return null;
         return data.categories.get(Math.min(selectedIndex, data.categories.size() - 1));
@@ -85,6 +121,52 @@ public final class CreditsController {
                     .addAll(p.categoryRoles.getOrDefault(category.id, Collections.emptyList()));
             }
         }
+
+        // If no filter, return full list of ordered people
+        if (personFilter.isEmpty()) return rolesByName.entrySet()
+            .stream()
+            .sorted(Map.Entry.comparingByKey(String.CASE_INSENSITIVE_ORDER))
+            .map(e -> {
+                Map<String, List<String>> catRoles = new HashMap<>();
+                catRoles.put(category.id, new ArrayList<>(e.getValue()));
+                return new CreditsPerson(e.getKey(), catRoles);
+            })
+            .collect(Collectors.toList());
+
+        if (filterMethod == FilterMethod.EXACT) {
+            return getRegexFilteredNames(rolesByName, category);
+        } else {
+            return getFuzzyFilteredNames(rolesByName, category);
+        }
+
+    }
+
+    /**
+     * Returns the display name for a category, preferring a translation over the raw id.
+     */
+    public String getCategoryDisplayName(int index) {
+        if (index < 0 || index >= data.categories.size()) return "";
+        String id = data.categories.get(index).id;
+        String key = "credits.category." + sanitizeKey(id);
+        String name = StatCollector.canTranslate(key) ? StatCollector.translateToLocal(key) : id;
+        return EnumChatFormatting.getTextWithoutFormattingCodes(name);
+    }
+
+    /**
+     * Sanitizes a key for use as a translation key suffix:
+     * dots and hyphens are deleted, runs of spaces are collapsed to a single
+     * underscore, and the result is lowercased.
+     * The original unsanitized value should be used as fallback display text.
+     */
+    public static String sanitizeKey(String key) {
+        return key.replace(".", "")
+            .replace("-", "")
+            .replaceAll(" +", "_")
+            .toLowerCase();
+    }
+
+    private List<CreditsPerson> getRegexFilteredNames(Map<String, LinkedHashSet<String>> rolesByName,
+        CreditsCategory category) {
         Pattern filter = personFilterPattern;
         String lowerFilter = personFilter.toLowerCase();
         return rolesByName.entrySet()
@@ -106,24 +188,24 @@ public final class CreditsController {
             .collect(Collectors.toList());
     }
 
-    /** Returns the display name for a category, preferring a translation over the raw id. */
-    public String getCategoryDisplayName(int index) {
-        if (index < 0 || index >= data.categories.size()) return "";
-        String id = data.categories.get(index).id;
-        String key = "credits.category." + sanitizeKey(id);
-        String name = StatCollector.canTranslate(key) ? StatCollector.translateToLocal(key) : id;
-        return EnumChatFormatting.getTextWithoutFormattingCodes(name);
+    private List<CreditsPerson> getFuzzyFilteredNames(Map<String, LinkedHashSet<String>> rolesByName,
+        CreditsCategory category) {
+
+        List<String> matchedNames = FuzzyFinder.findMatchesWithThreshold(
+            rolesByName.entrySet()
+                .stream()
+                .map(e -> EnumChatFormatting.getTextWithoutFormattingCodes(e.getKey()))
+                .collect(Collectors.toList()),
+            personFilter,
+            FUZZY_THRESHOLD);
+
+        return matchedNames.stream()
+            .map(e -> {
+                Map<String, List<String>> catRoles = new HashMap<>();
+                catRoles.put(category.id, new ArrayList<>(rolesByName.get(e)));
+                return new CreditsPerson(e, catRoles);
+            })
+            .collect(Collectors.toList());
     }
 
-    /**
-     * Sanitizes a key for use as a translation key suffix:
-     * dots and hyphens are deleted, runs of spaces are collapsed to a single underscore, and the result is lowercased.
-     * The original unsanitized value should be used as fallback display text.
-     */
-    public static String sanitizeKey(String key) {
-        return key.replace(".", "")
-            .replace("-", "")
-            .replaceAll(" +", "_")
-            .toLowerCase();
-    }
 }

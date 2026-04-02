@@ -9,11 +9,13 @@ import javax.imageio.ImageIO;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.GuiTextField;
+import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.StatCollector;
 import net.noiraude.gtnhcredits.Config;
 import net.noiraude.gtnhcredits.GTNHCredits;
 import net.noiraude.gtnhcredits.client.credits.CreditsController;
+import net.noiraude.gtnhcredits.client.credits.CreditsController.FilterMethod;
 
 import org.jetbrains.annotations.NotNull;
 import org.lwjgl.input.Keyboard;
@@ -47,6 +49,8 @@ public final class CreditsScreen extends CustomModularScreen {
     // initializers run — so it cannot be a field initializer expression.
     private CreditsController controller;
     private GuiTextField filterField;
+    private FilterMethod currentFilterType;
+    private String currentFilterLang;
 
     public static @NotNull ModularScreen create() {
         return new CreditsScreen();
@@ -56,6 +60,8 @@ public final class CreditsScreen extends CustomModularScreen {
         super(GTNHCredits.MODID);
         openParentOnClose(true);
         pausesGame(true);
+        this.currentFilterType = CreditsController.FilterMethod.EXACT;
+        this.currentFilterLang = this.currentFilterType.getLang();
     }
 
     @Override
@@ -145,8 +151,52 @@ public final class CreditsScreen extends CustomModularScreen {
                         return true;
                     }
                     return false;
-                }));
+                }))
+            .child(
+                new ButtonWidget<>().size(100, 20)
+                    .right(8 + FILTER_WIDTH + FILTER_MARGIN)
+                    .bottom(8)
+                    .background(
+                        UITexture.builder()
+                            .location(widgetsTexture)
+                            .imageSize(256, 256)
+                            .subAreaXYWH(0, 66, 200, 20)
+                            .build())
+                    .hoverBackground(
+                        UITexture.builder()
+                            .location(widgetsTexture)
+                            .imageSize(256, 256)
+                            .subAreaXYWH(0, 86, 200, 20)
+                            .build())
+                    .overlay(
+                        IKey.dynamic(() -> StatCollector.translateToLocal(currentFilterLang))
+                            .color(0xE0E0E0))
+                    .hoverOverlay(
+                        IKey.dynamic(() -> StatCollector.translateToLocal(currentFilterLang))
+                            .color(0xFFFFA0))
+                    .tooltipDynamic(t -> {
+                        t.addLine(
+                            EnumChatFormatting.BOLD + StatCollector.translateToLocal("gui.credits.button.filter.exact")
+                                + EnumChatFormatting.RESET
+                                + ": "
+                                + StatCollector.translateToLocal("gui.credits.button.filter.exact_tip_line"));
+                        t.addLine(
+                            EnumChatFormatting.BOLD + StatCollector.translateToLocal("gui.credits.button.filter.fuzzy")
+                                + EnumChatFormatting.RESET
+                                + ": "
+                                + StatCollector.translateToLocal("gui.credits.button.filter.fuzzy_tip_line"));
+                    })
+                    .onMousePressed(mb -> {
+                        if (mb == 0 || mb == 1) {
+                            currentFilterType = currentFilterType == FilterMethod.EXACT ? FilterMethod.FUZZY
+                                : FilterMethod.EXACT;
 
+                            currentFilterLang = currentFilterType.getLang();
+                            controller.setFilterMethod(currentFilterType);
+                            return true;
+                        }
+                        return false;
+                    }));
         return panel;
     }
 
