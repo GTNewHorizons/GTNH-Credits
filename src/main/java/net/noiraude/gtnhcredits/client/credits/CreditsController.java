@@ -28,6 +28,28 @@ public final class CreditsController {
     private int selectedIndex = 0;
     private String personFilter = "";
 
+    public static enum FilterMethod {
+        EXACT("gui.credits.button.filter.exact"),
+        FUZZY("gui.credits.button.filter.fuzzy");
+
+        final String lang;
+
+        FilterMethod(String lang) {
+            this.lang = lang;
+        }
+
+        public String getLang() {
+            return this.lang;
+        }
+    }
+
+    /**
+     * FUZZY_THRESHOLD is the threshold score for the filtering system to consider
+     * the username a "match". There is no particular mathematical formula I have
+     * for this, and is more a case of manual tweaking for desired results.
+     *
+     * The lower the threshold score, the stricter the filter
+     */
     private final double FUZZY_THRESHOLD = 30.0;
 
     public CreditsController() {
@@ -50,8 +72,26 @@ public final class CreditsController {
         return personFilter;
     }
 
+    public FilterMethod getFilterMethod() {
+        return filterMethod;
+    }
+
     public void setPersonFilter(String filter) {
         this.personFilter = filter == null ? "" : filter;
+        if (this.personFilter.isEmpty()) {
+            this.personFilterPattern = null;
+        } else {
+            try {
+                this.personFilterPattern = Pattern
+                        .compile(this.personFilter, Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
+            } catch (PatternSyntaxException e) {
+                this.personFilterPattern = null; // fall back to literal substring match
+            }
+        }
+    }
+
+    public void setFilterMethod(FilterMethod method) {
+        this.filterMethod = method;
     }
 
     /**

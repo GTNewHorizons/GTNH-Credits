@@ -2,6 +2,10 @@ gui.main_menu.button.credits=Credits
 gui.credits.title=Credits
 gui.credits.button.back=Back
 gui.credits.filter.hint=Filter
+gui.credits.button.filter.fuzzy=Fuzzy
+gui.credits.button.filter.exact=Exact
+gui.credits.button.filter.exact_tip_line=Uses Regular Expressions to exactly match the start of a desired name
+gui.credits.button.filter.fuzzy_tip_line=Uses "Fuzzy Matching" to find closest matches to desired name
 
 credits.category.team=Core Team
 credits.category.team.detail=The core team is responsible for the overall direction, maintenance and release of GT New Horizons.\nTheir work spans design, coordination, infrastructure and long-term vision for the pack.

@@ -55,6 +55,12 @@ class CreditsView extends ScrollWidget<CreditsView> {
             this.richTextWidget.markDirty();
         }
 
+        CreditsController.FilterMethod currentMethod = this.controller.getFilterMethod();
+        if (currentMethod != this.lastFilterMethod) {
+            this.lastFilterMethod = currentMethod;
+            this.richTextWidget.markDirty();
+        }
+
         int h = this.richTextWidget.getLastHeight();
         if (h > 0) {
             getScrollArea().getScrollY()
