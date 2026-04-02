@@ -100,8 +100,7 @@ public final class CreditsController {
     }
 
     /**
-     * Returns the currently selected category, or {@code null} if there are no
-     * categories.
+     * Returns the currently selected category, or {@code null} if there are no categories.
      */
     public @Nullable CreditsCategory getSelectedCategory() {
         if (data.categories.isEmpty()) return null;
@@ -109,14 +108,12 @@ public final class CreditsController {
     }
 
     /**
-     * Returns all persons belonging to the given category, sorted by name and
-     * deduplicated:
+     * Returns all persons belonging to the given category, sorted by name and deduplicated:
      * multiple entries with the same name are merged and their roles are combined
      * (unique roles, preserving first-encountered order).
      */
     public List<CreditsPerson> getPersonsForCategory(CreditsCategory category) {
-        // Accumulate roles per name, preserving first-encounter order with
-        // LinkedHashMap.
+        // Accumulate roles per name, preserving first-encounter order with LinkedHashMap.
         Map<String, LinkedHashSet<String>> rolesByName = new LinkedHashMap<>();
         for (CreditsPerson p : data.persons) {
             if (p.categoryRoles.containsKey(category.id)) {
@@ -145,8 +142,7 @@ public final class CreditsController {
     }
 
     /**
-     * Returns the display name for a category, preferring a translation over the
-     * raw id.
+     * Returns the display name for a category, preferring a translation over the raw id.
      */
     public String getCategoryDisplayName(int index) {
         if (index < 0 || index >= data.categories.size()) return "";

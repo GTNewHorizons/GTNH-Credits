@@ -45,8 +45,7 @@ public final class CreditsScreen extends CustomModularScreen {
     private static final int FILTER_HEIGHT = 20;
     private static final int FILTER_MARGIN = 8;
 
-    // Initialized in buildUI(), which is called by the superclass constructor
-    // before our field
+    // Initialized in buildUI(), which is called by the superclass constructor before our field
     // initializers run — so it cannot be a field initializer expression.
     private CreditsController controller;
     private GuiTextField filterField;

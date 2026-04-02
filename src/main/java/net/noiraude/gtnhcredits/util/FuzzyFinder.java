@@ -71,7 +71,7 @@ public class FuzzyFinder {
                 );
 
                 if (isTranspositionPair(i, j, source, target)) {
-                    distance[i][j] = Math.min(distance[i][j], distance[i - 2][j - 2] + cost); // transpotision
+                    distance[i][j] = Math.min(distance[i][j], distance[i - 2][j - 2] + cost); // transposition
                 }
                 // spotless: on
             }
