@@ -152,48 +152,52 @@ public final class CreditsScreen extends CustomModularScreen {
                         return true;
                     }
                     return false;
-                }));
+                }))
+            .child(
                 new ButtonWidget<>().size(100, 20)
-                .child(new ButtonWidget<>().size(100, 20)
-                        .right(8 + FILTER_WIDTH + FILTER_MARGIN)
-                        .bottom(8)
-                        .background(
-                                UITexture.builder()
-                                        .location(widgetsTexture)
-                                        .imageSize(256, 256)
-                                        .subAreaXYWH(0, 66, 200, 20)
-                                        .build())
-                        .hoverBackground(
-                                UITexture.builder()
-                                        .location(widgetsTexture)
-                                        .imageSize(256, 256)
-                                        .subAreaXYWH(0, 86, 200, 20)
-                                        .build())
-                        .overlay(IKey.dynamic(() -> StatCollector.translateToLocal(currentFilterLang)).color(0xE0E0E0))
-                        .hoverOverlay(
-                                IKey.dynamic(() -> StatCollector.translateToLocal(currentFilterLang)).color(0xFFFFA0))
-                        .tooltipDynamic(t -> {
-                            t.addLine(EnumChatFormatting.BOLD
-                                    + StatCollector.translateToLocal("gui.credits.button.filter.exact")
-                                    + EnumChatFormatting.RESET + ": "
-                                    + StatCollector.translateToLocal("gui.credits.button.filter.exact_tip_line"));
-                            t.addLine(EnumChatFormatting.BOLD
-                                    + StatCollector.translateToLocal("gui.credits.button.filter.fuzzy")
-                                    + EnumChatFormatting.RESET + ": "
-                                    + StatCollector.translateToLocal("gui.credits.button.filter.fuzzy_tip_line"));
-                        })
-                        .onMousePressed(mb -> {
-                            if (mb == 0 || mb == 1) {
-                                currentFilterType = currentFilterType == FilterMethod.EXACT
-                                        ? FilterMethod.FUZZY
-                                        : FilterMethod.EXACT;
+                    .right(8 + FILTER_WIDTH + FILTER_MARGIN)
+                    .bottom(8)
+                    .background(
+                        UITexture.builder()
+                            .location(widgetsTexture)
+                            .imageSize(256, 256)
+                            .subAreaXYWH(0, 66, 200, 20)
+                            .build())
+                    .hoverBackground(
+                        UITexture.builder()
+                            .location(widgetsTexture)
+                            .imageSize(256, 256)
+                            .subAreaXYWH(0, 86, 200, 20)
+                            .build())
+                    .overlay(
+                        IKey.dynamic(() -> StatCollector.translateToLocal(currentFilterLang))
+                            .color(0xE0E0E0))
+                    .hoverOverlay(
+                        IKey.dynamic(() -> StatCollector.translateToLocal(currentFilterLang))
+                            .color(0xFFFFA0))
+                    .tooltipDynamic(t -> {
+                        t.addLine(
+                            EnumChatFormatting.BOLD + StatCollector.translateToLocal("gui.credits.button.filter.exact")
+                                + EnumChatFormatting.RESET
+                                + ": "
+                                + StatCollector.translateToLocal("gui.credits.button.filter.exact_tip_line"));
+                        t.addLine(
+                            EnumChatFormatting.BOLD + StatCollector.translateToLocal("gui.credits.button.filter.fuzzy")
+                                + EnumChatFormatting.RESET
+                                + ": "
+                                + StatCollector.translateToLocal("gui.credits.button.filter.fuzzy_tip_line"));
+                    })
+                    .onMousePressed(mb -> {
+                        if (mb == 0 || mb == 1) {
+                            currentFilterType = currentFilterType == FilterMethod.EXACT ? FilterMethod.FUZZY
+                                : FilterMethod.EXACT;
 
-                                currentFilterLang = currentFilterType.getLang();
-                                controller.setFilterMethod(currentFilterType);
-                                return true;
-                            }
-                            return false;
-                        }));
+                            currentFilterLang = currentFilterType.getLang();
+                            controller.setFilterMethod(currentFilterType);
+                            return true;
+                        }
+                        return false;
+                    }));
         return panel;
     }
 

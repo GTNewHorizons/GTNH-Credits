@@ -1,6 +1,7 @@
 package net.noiraude.gtnhcredits.client.gui.credits;
 
 import net.noiraude.gtnhcredits.client.credits.CreditsController;
+import net.noiraude.gtnhcredits.client.credits.CreditsController.FilterMethod;
 
 import com.cleanroommc.modularui.utils.Color;
 import com.cleanroommc.modularui.widget.ScrollWidget;
@@ -16,6 +17,7 @@ class CreditsView extends ScrollWidget<CreditsView> {
     private final CreditsController controller;
     private int lastSelectedIndex = -1;
     private String lastFilter = "";
+    private FilterMethod lastFilterMethod = null;
 
     private static final int PADDING_TOP = 18;
     private static final int PADDING_BOTTOM = 9;

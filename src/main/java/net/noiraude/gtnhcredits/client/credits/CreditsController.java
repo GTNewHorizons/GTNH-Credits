@@ -7,6 +7,8 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
 
 import net.minecraft.util.EnumChatFormatting;
@@ -27,8 +29,11 @@ public final class CreditsController {
     private final CreditsData data;
     private int selectedIndex = 0;
     private String personFilter = "";
+    private Pattern personFilterPattern = null;
+    private FilterMethod filterMethod = FilterMethod.EXACT;
 
     public static enum FilterMethod {
+
         EXACT("gui.credits.button.filter.exact"),
         FUZZY("gui.credits.button.filter.fuzzy");
 
@@ -83,7 +88,7 @@ public final class CreditsController {
         } else {
             try {
                 this.personFilterPattern = Pattern
-                        .compile(this.personFilter, Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
+                    .compile(this.personFilter, Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
             } catch (PatternSyntaxException e) {
                 this.personFilterPattern = null; // fall back to literal substring match
             }
@@ -95,7 +100,8 @@ public final class CreditsController {
     }
 
     /**
-     * Returns the currently selected category, or {@code null} if there are no categories.
+     * Returns the currently selected category, or {@code null} if there are no
+     * categories.
      */
     public @Nullable CreditsCategory getSelectedCategory() {
         if (data.categories.isEmpty()) return null;
@@ -103,12 +109,14 @@ public final class CreditsController {
     }
 
     /**
-     * Returns all persons belonging to the given category, sorted by name and deduplicated:
+     * Returns all persons belonging to the given category, sorted by name and
+     * deduplicated:
      * multiple entries with the same name are merged and their roles are combined
      * (unique roles, preserving first-encountered order).
      */
     public List<CreditsPerson> getPersonsForCategory(CreditsCategory category) {
-        // Accumulate roles per name, preserving first-encounter order with LinkedHashMap.
+        // Accumulate roles per name, preserving first-encounter order with
+        // LinkedHashMap.
         Map<String, LinkedHashSet<String>> rolesByName = new LinkedHashMap<>();
         for (CreditsPerson p : data.persons) {
             if (p.categoryRoles.containsKey(category.id)) {
@@ -137,7 +145,8 @@ public final class CreditsController {
     }
 
     /**
-     * Returns the display name for a category, preferring a translation over the raw id.
+     * Returns the display name for a category, preferring a translation over the
+     * raw id.
      */
     public String getCategoryDisplayName(int index) {
         if (index < 0 || index >= data.categories.size()) return "";
@@ -185,7 +194,7 @@ public final class CreditsController {
 
     private List<CreditsPerson> getFuzzyFilteredNames(Map<String, LinkedHashSet<String>> rolesByName,
         CreditsCategory category) {
-        
+
         List<String> matchedNames = FuzzyFinder.findMatchesWithThreshold(
             rolesByName.entrySet()
                 .stream()
