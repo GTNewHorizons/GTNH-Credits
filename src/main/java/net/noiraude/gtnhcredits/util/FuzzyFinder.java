@@ -70,7 +70,7 @@ public class FuzzyFinder {
                     distance[i - 1][j - 1] + cost // substitution
                 );
 
-                if (transpositionPairFrom(i, j, source, target)) {
+                if (isTranspositionPair(i, j, source, target)) {
                     distance[i][j] = Math.min(distance[i][j], distance[i - 2][j - 2] + cost); // transpotision
                 }
                 // spotless: on
@@ -82,42 +82,10 @@ public class FuzzyFinder {
 
     /**
      * Finds the closest matching usernames to the search term using "smart scoring"
-     * based on Damerau-Levenshtein distances. Not currently utilised but left in
-     * for potentially changing in future
-     *
-     * @param usernames  List of usernames to find matches from
-     * @param searchTerm The term to search for
-     * @param maxResults Max number of results to return
-     *
-     * @return The list of matched names based on results
-     */
-    @SuppressWarnings("unused")
-    public static List<String> findClosestMatches(List<String> usernames, String searchTerm, int maxResults) {
-        // Normalise search term
-        String lowerSearch = searchTerm.toLowerCase();
-
-        // Get the "Scored Usernames" based on scoring algorithm
-        List<ScoredUsername> scoredNames = usernames.stream()
-            .map(username -> new ScoredUsername(username, calculateSmartScore(username, searchTerm)))
-            .sorted(Comparator.comparingDouble(s -> s.score()))
-            .collect(Collectors.toList());
-
-        // Clamp list if necessary
-        if (maxResults > 0 && scoredNames.size() > maxResults) {
-            scoredNames = scoredNames.subList(0, maxResults);
-        }
-
-        return scoredNames.stream()
-            .map(s -> s.username())
-            .collect(Collectors.toList());
-    }
-
-    /**
-     * Finds the closest matching usernames to the search term using "smart scoring"
      * based on Damerau-Levenshtein distances, and returns matches meeting score
      * threshold.
      *
-     * @param usernames   List of useranmes to find matches from
+     * @param usernames   List of usernames to find matches from
      * @param searchTerm  The term to search for
      * @param maxDistance Maximum allowed distance (lower = stricter matching)
      *
@@ -196,7 +164,7 @@ public class FuzzyFinder {
      * @return true if there is a valid transposition pair in the string at the
      *         given indices
      */
-    private static boolean transpositionPairFrom(int sourceIndex, int targetIndex, String source, String target) {
+    private static boolean isTranspositionPair(int sourceIndex, int targetIndex, String source, String target) {
         if (sourceIndex <= 1) return false;
         if (targetIndex <= 1) return false;
         // Checks for transposition pairs such as:
