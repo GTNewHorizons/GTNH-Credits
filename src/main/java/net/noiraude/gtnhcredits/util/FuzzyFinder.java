@@ -28,7 +28,8 @@ import com.github.bsideup.jabel.Desugar;
  * Where prefix/full_distance are the Damerau-Levenshtein (D-L) distances
  * between the search term and the username
  *
- * In short, the D-L distance can be summarised as "How many character changes need to be made for the strings to match".
+ * In short, the D-L distance can be summarised as "How many character changes need to be made for the strings to
+ * match".
  * Valid changes are:
  * - Deletion
  * - Replacement
