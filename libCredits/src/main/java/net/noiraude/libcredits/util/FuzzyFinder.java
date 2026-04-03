@@ -1,10 +1,8 @@
-package net.noiraude.gtnhcredits.util;
+package net.noiraude.libcredits.util;
 
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
-
-import com.github.bsideup.jabel.Desugar;
 
 /**
  * Helper class for use in "Fuzzy-Finding" Strings for use in a search bar
@@ -125,9 +123,9 @@ public class FuzzyFinder {
 
         return usernames.stream()
             .map(username -> new ScoredUsername(username, calculateSmartScore(username.toLowerCase(), lowerSearch)))
-            .filter(s -> s.score() <= maxDistance)
-            .sorted(Comparator.comparingDouble(s -> s.score()))
-            .map(s -> s.username())
+            .filter(s -> s.score <= maxDistance)
+            .sorted(Comparator.comparingDouble(s -> s.score))
+            .map(s -> s.username)
             .collect(Collectors.toList());
     }
 
@@ -205,6 +203,14 @@ public class FuzzyFinder {
     /**
      * Helper class to pair usernames with their scores
      */
-    @Desugar
-    public record ScoredUsername(String username, double score) {}
+    public static final class ScoredUsername {
+
+        public final String username;
+        public final double score;
+
+        public ScoredUsername(String username, double score) {
+            this.username = username;
+            this.score = score;
+        }
+    }
 }

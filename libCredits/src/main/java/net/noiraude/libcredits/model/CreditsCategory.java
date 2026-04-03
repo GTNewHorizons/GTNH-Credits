@@ -1,11 +1,7 @@
-package net.noiraude.gtnhcredits.model;
+package net.noiraude.libcredits.model;
 
 import java.util.Set;
 
-import cpw.mods.fml.relauncher.Side;
-import cpw.mods.fml.relauncher.SideOnly;
-
-@SideOnly(Side.CLIENT)
 public final class CreditsCategory {
 
     public final String id;
