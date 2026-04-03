@@ -173,11 +173,13 @@ public final class CreditsController {
 
     private Map<String, CreditsPerson> getFuzzyFilteredNames(Map<String, CreditsPerson> personIndex) {
         if (personFilter.isEmpty()) return personIndex;
-        Map<String, CreditsPerson> result = new LinkedHashMap<>();
-        for (String key : FuzzyFinder.findMatchesWithThreshold(
+        List<String> matchedKeys = FuzzyFinder.findMatchesWithThreshold(
             new ArrayList<>(personIndex.keySet()),
             personFilter,
-            Config.getInstance().fuzzyThreshold)) {
+            Config.getInstance().fuzzyThreshold);
+        matchedKeys.sort(String.CASE_INSENSITIVE_ORDER);
+        Map<String, CreditsPerson> result = new LinkedHashMap<>();
+        for (String key : matchedKeys) {
             result.put(key, personIndex.get(key));
         }
         return result;
