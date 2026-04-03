@@ -7,7 +7,7 @@ repositories {
 }
 
 dependencies {
-    api("com.google.code.gson:gson:2.13.1")
+    compileOnly("com.google.code.gson:gson:2.2.4")
 }
 
 java {
