@@ -136,12 +136,13 @@ public final class CreditsParser {
         throw new CreditsParseException("invalid " + field + ": \"" + s + "\"");
     }
 
-    /** Strips chat formatting codes ({@code §} followed by any character) from {@code s}. */
+    /** Strips chat formatting codes ({@code §X}) from {@code s}. {@code §§} is an escaped literal {@code §}. */
     private static String stripFormatting(String s) {
         int len = s.length();
         StringBuilder sb = new StringBuilder(len);
         for (int i = 0; i < len; i++) {
             if (s.charAt(i) == '§' && i + 1 < len) {
+                if (s.charAt(i + 1) == '§') sb.append('§');
                 i++;
             } else {
                 sb.append(s.charAt(i));
