@@ -9,14 +9,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
-import java.util.stream.Collectors;
 
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
-import net.noiraude.gtnhcredits.model.CreditsCategory;
-import net.noiraude.gtnhcredits.model.CreditsData;
-import net.noiraude.gtnhcredits.model.CreditsPerson;
-import net.noiraude.gtnhcredits.util.FuzzyFinder;
+import net.noiraude.gtnhcredits.Config;
+import net.noiraude.libcredits.model.CreditsCategory;
+import net.noiraude.libcredits.model.CreditsData;
+import net.noiraude.libcredits.model.CreditsPerson;
+import net.noiraude.libcredits.util.FuzzyFinder;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -32,7 +32,7 @@ public final class CreditsController {
     private Pattern personFilterPattern = null;
     private FilterMethod filterMethod = FilterMethod.EXACT;
 
-    public static enum FilterMethod {
+    public enum FilterMethod {
 
         EXACT("gui.credits.button.filter.exact"),
         FUZZY("gui.credits.button.filter.fuzzy");
@@ -47,15 +47,6 @@ public final class CreditsController {
             return this.lang;
         }
     }
-
-    /**
-     * FUZZY_THRESHOLD is the threshold score for the filtering system to consider
-     * the username a "match". There is no particular mathematical formula I have
-     * for this, and is more a case of manual tweaking for desired results.
-     *
-     * The lower the threshold score, the stricter the filter
-     */
-    private final double FUZZY_THRESHOLD = 30.0;
 
     public CreditsController() {
         this.data = CreditsRepository.load();
@@ -113,31 +104,30 @@ public final class CreditsController {
      * (unique roles, preserving first-encountered order).
      */
     public List<CreditsPerson> getPersonsForCategory(CreditsCategory category) {
-        // Accumulate roles per name, preserving first-encounter order with LinkedHashMap.
-        Map<String, LinkedHashSet<String>> rolesByName = new LinkedHashMap<>();
+        // Phase 1: accumulate roles and display name per person key (plain name, no formatting).
+        Map<String, LinkedHashSet<String>> rolesByKey = new LinkedHashMap<>();
+        Map<String, String> displayNameByKey = new LinkedHashMap<>();
         for (CreditsPerson p : data.persons) {
             if (p.categoryRoles.containsKey(category.id)) {
-                rolesByName.computeIfAbsent(p.name, k -> new LinkedHashSet<>())
+                String key = EnumChatFormatting.getTextWithoutFormattingCodes(p.name);
+                displayNameByKey.putIfAbsent(key, p.name);
+                rolesByKey.computeIfAbsent(key, k -> new LinkedHashSet<>())
                     .addAll(p.categoryRoles.getOrDefault(category.id, Collections.emptyList()));
             }
         }
 
-        // If no filter, return full list of ordered people
-        if (personFilter.isEmpty()) return rolesByName.entrySet()
-            .stream()
-            .sorted(Map.Entry.comparingByKey(String.CASE_INSENSITIVE_ORDER))
-            .map(e -> {
-                Map<String, List<String>> catRoles = new HashMap<>();
-                catRoles.put(category.id, new ArrayList<>(e.getValue()));
-                return new CreditsPerson(e.getKey(), catRoles);
-            })
-            .collect(Collectors.toList());
-
-        if (filterMethod == FilterMethod.EXACT) {
-            return getRegexFilteredNames(rolesByName, category);
-        } else {
-            return getFuzzyFilteredNames(rolesByName, category);
+        // Phase 2: build lookup index (order guaranteed by CreditsParser contract).
+        Map<String, CreditsPerson> personIndex = new LinkedHashMap<>();
+        for (Map.Entry<String, LinkedHashSet<String>> e : rolesByKey.entrySet()) {
+            String key = e.getKey();
+            Map<String, List<String>> catRoles = new HashMap<>();
+            catRoles.put(category.id, new ArrayList<>(e.getValue()));
+            personIndex.put(key, new CreditsPerson(displayNameByKey.get(key), catRoles));
         }
+
+        Map<String, CreditsPerson> result = filterMethod == FilterMethod.EXACT ? getRegexFilteredNames(personIndex)
+            : getFuzzyFilteredNames(personIndex);
+        return new ArrayList<>(result.values());
 
     }
 
@@ -165,47 +155,32 @@ public final class CreditsController {
             .toLowerCase();
     }
 
-    private List<CreditsPerson> getRegexFilteredNames(Map<String, LinkedHashSet<String>> rolesByName,
-        CreditsCategory category) {
+    private Map<String, CreditsPerson> getRegexFilteredNames(Map<String, CreditsPerson> personIndex) {
+        if (personFilter.isEmpty()) return personIndex;
         Pattern filter = personFilterPattern;
         String lowerFilter = personFilter.toLowerCase();
-        return rolesByName.entrySet()
-            .stream()
-            .filter(e -> {
-                if (personFilter.isEmpty()) return true;
-                String name = EnumChatFormatting.getTextWithoutFormattingCodes(e.getKey());
-                return filter != null ? filter.matcher(name)
-                    .find()
-                    : name.toLowerCase()
-                        .contains(lowerFilter);
-            })
-            .sorted(Map.Entry.comparingByKey(String.CASE_INSENSITIVE_ORDER))
-            .map(e -> {
-                Map<String, List<String>> catRoles = new HashMap<>();
-                catRoles.put(category.id, new ArrayList<>(e.getValue()));
-                return new CreditsPerson(e.getKey(), catRoles);
-            })
-            .collect(Collectors.toList());
+        Map<String, CreditsPerson> result = new LinkedHashMap<>();
+        for (Map.Entry<String, CreditsPerson> e : personIndex.entrySet()) {
+            String key = e.getKey();
+            boolean matches = filter != null ? filter.matcher(key)
+                .find()
+                : key.toLowerCase()
+                    .contains(lowerFilter);
+            if (matches) result.put(key, e.getValue());
+        }
+        return result;
     }
 
-    private List<CreditsPerson> getFuzzyFilteredNames(Map<String, LinkedHashSet<String>> rolesByName,
-        CreditsCategory category) {
-
-        List<String> matchedNames = FuzzyFinder.findMatchesWithThreshold(
-            rolesByName.entrySet()
-                .stream()
-                .map(e -> EnumChatFormatting.getTextWithoutFormattingCodes(e.getKey()))
-                .collect(Collectors.toList()),
+    private Map<String, CreditsPerson> getFuzzyFilteredNames(Map<String, CreditsPerson> personIndex) {
+        if (personFilter.isEmpty()) return personIndex;
+        Map<String, CreditsPerson> result = new LinkedHashMap<>();
+        for (String key : FuzzyFinder.findMatchesWithThreshold(
+            new ArrayList<>(personIndex.keySet()),
             personFilter,
-            FUZZY_THRESHOLD);
-
-        return matchedNames.stream()
-            .map(e -> {
-                Map<String, List<String>> catRoles = new HashMap<>();
-                catRoles.put(category.id, new ArrayList<>(rolesByName.get(e)));
-                return new CreditsPerson(e, catRoles);
-            })
-            .collect(Collectors.toList());
+            Config.getInstance().fuzzyThreshold)) {
+            result.put(key, personIndex.get(key));
+        }
+        return result;
     }
 
 }
