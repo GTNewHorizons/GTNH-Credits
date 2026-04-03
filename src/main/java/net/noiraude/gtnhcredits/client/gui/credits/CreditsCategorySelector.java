@@ -2,8 +2,8 @@ package net.noiraude.gtnhcredits.client.gui.credits;
 
 import java.util.List;
 
-import net.noiraude.gtnhcredits.model.CreditsCategory;
 import net.noiraude.gtnhcredits.repository.CreditsController;
+import net.noiraude.libcredits.model.CreditsCategory;
 
 import org.jetbrains.annotations.NotNull;
 
