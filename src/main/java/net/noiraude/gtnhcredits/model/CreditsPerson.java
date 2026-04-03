@@ -1,4 +1,4 @@
-package net.noiraude.gtnhcredits.credits;
+package net.noiraude.gtnhcredits.model;
 
 import java.util.Collections;
 import java.util.List;

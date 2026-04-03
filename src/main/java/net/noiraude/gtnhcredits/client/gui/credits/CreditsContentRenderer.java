@@ -13,9 +13,9 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.util.StatCollector;
 import net.minecraft.util.StringTranslate;
-import net.noiraude.gtnhcredits.client.credits.CreditsController;
-import net.noiraude.gtnhcredits.credits.CreditsCategory;
-import net.noiraude.gtnhcredits.credits.CreditsPerson;
+import net.noiraude.gtnhcredits.model.CreditsCategory;
+import net.noiraude.gtnhcredits.model.CreditsPerson;
+import net.noiraude.gtnhcredits.repository.CreditsController;
 
 import com.cleanroommc.modularui.api.drawable.IKey;
 import com.cleanroommc.modularui.api.drawable.ITextLine;

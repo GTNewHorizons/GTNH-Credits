@@ -1,7 +1,7 @@
 package net.noiraude.gtnhcredits.client.gui.credits;
 
-import net.noiraude.gtnhcredits.client.credits.CreditsController;
-import net.noiraude.gtnhcredits.client.credits.CreditsController.FilterMethod;
+import net.noiraude.gtnhcredits.repository.CreditsController;
+import net.noiraude.gtnhcredits.repository.CreditsController.FilterMethod;
 
 import com.cleanroommc.modularui.utils.Color;
 import com.cleanroommc.modularui.widget.ScrollWidget;

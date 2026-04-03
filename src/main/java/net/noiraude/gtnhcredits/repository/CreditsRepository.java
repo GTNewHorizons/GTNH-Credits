@@ -1,4 +1,4 @@
-package net.noiraude.gtnhcredits.client.credits;
+package net.noiraude.gtnhcredits.repository;
 
 import static net.noiraude.gtnhcredits.GTNHCredits.LOG;
 
@@ -19,9 +19,9 @@ import java.util.regex.Pattern;
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.ResourceLocation;
 import net.noiraude.gtnhcredits.GTNHCredits;
-import net.noiraude.gtnhcredits.credits.CreditsCategory;
-import net.noiraude.gtnhcredits.credits.CreditsData;
-import net.noiraude.gtnhcredits.credits.CreditsPerson;
+import net.noiraude.gtnhcredits.model.CreditsCategory;
+import net.noiraude.gtnhcredits.model.CreditsData;
+import net.noiraude.gtnhcredits.model.CreditsPerson;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;

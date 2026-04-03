@@ -14,8 +14,8 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.StatCollector;
 import net.noiraude.gtnhcredits.Config;
 import net.noiraude.gtnhcredits.GTNHCredits;
-import net.noiraude.gtnhcredits.client.credits.CreditsController;
-import net.noiraude.gtnhcredits.client.credits.CreditsController.FilterMethod;
+import net.noiraude.gtnhcredits.repository.CreditsController;
+import net.noiraude.gtnhcredits.repository.CreditsController.FilterMethod;
 
 import org.jetbrains.annotations.NotNull;
 import org.lwjgl.input.Keyboard;

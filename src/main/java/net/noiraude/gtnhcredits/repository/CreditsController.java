@@ -1,4 +1,4 @@
-package net.noiraude.gtnhcredits.client.credits;
+package net.noiraude.gtnhcredits.repository;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -13,9 +13,9 @@ import java.util.stream.Collectors;
 
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
-import net.noiraude.gtnhcredits.credits.CreditsCategory;
-import net.noiraude.gtnhcredits.credits.CreditsData;
-import net.noiraude.gtnhcredits.credits.CreditsPerson;
+import net.noiraude.gtnhcredits.model.CreditsCategory;
+import net.noiraude.gtnhcredits.model.CreditsData;
+import net.noiraude.gtnhcredits.model.CreditsPerson;
 import net.noiraude.gtnhcredits.util.FuzzyFinder;
 
 import org.jetbrains.annotations.Nullable;
