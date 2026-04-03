@@ -42,7 +42,7 @@ public final class CreditsParser {
      */
     public static CreditsData parse(InputStream is) throws IOException, CreditsParseException {
         try (InputStreamReader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
-            JsonObject root = JsonParser.parseReader(reader)
+            JsonObject root = new JsonParser().parse(reader)
                 .getAsJsonObject();
             List<CreditsCategory> categories = parseCategories(root);
             List<CreditsPerson> persons = parsePersons(root);
