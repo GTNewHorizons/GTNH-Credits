@@ -13,9 +13,9 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.util.StatCollector;
 import net.minecraft.util.StringTranslate;
-import net.noiraude.gtnhcredits.client.credits.CreditsController;
-import net.noiraude.gtnhcredits.credits.CreditsCategory;
-import net.noiraude.gtnhcredits.credits.CreditsPerson;
+import net.noiraude.gtnhcredits.repository.CreditsController;
+import net.noiraude.libcredits.model.CreditsCategory;
+import net.noiraude.libcredits.model.CreditsPerson;
 
 import com.cleanroommc.modularui.api.drawable.IKey;
 import com.cleanroommc.modularui.api.drawable.ITextLine;
@@ -205,55 +205,50 @@ final class CreditsContentRenderer {
 
     // -------------------------------------------------------------------------
 
-    @SuppressWarnings("SizeReplaceableByIsEmpty")
     private static void appendPersonsWithRoles(RichText rt, List<CreditsPerson> persons, int contentWidth) {
         FontRenderer fr = Minecraft.getMinecraft().fontRenderer;
         // Separator: space, bold em-dash, reset, space.
         // Bold rendering makes the em-dash 1px wider than normal measurement.
         String separator = " §l—§r ";
         int separatorWidth = fr.getStringWidth(" — ") + 1;
-        int commaSpaceWidth = fr.getStringWidth(", ");
-        int ellipsisWidth = fr.getStringWidth("...");
         for (CreditsPerson person : persons) {
-            // Persons returned by getPersonsForCategory have exactly one category entry.
-            Iterator<List<String>> it = person.categoryRoles.values()
-                .iterator();
-            List<String> personRoles = it.hasNext() ? it.next() : Collections.emptyList();
-            int nameWidth = fr.getStringWidth(person.name);
-            int rolesAvailable = contentWidth - nameWidth - separatorWidth;
-            if (personRoles.isEmpty() || rolesAvailable <= 0) {
-                rt.addLine(new CenteredLine(person.name + "§r", nameWidth, contentWidth));
-                continue;
-            }
-            StringBuilder roles = new StringBuilder();
-            int rolesWidth = 0;
-            boolean truncated = false;
-            for (int i = 0; i < personRoles.size(); i++) {
-                String roleName = roleDisplayName(personRoles.get(i));
-                int roleWidth = fr.getStringWidth(roleName);
-                int addedWidth = (i == 0) ? roleWidth : commaSpaceWidth + roleWidth;
-                if (rolesWidth + addedWidth <= rolesAvailable) {
-                    if (i > 0) roles.append(", ");
-                    roles.append(roleName);
-                    rolesWidth += addedWidth;
-                } else {
-                    truncated = true;
-                    break;
-                }
-            }
-            if (truncated) {
-                if (roles.length() > 0) {
-                    roles.append(", ...");
-                    rolesWidth += commaSpaceWidth + ellipsisWidth;
-                } else {
-                    roles.append("...");
-                    rolesWidth = ellipsisWidth;
-                }
-            }
-            String lineText = person.name + "§r" + separator + "§o" + roles + "§r";
-            int lineWidth = nameWidth + separatorWidth + rolesWidth;
-            rt.addLine(new CenteredLine(lineText, lineWidth, contentWidth));
+            rt.addLine(buildPersonLine(person, contentWidth, fr, separator, separatorWidth));
         }
+    }
+
+    private static CenteredLine buildPersonLine(CreditsPerson person, int contentWidth, FontRenderer fr,
+        String separator, int separatorWidth) {
+        // Persons returned by getPersonsForCategory have exactly one category entry.
+        Iterator<List<String>> it = person.categoryRoles.values()
+            .iterator();
+        List<String> personRoles = it.hasNext() ? it.next() : Collections.emptyList();
+        int nameWidth = fr.getStringWidth(person.name);
+        int rolesAvailable = contentWidth - nameWidth - separatorWidth;
+        if (personRoles.isEmpty() || rolesAvailable <= 0) {
+            return new CenteredLine(person.name + "§r", nameWidth, contentWidth);
+        }
+        String rolesText = buildRolesText(personRoles, rolesAvailable, fr);
+        int lineWidth = nameWidth + separatorWidth + fr.getStringWidth(rolesText);
+        return new CenteredLine(person.name + "§r" + separator + "§o" + rolesText + "§r", lineWidth, contentWidth);
+    }
+
+    @SuppressWarnings("SizeReplaceableByIsEmpty")
+    private static String buildRolesText(List<String> roles, int available, FontRenderer fr) {
+        int commaSpaceWidth = fr.getStringWidth(", ");
+        StringBuilder sb = new StringBuilder();
+        int width = 0;
+        for (int i = 0; i < roles.size(); i++) {
+            String name = roleDisplayName(roles.get(i));
+            int nameWidth = fr.getStringWidth(name);
+            int addedWidth = (i == 0) ? nameWidth : commaSpaceWidth + nameWidth;
+            if (width + addedWidth > available) {
+                return sb.length() > 0 ? sb + ", ..." : "...";
+            }
+            if (i > 0) sb.append(", ");
+            sb.append(name);
+            width += addedWidth;
+        }
+        return sb.toString();
     }
 
     @SuppressWarnings("SizeReplaceableByIsEmpty")

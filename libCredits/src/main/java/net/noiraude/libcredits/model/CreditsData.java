@@ -1,12 +1,8 @@
-package net.noiraude.gtnhcredits.credits;
+package net.noiraude.libcredits.model;
 
 import java.util.Collections;
 import java.util.List;
 
-import cpw.mods.fml.relauncher.Side;
-import cpw.mods.fml.relauncher.SideOnly;
-
-@SideOnly(Side.CLIENT)
 public final class CreditsData {
 
     public static final CreditsData EMPTY = new CreditsData(Collections.emptyList(), Collections.emptyList());

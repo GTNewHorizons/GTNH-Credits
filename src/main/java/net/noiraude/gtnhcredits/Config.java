@@ -23,6 +23,8 @@ public final class Config {
     // credits_screen
     /** Resource location of the logo texture, in {@code domain:path} format. */
     public final @NotNull String creditsScreenLogo;
+    /** Minimum fuzzy-match score for a person name to appear in fuzzy filter results. Lower is stricter. */
+    public final double fuzzyThreshold;
 
     private Config(@NotNull File configDir) {
         @NotNull
@@ -53,6 +55,13 @@ public final class Config {
             SECTION_CREDITS_SCREEN,
             GTNHCredits.MODID + ":textures/gui/credits/logo.png",
             "Resource location of the credits screen logo texture (domain:path).");
+        fuzzyThreshold = cfg.getFloat(
+            "fuzzyThreshold",
+            SECTION_CREDITS_SCREEN,
+            30.0f,
+            0.0f,
+            1000.0f,
+            "Minimum fuzzy-match score for a person name to appear in fuzzy filter results. Lower is stricter.");
         if (cfg.hasChanged()) cfg.save();
     }
 
