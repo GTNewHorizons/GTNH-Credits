@@ -1,6 +1,7 @@
 package net.noiraude.gtnhcredits;
 
 import net.minecraftforge.common.MinecraftForge;
+import net.noiraude.gtnhcredits.client.minecraft.gui.main_menu.CmmActionHandler;
 import net.noiraude.gtnhcredits.client.minecraft.gui.main_menu.GuiMainMenuHandler;
 
 import org.jetbrains.annotations.NotNull;
@@ -20,6 +21,9 @@ public class ClientProxy extends CommonProxy {
 
     @Override
     public void init(@NotNull FMLInitializationEvent ignoredEvent) {
-        MinecraftForge.EVENT_BUS.register(new GuiMainMenuHandler());
+        if (Config.getInstance().menuButtonEnabled) {
+            MinecraftForge.EVENT_BUS.register(new GuiMainMenuHandler());
+        }
+        MinecraftForge.EVENT_BUS.register(new CmmActionHandler());
     }
 }
