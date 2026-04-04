@@ -34,6 +34,7 @@
  * For more details, see https://docs.gradle.org/8.0.1/userguide/java_library_plugin.html#sec:java_library_configurations_graph
  */
 dependencies {
+    add("api", project(":libCredits"))
     add("compileOnly", "org.jetbrains:annotations:26.0.2-1")
     add("api", "com.github.GTNewHorizons:ModularUI2:2.3.45-1.7.10:dev")
     add("devOnlyNonPublishable", "com.github.GTNewHorizons:Custom-Main-Menu:1.14.0:dev")

@@ -1,13 +1,9 @@
-package net.noiraude.gtnhcredits.credits;
+package net.noiraude.libcredits.model;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import cpw.mods.fml.relauncher.Side;
-import cpw.mods.fml.relauncher.SideOnly;
-
-@SideOnly(Side.CLIENT)
 public final class CreditsPerson {
 
     public final String name;

@@ -1,6 +1,6 @@
 package net.noiraude.gtnhcredits.client.gui.credits;
 
-import net.noiraude.gtnhcredits.client.credits.CreditsController;
+import net.noiraude.gtnhcredits.repository.CreditsController;
 
 import org.jetbrains.annotations.NotNull;
 
