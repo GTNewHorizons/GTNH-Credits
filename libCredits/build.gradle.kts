@@ -6,8 +6,10 @@ repositories {
     mavenCentral()
 }
 
+val gsonVersion: String by gradle.extra
+
 dependencies {
-    compileOnly("com.google.code.gson:gson:2.2.4")
+    compileOnly("com.google.code.gson:gson:$gsonVersion")
 }
 
 java {

@@ -8,9 +8,10 @@ plugins {
 // which crashes the dedicated server). Keep it out of runServer/runServer25 by using a dedicated
 // configuration that is wired only to the client run tasks.
 val clientDevRuntime by configurations.creating
+val customMainMenuVersion: String by gradle.extra
 
 dependencies {
-    clientDevRuntime("com.github.GTNewHorizons:Custom-Main-Menu:1.14.0:dev")
+    clientDevRuntime("com.github.GTNewHorizons:Custom-Main-Menu:$customMainMenuVersion:dev")
 }
 
 val setupCustomMainMenuConfig by tasks.registering {

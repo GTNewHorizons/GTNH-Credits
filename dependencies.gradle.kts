@@ -33,11 +33,17 @@
  *
  * For more details, see https://docs.gradle.org/8.0.1/userguide/java_library_plugin.html#sec:java_library_configurations_graph
  */
+val annotationsVersion: String by gradle.extra
+val modularUI2Version: String by gradle.extra
+val customMainMenuVersion: String by gradle.extra
+val junitVersion: String by gradle.extra
+val jsonSchemaValidatorVersion: String by gradle.extra
+
 dependencies {
     add("api", project(":libCredits"))
-    add("compileOnly", "org.jetbrains:annotations:26.0.2-1")
-    add("api", "com.github.GTNewHorizons:ModularUI2:2.3.45-1.7.10:dev")
-    add("compileOnly", "com.github.GTNewHorizons:Custom-Main-Menu:1.14.0:dev")
-    add("testImplementation", "junit:junit:4.13.2")
-    add("testImplementation", "com.networknt:json-schema-validator:3.0.1")
+    add("compileOnly", "org.jetbrains:annotations:$annotationsVersion")
+    add("api", "com.github.GTNewHorizons:ModularUI2:$modularUI2Version:dev")
+    add("compileOnly", "com.github.GTNewHorizons:Custom-Main-Menu:$customMainMenuVersion:dev")
+    add("testImplementation", "junit:junit:$junitVersion")
+    add("testImplementation", "com.networknt:json-schema-validator:$jsonSchemaValidatorVersion")
 }
