@@ -52,8 +52,6 @@ public class CreditsEditorApp {
         return resourceManager;
     }
 
-    // -----------------------------------------------------------------------
-
     private static String cmd() {
         return System.getProperty("app.name", "gtnh-credits-editor");
     }
@@ -98,14 +96,15 @@ public class CreditsEditorApp {
                     resource = arg;
                     continue;
                 }
-                String[] parts = arg.substring(1).split("=", 2);
-                String name  = parts[0];
+                String[] parts = arg.substring(1)
+                    .split("=", 2);
+                String name = parts[0];
                 String value = parts.length > 1 ? parts[1] : null;
                 switch (name) {
-                    case "h", "-help"    -> help = true;
+                    case "h", "-help" -> help = true;
                     case "v", "-version" -> version = true;
-                    case "-"             -> endOfOptions = true;
-                    case "-resource"     -> {
+                    case "-" -> endOfOptions = true;
+                    case "-resource" -> {
                         if (value == null) throw new IllegalArgumentException("--resource requires a value");
                         if (resource != null) throw new IllegalArgumentException("unexpected argument: " + arg);
                         resource = value;

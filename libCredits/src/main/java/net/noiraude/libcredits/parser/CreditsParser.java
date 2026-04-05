@@ -42,6 +42,7 @@ public final class CreditsParser {
      */
     public static CreditsData parse(InputStream is) throws IOException, CreditsParseException {
         try (InputStreamReader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
+            @SuppressWarnings("deprecation") // MC GSON compatible
             JsonObject root = new JsonParser().parse(reader)
                 .getAsJsonObject();
             List<CreditsCategory> categories = parseCategories(root);
@@ -60,8 +61,10 @@ public final class CreditsParser {
     }
 
     private static CreditsCategory parseCategory(JsonObject obj) throws CreditsParseException {
-        String id = requireValidKey(obj.get("id")
-            .getAsString(), "category id");
+        String id = requireValidKey(
+            obj.get("id")
+                .getAsString(),
+            "category id");
         Set<String> classes = new HashSet<>();
         if (obj.has("class")) classes.addAll(readStringOrArray(obj.get("class")));
         return new CreditsCategory(id, Collections.unmodifiableSet(classes));
@@ -131,8 +134,10 @@ public final class CreditsParser {
     }
 
     private static String requireValidKey(String s, String field) throws CreditsParseException {
-        if (KEY_PATTERN.matcher(s)
-            .matches()) return s;
+        if (
+            KEY_PATTERN.matcher(s)
+                .matches()
+        ) return s;
         throw new CreditsParseException("invalid " + field + ": \"" + s + "\"");
     }
 

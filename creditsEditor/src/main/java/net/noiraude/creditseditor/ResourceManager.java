@@ -26,7 +26,8 @@ import com.google.gson.JsonObject;
  * Abstracts access to GTNH Credits resource files ({@code credits.json} and lang files)
  * over either a plain directory tree or a Minecraft resource pack zip file.
  *
- * <p>Obtain an instance via {@link #open(String)}. The caller is responsible for
+ * <p>
+ * Obtain an instance via {@link #open(String)}. The caller is responsible for
  * closing the instance when done; use try-with-resources.
  */
 public final class ResourceManager implements Closeable {
@@ -57,13 +58,13 @@ public final class ResourceManager implements Closeable {
      * Opens or creates the resource root described by {@code pathArg}.
      *
      * <ul>
-     *   <li>Existing directory: opened as-is in {@link Mode#DIRECTORY} mode.</li>
-     *   <li>Existing {@code .zip} file: opened as a resource pack in {@link Mode#ZIP} mode.</li>
-     *   <li>Non-existent path without {@code .zip} suffix: directory is created and opened in
-     *       {@link Mode#DIRECTORY} mode.</li>
-     *   <li>Non-existent path with {@code .zip} suffix: a new resource pack zip is created with
-     *       a {@code pack.mcmeta} for Minecraft 1.7.10 (pack_format 1), then opened in
-     *       {@link Mode#ZIP} mode.</li>
+     * <li>Existing directory: opened as-is in {@link Mode#DIRECTORY} mode.</li>
+     * <li>Existing {@code .zip} file: opened as a resource pack in {@link Mode#ZIP} mode.</li>
+     * <li>Non-existent path without {@code .zip} suffix: directory is created and opened in
+     * {@link Mode#DIRECTORY} mode.</li>
+     * <li>Non-existent path with {@code .zip} suffix: a new resource pack zip is created with
+     * a {@code pack.mcmeta} for Minecraft 1.7.10 (pack_format 1), then opened in
+     * {@link Mode#ZIP} mode.</li>
      * </ul>
      *
      * @param pathArg the path argument supplied by the user
@@ -81,8 +82,7 @@ public final class ResourceManager implements Closeable {
             } else if (isZipSuffix) {
                 return new ResourceManager(path, Mode.ZIP, openZipFilesystem(path, false));
             } else {
-                throw new IOException(
-                    "Path exists but is neither a directory nor a .zip file: " + path);
+                throw new IOException("Path exists but is neither a directory nor a .zip file: " + path);
             }
         } else {
             if (isZipSuffix) {
@@ -130,8 +130,7 @@ public final class ResourceManager implements Closeable {
         if (parent != null) {
             Files.createDirectories(parent);
         }
-        return Files.newOutputStream(target,
-            StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+        return Files.newOutputStream(target, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
     }
 
     /**
@@ -180,9 +179,7 @@ public final class ResourceManager implements Closeable {
         }
         // Write pack.mcmeta then close to flush the zip, then reopen for use.
         try (FileSystem fs = openZipFilesystem(zip, true)) {
-            Files.write(
-                fs.getPath("pack.mcmeta"),
-                buildPackMcmeta().getBytes(StandardCharsets.UTF_8));
+            Files.write(fs.getPath("pack.mcmeta"), buildPackMcmeta().getBytes(StandardCharsets.UTF_8));
         }
         return openZipFilesystem(zip, false);
     }
@@ -193,6 +190,8 @@ public final class ResourceManager implements Closeable {
         pack.addProperty("description", "GTNH Credits resource pack");
         JsonObject root = new JsonObject();
         root.add("pack", pack);
-        return new GsonBuilder().setPrettyPrinting().create().toJson(root) + "\n";
+        return new GsonBuilder().setPrettyPrinting()
+            .create()
+            .toJson(root) + "\n";
     }
 }

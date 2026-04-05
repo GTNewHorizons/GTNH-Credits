@@ -2,6 +2,8 @@ plugins {
     `java-library`
 }
 
+apply(from = rootProject.file("gtnhShared/spotless.gradle"))
+
 repositories {
     mavenCentral()
 }

@@ -4,6 +4,8 @@ plugins {
     id("com.gradleup.shadow")
 }
 
+apply(from = rootProject.file("gtnhShared/spotless.gradle"))
+
 repositories {
     mavenCentral()
 }
