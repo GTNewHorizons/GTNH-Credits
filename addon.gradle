@@ -1,3 +1,8 @@
+tasks.register('runCreditsEditor') {
+    group = 'application'
+    dependsOn(':creditsEditor:run')
+}
+
 // CustomMainMenu is client-only and must not run on the server (it loads GuiScreen during preInit,
 // which crashes the dedicated server). Keep it out of runServer/runServer25 by using a dedicated
 // configuration that is wired only to the client run tasks.
