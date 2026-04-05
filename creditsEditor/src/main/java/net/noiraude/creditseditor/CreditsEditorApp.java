@@ -102,22 +102,22 @@ public class CreditsEditorApp {
                     resource = arg;
                     return;
                 }
-                String[] parts = arg.substring(1)
-                    .split("=", 2);
-                applyOption(arg, parts[0], parts.length > 1 ? parts[1] : null);
+                applyOption(
+                    arg.substring(1)
+                        .split("=", 2));
             }
 
-            private void applyOption(String raw, String name, String value) {
-                switch (name) {
+            private void applyOption(String[] kv) {
+                switch (kv[0]) {
                     case "h", "-help" -> help = true;
                     case "v", "-version" -> version = true;
                     case "-" -> endOfOptions = true;
                     case "-resource" -> {
-                        if (value == null) throw new IllegalArgumentException("--resource requires a value");
-                        if (resource != null) throw new IllegalArgumentException("unexpected argument: " + raw);
-                        resource = value;
+                        if (kv.length < 2) throw new IllegalArgumentException("--resource requires a value");
+                        if (resource != null) throw new IllegalArgumentException("duplicate option: --resource");
+                        resource = kv[1];
                     }
-                    default -> throw new IllegalArgumentException("unknown option: " + raw);
+                    default -> throw new IllegalArgumentException("unknown option: -" + kv[0]);
                 }
             }
 
