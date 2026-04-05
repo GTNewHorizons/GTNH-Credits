@@ -86,33 +86,44 @@ public class CreditsEditorApp {
     record Args(boolean help, boolean version, String resource) {
 
         static Args parse(String[] argv) {
-            boolean help = false, version = false;
-            String resource = null;
-            boolean endOfOptions = false;
+            Builder b = new Builder();
+            for (String arg : argv) b.accept(arg);
+            return b.build();
+        }
 
-            for (String arg : argv) {
+        private static final class Builder {
+
+            boolean help, version, endOfOptions;
+            String resource;
+
+            void accept(String arg) {
                 if (endOfOptions || !arg.startsWith("-")) {
                     if (resource != null) throw new IllegalArgumentException("unexpected argument: " + arg);
                     resource = arg;
-                    continue;
+                    return;
                 }
                 String[] parts = arg.substring(1)
                     .split("=", 2);
-                String name = parts[0];
-                String value = parts.length > 1 ? parts[1] : null;
+                applyOption(arg, parts[0], parts.length > 1 ? parts[1] : null);
+            }
+
+            private void applyOption(String raw, String name, String value) {
                 switch (name) {
                     case "h", "-help" -> help = true;
                     case "v", "-version" -> version = true;
                     case "-" -> endOfOptions = true;
                     case "-resource" -> {
                         if (value == null) throw new IllegalArgumentException("--resource requires a value");
-                        if (resource != null) throw new IllegalArgumentException("unexpected argument: " + arg);
+                        if (resource != null) throw new IllegalArgumentException("unexpected argument: " + raw);
                         resource = value;
                     }
-                    default -> throw new IllegalArgumentException("unknown option: " + arg);
+                    default -> throw new IllegalArgumentException("unknown option: " + raw);
                 }
             }
-            return new Args(help, version, resource);
+
+            Args build() {
+                return new Args(help, version, resource);
+            }
         }
     }
 }
