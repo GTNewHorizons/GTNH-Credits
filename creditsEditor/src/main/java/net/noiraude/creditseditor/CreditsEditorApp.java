@@ -4,6 +4,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
 
+import javax.swing.SwingUtilities;
+
+import net.noiraude.creditseditor.ui.MainWindow;
+
 public class CreditsEditorApp {
 
     private ResourceManager resourceManager;
@@ -45,7 +49,11 @@ public class CreditsEditorApp {
             }
         }
 
-        // TODO: launch GUI (resourceManager may be null; File menu sets it)
+        final ResourceManager rm = resourceManager;
+        SwingUtilities.invokeLater(() -> {
+            MainWindow window = new MainWindow(rm);
+            window.setVisible(true);
+        });
     }
 
     public ResourceManager getResourceManager() {
