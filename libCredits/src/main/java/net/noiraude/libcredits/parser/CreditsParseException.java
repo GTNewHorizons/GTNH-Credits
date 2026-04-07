@@ -6,8 +6,4 @@ public final class CreditsParseException extends Exception {
     public CreditsParseException(String message) {
         super(message);
     }
-
-    public CreditsParseException(String message, Throwable cause) {
-        super(message, cause);
-    }
 }
