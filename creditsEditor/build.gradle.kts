@@ -11,10 +11,12 @@ repositories {
 }
 
 val gsonVersion: String by gradle.extra
+val junitVersion: String by gradle.extra
 
 dependencies {
     implementation(project(":libCredits"))
     implementation("com.google.code.gson:gson:$gsonVersion")
+    testImplementation("junit:junit:$junitVersion")
 }
 
 java {
@@ -74,7 +76,7 @@ val installPrefix: String =
 
 tasks.register("install") {
     group = "distribution"
-    description = "Install credits-editor to \$PREFIX (default: ~/.local)"
+    description = $$"Install credits-editor to $PREFIX (default: ~/.local)"
     dependsOn("installShadowDist")
     doLast {
         val distDir = layout.buildDirectory.dir("install/credits-editor-shadow").get().asFile
@@ -87,12 +89,12 @@ tasks.register("install") {
         val destScript = file("$binDest/gtnh-credits-editor")
         destScript.writeText(script.readText()
             .replace(
-                "CLASSPATH=\$APP_HOME/lib/credits-editor.jar",
-                "CLASSPATH=\$APP_HOME/lib/gtnh-credits-editor.jar"
+                $$"CLASSPATH=$APP_HOME/lib/credits-editor.jar",
+                $$"CLASSPATH=$APP_HOME/lib/gtnh-credits-editor.jar"
             )
             .replace(
                 "DEFAULT_JVM_OPTS=\"\"",
-                "DEFAULT_JVM_OPTS=\"-Dapp.name=\$APP_BASE_NAME\""
+                $$"DEFAULT_JVM_OPTS=\"-Dapp.name=$APP_BASE_NAME\""
             )
         )
         destScript.setExecutable(true)
@@ -112,7 +114,7 @@ tasks.register("install") {
 
 tasks.register("uninstall") {
     group = "distribution"
-    description = "Remove gtnh-credits-editor installed under \$PREFIX (default: ~/.local)"
+    description = $$"Remove gtnh-credits-editor installed under $PREFIX (default: ~/.local)"
     doLast {
         val removed = mutableListOf<String>()
         listOf(

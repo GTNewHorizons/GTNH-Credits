@@ -9,9 +9,12 @@ repositories {
 }
 
 val gsonVersion: String by gradle.extra
+val junitVersion: String by gradle.extra
 
 dependencies {
     compileOnly("com.google.code.gson:gson:$gsonVersion")
+    testImplementation("junit:junit:$junitVersion")
+    testImplementation("com.google.code.gson:gson:$gsonVersion")
 }
 
 java {
