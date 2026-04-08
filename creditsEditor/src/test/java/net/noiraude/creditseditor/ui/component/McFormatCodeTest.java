@@ -191,7 +191,7 @@ public class McFormatCodeTest {
 
     @Test
     public void parse_goldBoldThenWhiteBold_twoSegments() {
-        // §6§lGTNH §f§lCreator — exactly the pattern from the lang file
+        // §6§lGTNH §f§lCreator: exactly the pattern from the lang file
         List<McFormatCode.Segment> segs = McFormatCode.parse("§6§lGTNH §f§lCreator");
         assertEquals(2, segs.size());
 
@@ -260,7 +260,7 @@ public class McFormatCodeTest {
 
     @Test
     public void strip_trailingSection_preserved() {
-        // lone § at end has no following char — it is literal content and must survive
+        // lone § at end has no following char it is literal content and must survive
         assertEquals("hello§", McFormatCode.strip("hello§"));
     }
 }

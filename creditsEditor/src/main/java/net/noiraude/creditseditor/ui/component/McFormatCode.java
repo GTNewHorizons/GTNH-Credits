@@ -16,7 +16,7 @@ import java.util.List;
  * <p>
  * Supported codes:
  * <ul>
- * <li>{@code §0}–{@code §9}, {@code §a}–{@code §f}: set foreground colour (Minecraft palette);
+ * <li>{@code §0}-{@code §9}, {@code §a}-{@code §f}: set foreground color (Minecraft palette);
  * also resets all active format modifiers.
  * <li>{@code §l}: bold on
  * <li>{@code §o}: italic on
@@ -33,11 +33,11 @@ import java.util.List;
 public final class McFormatCode {
 
     /**
-     * The 16-colour Minecraft palette.
+     * The 16-color Minecraft palette.
      *
      * <p>
-     * Index {@code i} corresponds to {@code §0}–{@code §9} (i = 0–9) and {@code §a}–{@code
-     * §f} (i = 10–15).
+     * Index {@code i} corresponds to {@code §0}-{@code §9} (i = 0-9) and {@code §a}-{@code
+     * §f} (i = 10-15).
      */
     public static final Color[] PALETTE = { new Color(0x000000), // §0 black
         new Color(0x0000AA), // §1 dark blue
@@ -115,7 +115,7 @@ public final class McFormatCode {
             char c = raw.charAt(i);
             if (c == '§' && i + 1 < raw.length()) {
                 char code = Character.toLowerCase(raw.charAt(i + 1));
-                if (text.length() > 0) {
+                if (!text.isEmpty()) {
                     result.add(new Segment(text.toString(), color, bold, italic, underline, strikethrough, obfuscated));
                     text.setLength(0);
                 }
@@ -158,7 +158,7 @@ public final class McFormatCode {
                 i++;
             }
         }
-        if (text.length() > 0) {
+        if (!text.isEmpty()) {
             result.add(new Segment(text.toString(), color, bold, italic, underline, strikethrough, obfuscated));
         }
         return Collections.unmodifiableList(result);
@@ -184,7 +184,7 @@ public final class McFormatCode {
         return sb.toString();
     }
 
-    /** Returns the palette index (0–15) for {@code code}, or -1 if not a colour code. */
+    /** Returns the palette index (0-15) for {@code code}, or -1 if not a color code. */
     private static int paletteIndex(char code) {
         if (code >= '0' && code <= '9') return code - '0';
         if (code >= 'a' && code <= 'f') return 10 + (code - 'a');
