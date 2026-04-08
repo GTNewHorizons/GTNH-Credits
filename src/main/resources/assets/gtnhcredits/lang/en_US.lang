@@ -45,3 +45,5 @@ credits.person.role.coremod=Core Mod (translated)
 credits.category.indexed_detail.detail.0=Paragraph zero, first line.\nParagraph zero, second line (line break, no gap above).
 credits.category.indexed_detail.detail.2=Paragraph two (natural sort: renders after 0, before 10).
 credits.category.indexed_detail.detail.10=Paragraph ten (natural sort: renders last despite "10" > "2" lexicographically).
+
+credits.category.newcat=§3New Category

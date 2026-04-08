@@ -1,5 +1,4 @@
 {
-  "$schema": "https://raw.githubusercontent.com/GTNewHorizons/GTNH-Credits/master/credits.schema.json",
   "version": 2,
   "category": [
     {
@@ -41,71 +40,14 @@
     {
       "id": "Indexed Detail",
       "class": "detail"
+    },
+    {
+      "id": "NewCat"
     }
   ],
   "person": [
     {
-      "name": "§cDreamMaster§f§lXXL",
-      "category": [{ "team": "gtnh-creator" }, { "dev": "gtnh-creator" }]
-    },
-    {
-      "name": "Technovangelist",
-      "category": [{ "team": ["dev", "infra"] }, { "dev": ["dev", "infra"] }]
-    },
-    {
-      "name": "Lea",
-      "category": { "dev": "dev" }
-    },
-    {
-      "name": "Glease",
-      "category": { "dev": ["dev", "core-mods"] }
-    },
-    {
-      "name": "Blood Asp",
-      "category": [{ "dev": "dev" }, "contrib"]
-    },
-    {
-      "name": "Steelux",
-      "category": "contrib"
-    },
-    {
-      "name": "Steelux",
-      "category": "contrib"
-    },
-    {
-      "name": "Albert",
-      "category": "contrib"
-    },
-    {
-      "name": "Marie",
-      "category": "contrib"
-    },
-    {
-      "name": "D2R2",
-      "category": "contrib"
-    },
-    {
-      "name": "Marvein",
-      "category": "contrib"
-    },
-    {
-      "name": "Skynet",
-      "category": "contrib"
-    },
-    {
-      "name": "Woper",
-      "category": "contrib"
-    },
-    {
-      "name": "Mother",
-      "category": "contrib"
-    },
-    {
-      "name": "Albert Einstein",
-      "category": "contrib"
-    },
-    {
-      "name": "Max Planck",
+      "name": "Ada Lovelace",
       "category": "contrib"
     },
     {
@@ -113,31 +55,59 @@
       "category": "contrib"
     },
     {
-      "name": "Ada Lovelace",
+      "name": "Albert",
       "category": "contrib"
     },
     {
-      "name": "Stephen Hawking",
+      "name": "Albert Einstein",
       "category": "contrib"
     },
     {
-      "name": "Lisa Meitner",
-      "category": "contrib"
-    },
-    {
-      "name": "Yuri Gagarin",
-      "category": "contrib"
-    },
-    {
-      "name": "Paul Dirac",
-      "category": "contrib"
+      "name": "Amazing Sponsor",
+      "category": "support"
     },
     {
       "name": "Anachronist",
-      "category": { "contrib": "recipes" }
+      "category": {
+        "contrib": "recipes"
+      }
     },
     {
-      "name": "Supporter McSupportface",
+      "name": "Blood Asp",
+      "category": [
+        {
+          "dev": "dev"
+        },
+        "contrib"
+      ]
+    },
+    {
+      "name": "D2R2",
+      "category": "contrib"
+    },
+    {
+      "name": "§cDreamMaster§f§lXXL",
+      "category": [
+        {
+          "team": "gtnh-creator"
+        },
+        {
+          "dev": "gtnh-creator"
+        }
+      ]
+    },
+    {
+      "name": "Fallback Cat Person",
+      "category": "No-Trans Cat"
+    },
+    {
+      "name": "Fallback Role Person",
+      "category": {
+        "Key Test": "No.Trans Role"
+      }
+    },
+    {
+      "name": "Friendly Patron",
       "category": "support"
     },
     {
@@ -145,7 +115,13 @@
       "category": "support"
     },
     {
-      "name": "Friendly Patron",
+      "name": "Glease",
+      "category": {
+        "dev": ["dev", "core-mods"]
+      }
+    },
+    {
+      "name": "Helpful Backer",
       "category": "support"
     },
     {
@@ -153,32 +129,87 @@
       "category": "support"
     },
     {
-      "name": "Helpful Backer",
-      "category": "support"
+      "name": "Lea",
+      "category": {
+        "dev": "dev"
+      }
+    },
+    {
+      "name": "Lisa Meitner",
+      "category": "contrib"
     },
     {
       "name": "Loyal Fan",
       "category": "support"
     },
     {
-      "name": "Amazing Sponsor",
-      "category": "support"
+      "name": "Marie",
+      "category": "contrib"
+    },
+    {
+      "name": "Marvein",
+      "category": "contrib"
+    },
+    {
+      "name": "Max Planck",
+      "category": "contrib"
+    },
+    {
+      "name": "Mother",
+      "category": "contrib"
+    },
+    {
+      "name": "Paul Dirac",
+      "category": "contrib"
     },
     {
       "name": "Rfctksxk",
       "category": "thanks"
     },
     {
+      "name": "Skynet",
+      "category": "contrib"
+    },
+    {
+      "name": "Steelux",
+      "category": "contrib"
+    },
+    {
+      "name": "Steelux",
+      "category": "contrib"
+    },
+    {
+      "name": "Stephen Hawking",
+      "category": "contrib"
+    },
+    {
+      "name": "Supporter McSupportface",
+      "category": "support"
+    },
+    {
+      "name": "Technovangelist",
+      "category": [
+        {
+          "team": ["dev", "infra"]
+        },
+        {
+          "dev": ["dev", "infra"]
+        }
+      ]
+    },
+    {
       "name": "Translated Person",
-      "category": { "Key Test": ["Test-Role", "Core.Mod"] }
+      "category": {
+        "Key Test": ["Test-Role", "Core.Mod"]
+      }
     },
     {
-      "name": "Fallback Role Person",
-      "category": { "Key Test": "No.Trans Role" }
+      "name": "Woper",
+      "category": "contrib"
     },
     {
-      "name": "Fallback Cat Person",
-      "category": "No-Trans Cat"
+      "name": "Yuri Gagarin",
+      "category": "contrib"
     }
   ]
 }
