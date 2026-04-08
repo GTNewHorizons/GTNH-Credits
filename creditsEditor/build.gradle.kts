@@ -12,10 +12,12 @@ repositories {
 
 val gsonVersion: String by gradle.extra
 val junitVersion: String by gradle.extra
+val flatLafVersion: String by gradle.extra
 
 dependencies {
     implementation(project(":libCredits"))
     implementation("com.google.code.gson:gson:$gsonVersion")
+    implementation("com.formdev:flatlaf:$flatLafVersion")
     testImplementation("junit:junit:$junitVersion")
 }
 

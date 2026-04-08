@@ -8,11 +8,14 @@ import javax.swing.SwingUtilities;
 
 import net.noiraude.creditseditor.ui.MainWindow;
 
+import com.formdev.flatlaf.FlatLightLaf;
+
 public class CreditsEditorApp {
 
     private ResourceManager resourceManager;
 
     public static void main(String[] args) {
+        FlatLightLaf.setup();
         new CreditsEditorApp().start(args);
     }
 
