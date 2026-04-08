@@ -34,7 +34,7 @@ import net.noiraude.libcredits.serializer.CreditsSerializer;
  */
 public final class CreditsService {
 
-    static final String CREDITS_PATH = "assets/gtnhcredits/credits.json";
+    public static final String CREDITS_PATH = "assets/gtnhcredits/credits.json";
 
     private CreditsService() {}
 
@@ -56,7 +56,7 @@ public final class CreditsService {
      * Performs a round-trip parse before writing; throws if the data is invalid.
      *
      * @throws IOException           if the file cannot be written
-     * @throws CreditsParseException if the serialized data fails re-parsing
+     * @throws CreditsParseException if the serialized data fails reparsing
      */
     public static void save(EditorModel model, ResourceManager rm) throws IOException, CreditsParseException {
         CreditsData data = toCreditsData(model);
@@ -113,7 +113,7 @@ public final class CreditsService {
         for (EditorPerson ep : model.persons) {
             Map<String, List<String>> categoryRoles = new LinkedHashMap<>();
             for (EditorMembership m : ep.memberships) {
-                categoryRoles.put(m.categoryId, Collections.unmodifiableList(new ArrayList<>(m.roles)));
+                categoryRoles.put(m.categoryId, List.copyOf(m.roles));
             }
             persons.add(new CreditsPerson(ep.name, categoryRoles));
         }

@@ -7,11 +7,11 @@ import javax.swing.event.DocumentListener;
  * {@link DocumentListener} that calls the same action on any document change (insert, remove, or
  * attribute change).
  */
-final class AnyChangeListener implements DocumentListener {
+public final class AnyChangeListener implements DocumentListener {
 
     private final Runnable action;
 
-    AnyChangeListener(Runnable action) {
+    public AnyChangeListener(Runnable action) {
         this.action = action;
     }
 
