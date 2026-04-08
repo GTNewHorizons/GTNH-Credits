@@ -11,6 +11,7 @@ import java.util.stream.Collectors;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
+import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraft.util.StringTranslate;
 import net.noiraude.gtnhcredits.repository.CreditsController;
@@ -206,18 +207,16 @@ final class CreditsContentRenderer {
     // -------------------------------------------------------------------------
 
     private static void appendPersonsWithRoles(RichText rt, List<CreditsPerson> persons, int contentWidth) {
-        FontRenderer fr = Minecraft.getMinecraft().fontRenderer;
-        // Separator: space, bold em-dash, reset, space.
-        // Bold rendering makes the em-dash 1px wider than normal measurement.
-        String separator = " §l—§r ";
-        int separatorWidth = fr.getStringWidth(" — ") + 1;
         for (CreditsPerson person : persons) {
-            rt.addLine(buildPersonLine(person, contentWidth, fr, separator, separatorWidth));
+            rt.addLine(buildPersonLine(person, contentWidth));
         }
     }
 
-    private static CenteredLine buildPersonLine(CreditsPerson person, int contentWidth, FontRenderer fr,
-        String separator, int separatorWidth) {
+    private static CenteredLine buildPersonLine(CreditsPerson person, int contentWidth) {
+        final FontRenderer fr = Minecraft.getMinecraft().fontRenderer;
+        final String separator = " §l-§r ";
+        final int separatorWidth = fr.getStringWidth(EnumChatFormatting.getTextWithoutFormattingCodes(separator)) + 1;
+
         // Persons returned by getPersonsForCategory have exactly one category entry.
         Iterator<List<String>> it = person.categoryRoles.values()
             .iterator();
