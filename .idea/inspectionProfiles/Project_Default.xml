@@ -1,50 +1,19 @@
 <component name="InspectionProjectProfileManager">
   <profile version="1.0">
     <option name="myName" value="Project Default" />
-    <option name="scopesOrder">
-      <list>
-        <option value="Project except resources" />
-        <option value="All Changed Files" />
-        <option value="Open Files" />
-        <option value="Production" />
-        <option value="Project Files" />
-        <option value="Project sources" />
-        <option value="Scratches and Consoles" />
-        <option value="Tests" />
-      </list>
-    </option>
-    <inspection_tool class="Annotation" enabled="false" level="WARNING" enabled_by_default="false">
-      <scope name="Project Files" level="WARNING" enabled="false" />
-      <scope name="Project sources" level="WARNING" enabled="true" />
-    </inspection_tool>
-    <inspection_tool class="AnnotationClass" enabled="false" level="WARNING" enabled_by_default="false">
-      <scope name="Project Files" level="WARNING" enabled="false" />
-      <scope name="Project sources" level="WARNING" enabled="true" />
-    </inspection_tool>
-    <inspection_tool class="Annotator" enabled="false" level="ERROR" enabled_by_default="false" />
-    <inspection_tool class="Anonymous2MethodRef" enabled="true" level="WARNING" enabled_by_default="false">
-      <scope name="Project Files" level="WARNING" enabled="true" editorAttributes="NOT_USED_ELEMENT_ATTRIBUTES" />
-    </inspection_tool>
     <inspection_tool class="AnonymousClassMethodCount" enabled="true" level="WARNING" enabled_by_default="true">
       <option name="m_limit" value="1" />
     </inspection_tool>
-    <inspection_tool class="AnonymousHasLambdaAlternative" enabled="true" level="WARNING" enabled_by_default="false">
-      <scope name="Project Files" level="WARNING" enabled="true" editorAttributes="NOT_USED_ELEMENT_ATTRIBUTES" />
-    </inspection_tool>
-    <inspection_tool class="AssertStatement" enabled="false" level="WARNING" enabled_by_default="false">
-      <scope name="Project Files" level="WARNING" enabled="false" />
-      <scope name="Project sources" level="WARNING" enabled="true" />
-    </inspection_tool>
-    <inspection_tool class="BigDecimalLegacyMethod" enabled="true" level="WARNING" enabled_by_default="false">
-      <scope name="Project Files" level="WARNING" enabled="true" />
+    <inspection_tool class="ClassCanBeRecord" enabled="true" level="WEAK WARNING" enabled_by_default="true">
+      <!-- The mod (GTNH-Credits) and libCredits use Jabel: Java 17 syntax desugared to
+           Java 8 bytecode. Records require java.lang.Record at runtime and cannot be
+           desugared, so this inspection must be suppressed for those modules.
+           creditsEditor targets JDK 21 and CAN use records, so it stays enabled. -->
+      <scope name="GTNH-Credits Jabel modules" level="INFORMATION" enabled="false" />
     </inspection_tool>
     <inspection_tool class="BlockingMethodInNonBlockingContext" enabled="true" level="WARNING" enabled_by_default="true">
       <option name="myConsiderUnknownContextBlocking" value="false" />
     </inspection_tool>
-    <inspection_tool class="ClassCanBeRecord" enabled="true" level="WEAK WARNING" enabled_by_default="false">
-      <scope name="Project Files" level="WEAK WARNING" enabled="false" />
-    </inspection_tool>
-    <inspection_tool class="ClassWithOnlyPrivateConstructors" enabled="true" level="WARNING" enabled_by_default="true" />
     <inspection_tool class="ClassWithTooManyDependencies" enabled="true" level="WARNING" enabled_by_default="true">
       <option name="limit" value="10" />
     </inspection_tool>
@@ -57,57 +26,12 @@
     <inspection_tool class="ClassWithTooManyTransitiveDependents" enabled="true" level="WARNING" enabled_by_default="true">
       <option name="limit" value="35" />
     </inspection_tool>
-    <inspection_tool class="CodeBlock2Expr" enabled="true" level="WARNING" enabled_by_default="false">
-      <scope name="Project Files" level="WARNING" enabled="true" editorAttributes="NOT_USED_ELEMENT_ATTRIBUTES" />
-    </inspection_tool>
-    <inspection_tool class="CollectionsFieldAccessReplaceableByMethodCall" enabled="true" level="WARNING" enabled_by_default="false">
-      <scope name="Project Files" level="WARNING" enabled="true" />
-    </inspection_tool>
-    <inspection_tool class="ComparatorCombinators" enabled="true" level="WARNING" enabled_by_default="false">
-      <scope name="Project Files" level="WARNING" enabled="true" editorAttributes="NOT_USED_ELEMENT_ATTRIBUTES" />
-    </inspection_tool>
-    <inspection_tool class="CompareToUsesNonFinalVariable" enabled="true" level="WARNING" enabled_by_default="true" />
     <inspection_tool class="ConstructorCount" enabled="true" level="WARNING" enabled_by_default="true">
       <option name="ignoreDeprecatedConstructors" value="false" />
       <option name="m_limit" value="5" />
     </inspection_tool>
-    <inspection_tool class="Convert2Diamond" enabled="true" level="WARNING" enabled_by_default="false">
-      <scope name="Project Files" level="WARNING" enabled="true" editorAttributes="NOT_USED_ELEMENT_ATTRIBUTES" />
-    </inspection_tool>
-    <inspection_tool class="Convert2Lambda" enabled="true" level="WARNING" enabled_by_default="false">
-      <scope name="Project Files" level="WARNING" enabled="true" editorAttributes="NOT_USED_ELEMENT_ATTRIBUTES" />
-    </inspection_tool>
-    <inspection_tool class="Convert2MethodRef" enabled="true" level="WARNING" enabled_by_default="false">
-      <scope name="Project Files" level="WARNING" enabled="true" />
-    </inspection_tool>
-    <inspection_tool class="Convert2streamapi" enabled="true" level="INFORMATION" enabled_by_default="false">
-      <scope name="Project Files" level="INFORMATION" enabled="true" />
-    </inspection_tool>
     <inspection_tool class="CyclomaticComplexity" enabled="true" level="WARNING" enabled_by_default="true">
       <option name="m_limit" value="10" />
-    </inspection_tool>
-    <inspection_tool class="DeconstructionCanBeUsed" enabled="true" level="WARNING" enabled_by_default="false">
-      <scope name="Project Files" level="WARNING" enabled="true" />
-    </inspection_tool>
-    <inspection_tool class="EnhancedSwitchBackwardMigration" enabled="true" level="INFORMATION" enabled_by_default="false">
-      <scope name="Project Files" level="INFORMATION" enabled="true" />
-    </inspection_tool>
-    <inspection_tool class="EnhancedSwitchMigration" enabled="true" level="WARNING" enabled_by_default="false">
-      <scope name="Project Files" level="WARNING" enabled="true" />
-    </inspection_tool>
-    <inspection_tool class="EnumClass" enabled="false" level="WARNING" enabled_by_default="false">
-      <scope name="Project Files" level="WARNING" enabled="false" />
-      <scope name="Project sources" level="WARNING" enabled="true" />
-    </inspection_tool>
-    <inspection_tool class="EnumerationCanBeIteration" enabled="true" level="WARNING" enabled_by_default="false">
-      <scope name="Project Files" level="WARNING" enabled="true" />
-    </inspection_tool>
-    <inspection_tool class="EqualsReplaceableByObjectsCall" enabled="true" level="WEAK WARNING" enabled_by_default="false">
-      <scope name="Project Files" level="WEAK WARNING" enabled="true" />
-    </inspection_tool>
-    <inspection_tool class="EqualsUsesNonFinalVariable" enabled="true" level="WARNING" enabled_by_default="true" />
-    <inspection_tool class="ExplicitToImplicitClassMigration" enabled="true" level="WARNING" enabled_by_default="false">
-      <scope name="Project Files" level="WARNING" enabled="true" editorAttributes="NOT_USED_ELEMENT_ATTRIBUTES" />
     </inspection_tool>
     <inspection_tool class="FieldCount" enabled="true" level="WARNING" enabled_by_default="true">
       <option name="m_countConstantFields" value="false" />
@@ -115,29 +39,6 @@
       <option name="myCountEnumConstants" value="false" />
       <option name="m_limit" value="10" />
     </inspection_tool>
-    <inspection_tool class="Finalize" enabled="true" level="WARNING" enabled_by_default="true">
-      <option name="ignoreTrivialFinalizers" value="true" />
-    </inspection_tool>
-    <inspection_tool class="FoldExpressionIntoStream" enabled="true" level="INFORMATION" enabled_by_default="false">
-      <scope name="Project Files" level="INFORMATION" enabled="true" />
-    </inspection_tool>
-    <inspection_tool class="ForCanBeForeach" enabled="true" level="WARNING" enabled_by_default="false">
-      <scope name="Project Files" level="WARNING" enabled="true">
-        <option name="REPORT_INDEXED_LOOP" value="true" />
-        <option name="ignoreUntypedCollections" value="false" />
-      </scope>
-      <option name="REPORT_INDEXED_LOOP" value="true" />
-      <option name="ignoreUntypedCollections" value="false" />
-    </inspection_tool>
-    <inspection_tool class="ForeachStatement" enabled="false" level="WARNING" enabled_by_default="false">
-      <scope name="Project Files" level="WARNING" enabled="false" />
-      <scope name="Project sources" level="WARNING" enabled="true" />
-    </inspection_tool>
-    <inspection_tool class="ForwardCompatibility" enabled="false" level="WARNING" enabled_by_default="false">
-      <scope name="Project Files" level="WARNING" enabled="false" />
-      <scope name="Project sources" level="WARNING" enabled="true" />
-    </inspection_tool>
-    <inspection_tool class="GroovyContinueOrBreakFromFinallyBlock" enabled="true" level="WARNING" enabled_by_default="true" />
     <inspection_tool class="GroovyMethodParameterCount" enabled="true" level="WARNING" enabled_by_default="true">
       <option name="m_limit" value="5" />
     </inspection_tool>
@@ -148,176 +49,19 @@
     <inspection_tool class="GroovyOverlyNestedMethod" enabled="true" level="WARNING" enabled_by_default="true">
       <option name="m_limit" value="5" />
     </inspection_tool>
-    <inspection_tool class="GroovyReturnFromFinallyBlock" enabled="true" level="WARNING" enabled_by_default="true" />
-    <inspection_tool class="GroovyThrowFromFinallyBlock" enabled="true" level="WARNING" enabled_by_default="true" />
-    <inspection_tool class="GroovyVariableCanBeFinal" enabled="true" level="WARNING" enabled_by_default="true" />
-    <inspection_tool class="Guava" enabled="true" level="WARNING" enabled_by_default="false">
-      <scope name="Project Files" level="WARNING" enabled="true" />
-    </inspection_tool>
-    <inspection_tool class="HashCodeUsesNonFinalVariable" enabled="true" level="WARNING" enabled_by_default="true" />
-    <inspection_tool class="IfCanBeSwitch" enabled="true" level="WARNING" enabled_by_default="false">
-      <scope name="Project Files" level="WARNING" enabled="true">
-        <option name="minimumBranches" value="3" />
-        <option name="suggestIntSwitches" value="false" />
-        <option name="suggestEnumSwitches" value="false" />
-      </scope>
-      <option name="minimumBranches" value="3" />
-      <option name="suggestIntSwitches" value="false" />
-      <option name="suggestEnumSwitches" value="false" />
-    </inspection_tool>
     <inspection_tool class="IfStatementWithTooManyBranches" enabled="true" level="WARNING" enabled_by_default="true">
       <option name="m_limit" value="3" />
     </inspection_tool>
-    <inspection_tool class="ImplicitToExplicitClassBackwardMigration" enabled="true" level="INFORMATION" enabled_by_default="false">
-      <scope name="Project Files" level="INFORMATION" enabled="true" />
-    </inspection_tool>
-    <inspection_tool class="IndexOfReplaceableByContains" enabled="true" level="WARNING" enabled_by_default="false">
-      <scope name="Project Files" level="WARNING" enabled="true" />
-    </inspection_tool>
-    <inspection_tool class="Java8CollectionRemoveIf" enabled="true" level="WARNING" enabled_by_default="false">
-      <scope name="Project Files" level="WARNING" enabled="true" />
-    </inspection_tool>
-    <inspection_tool class="Java8ListReplaceAll" enabled="true" level="WARNING" enabled_by_default="false">
-      <scope name="Project Files" level="WARNING" enabled="true" />
-    </inspection_tool>
-    <inspection_tool class="Java8ListSort" enabled="true" level="WARNING" enabled_by_default="false">
-      <scope name="Project Files" level="WARNING" enabled="true" />
-    </inspection_tool>
-    <inspection_tool class="Java8MapApi" enabled="true" level="WARNING" enabled_by_default="false">
-      <scope name="Project Files" level="WARNING" enabled="true" />
-    </inspection_tool>
-    <inspection_tool class="Java8MapForEach" enabled="true" level="WARNING" enabled_by_default="false">
-      <scope name="Project Files" level="WARNING" enabled="true" />
-    </inspection_tool>
-    <inspection_tool class="Java9CollectionFactory" enabled="true" level="WEAK WARNING" enabled_by_default="false">
-      <scope name="Project Files" level="WEAK WARNING" enabled="true" />
-    </inspection_tool>
-    <inspection_tool class="JavaRequiresAutoModule" enabled="true" level="WARNING" enabled_by_default="false">
-      <scope name="Project Files" level="WARNING" enabled="true" />
-    </inspection_tool>
-    <inspection_tool class="JavadocBlankLines" enabled="false" level="WARNING" enabled_by_default="false" />
-    <inspection_tool class="LambdaCanBeMethodCall" enabled="true" level="INFORMATION" enabled_by_default="false">
-      <scope name="Project Files" level="INFORMATION" enabled="true" />
-    </inspection_tool>
-    <inspection_tool class="MarkdownDocumentationCommentsMigration" enabled="true" level="INFORMATION" enabled_by_default="false">
-      <scope name="Project Files" level="INFORMATION" enabled="true" />
-    </inspection_tool>
-    <inspection_tool class="MethodCanBeVariableArityMethod" enabled="true" level="INFORMATION" enabled_by_default="false">
-      <scope name="Project Files" level="INFORMATION" enabled="true" />
-    </inspection_tool>
-    <inspection_tool class="MigrateFromJavaLangIo" enabled="true" level="INFORMATION" enabled_by_default="false">
-      <scope name="Project Files" level="INFORMATION" enabled="true" />
-    </inspection_tool>
-    <inspection_tool class="MigrateToJavaLangIo" enabled="true" level="INFORMATION" enabled_by_default="false">
-      <scope name="Project Files" level="INFORMATION" enabled="true" />
-    </inspection_tool>
-    <inspection_tool class="NonFinalClone" enabled="true" level="WARNING" enabled_by_default="true" />
-    <inspection_tool class="NonFinalFieldInImmutable" enabled="true" level="WARNING" enabled_by_default="true" />
-    <inspection_tool class="NonFinalFieldOfException" enabled="true" level="WARNING" enabled_by_default="true" />
-    <inspection_tool class="NonFinalGuard" enabled="true" level="WARNING" enabled_by_default="true" />
-    <inspection_tool class="NonFinalStaticVariableUsedInClassInitialization" enabled="true" level="WARNING" enabled_by_default="true" />
     <inspection_tool class="ParametersPerConstructor" enabled="true" level="WARNING" enabled_by_default="true" />
     <inspection_tool class="ParametersPerMethod" enabled="true" level="WARNING" enabled_by_default="true">
       <option name="m_limit" value="5" />
     </inspection_tool>
-    <inspection_tool class="PatternVariableCanBeUsed" enabled="true" level="WARNING" enabled_by_default="false">
-      <scope name="Project Files" level="WARNING" enabled="true" />
-    </inspection_tool>
-    <inspection_tool class="RawUseOfParameterizedType" enabled="true" level="WARNING" enabled_by_default="false">
-      <scope name="Project Files" level="WARNING" enabled="true" />
-    </inspection_tool>
-    <inspection_tool class="ReadWriteStringCanBeUsed" enabled="true" level="WARNING" enabled_by_default="false">
-      <scope name="Project Files" level="WARNING" enabled="true" />
-    </inspection_tool>
-    <inspection_tool class="RedundantExplicitVariableType" enabled="true" level="INFORMATION" enabled_by_default="false">
-      <scope name="Project Files" level="INFORMATION" enabled="true" editorAttributes="NOT_USED_ELEMENT_ATTRIBUTES" />
-    </inspection_tool>
-    <inspection_tool class="ReplaceNullCheck" enabled="true" level="WARNING" enabled_by_default="false">
-      <scope name="Project Files" level="WARNING" enabled="true" />
-    </inspection_tool>
-    <inspection_tool class="SafeVarargsDetector" enabled="true" level="WARNING" enabled_by_default="false">
-      <scope name="Project Files" level="WARNING" enabled="true" />
-    </inspection_tool>
-    <inspection_tool class="SequencedCollectionMethodCanBeUsed" enabled="true" level="WARNING" enabled_by_default="false">
-      <scope name="Project Files" level="WARNING" enabled="true" />
-    </inspection_tool>
-    <inspection_tool class="SerialPersistentFieldsWithWrongSignature" enabled="true" level="WARNING" enabled_by_default="true" />
-    <inspection_tool class="SimplifyForEach" enabled="true" level="INFORMATION" enabled_by_default="false">
-      <scope name="Project Files" level="INFORMATION" enabled="true" />
-    </inspection_tool>
-    <inspection_tool class="Since15" enabled="false" level="ERROR" enabled_by_default="true">
-      <scope name="Project sources" level="ERROR" enabled="true">
-        <effectiveLL value="JDK_1_8" />
-      </scope>
-    </inspection_tool>
-    <inspection_tool class="SpellCheckingInspection" enabled="true" level="TYPO" enabled_by_default="false">
-      <scope name="Project except resources" level="TYPO" enabled="true">
-        <option name="processCode" value="true" />
-        <option name="processLiterals" value="true" />
-        <option name="processComments" value="true" />
-      </scope>
-      <option name="processCode" value="true" />
-      <option name="processLiterals" value="true" />
-      <option name="processComments" value="true" />
-    </inspection_tool>
-    <inspection_tool class="StaticPseudoFunctionalStyleMethod" enabled="true" level="WARNING" enabled_by_default="false">
-      <scope name="Project Files" level="WARNING" enabled="true" />
-    </inspection_tool>
-    <inspection_tool class="StringBufferReplaceableByStringBuilder" enabled="true" level="WARNING" enabled_by_default="false">
-      <scope name="Project Files" level="WARNING" enabled="true" />
-    </inspection_tool>
-    <inspection_tool class="StringRepeatCanBeUsed" enabled="true" level="WARNING" enabled_by_default="false">
-      <scope name="Project Files" level="WARNING" enabled="true" />
-    </inspection_tool>
-    <inspection_tool class="StringTemplateMigration" enabled="true" level="WARNING" enabled_by_default="false">
-      <scope name="Project Files" level="WARNING" enabled="true" />
-    </inspection_tool>
-    <inspection_tool class="StringTemplateReverseMigration" enabled="true" level="INFORMATION" enabled_by_default="false">
-      <scope name="Project Files" level="INFORMATION" enabled="true" />
-    </inspection_tool>
-    <inspection_tool class="SuperTearDownInFinally" enabled="true" level="WARNING" enabled_by_default="true" />
-    <inspection_tool class="TextBlockBackwardMigration" enabled="true" level="INFORMATION" enabled_by_default="false">
-      <scope name="Project Files" level="INFORMATION" enabled="true" />
-    </inspection_tool>
-    <inspection_tool class="TextBlockMigration" enabled="true" level="WARNING" enabled_by_default="false">
-      <scope name="Project Files" level="WARNING" enabled="true" />
-    </inspection_tool>
-    <inspection_tool class="ThreadLocalNotStaticFinal" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="Since15" enabled="true" level="ERROR" enabled_by_default="true" />
     <inspection_tool class="ThrownExceptionsPerMethod" enabled="true" level="WARNING" enabled_by_default="true">
       <option name="m_limit" value="3" />
     </inspection_tool>
-    <inspection_tool class="TryFinallyCanBeTryWithResources" enabled="true" level="WARNING" enabled_by_default="false">
-      <scope name="Project Files" level="WARNING" enabled="true" />
-    </inspection_tool>
-    <inspection_tool class="TryWithIdenticalCatches" enabled="true" level="WARNING" enabled_by_default="false">
-      <scope name="Project Files" level="WARNING" enabled="true" />
-    </inspection_tool>
-    <inspection_tool class="TypeParameterExtendsFinalClass" enabled="true" level="WARNING" enabled_by_default="true" />
-    <inspection_tool class="UnnecessaryBoxing" enabled="true" level="WARNING" enabled_by_default="false">
-      <scope name="Project Files" level="WARNING" enabled="true" />
-    </inspection_tool>
-    <inspection_tool class="UnnecessaryModuleDependencyInspection" enabled="false" level="WARNING" enabled_by_default="false" />
-    <inspection_tool class="UnnecessaryUnboxing" enabled="true" level="WARNING" enabled_by_default="false">
-      <scope name="Project Files" level="WARNING" enabled="true" />
-    </inspection_tool>
     <inspection_tool class="UnusedReturnValue" enabled="true" level="WARNING" enabled_by_default="true">
       <option name="IGNORE_BUILDER_PATTERN" value="true" />
-    </inspection_tool>
-    <inspection_tool class="UseCompareMethod" enabled="true" level="WARNING" enabled_by_default="false">
-      <scope name="Project Files" level="WARNING" enabled="true" />
-    </inspection_tool>
-    <inspection_tool class="UseHashCodeMethodInspection" enabled="true" level="WARNING" enabled_by_default="false">
-      <scope name="Project Files" level="WARNING" enabled="true" />
-    </inspection_tool>
-    <inspection_tool class="VarargParameter" enabled="false" level="INFORMATION" enabled_by_default="false">
-      <scope name="Project Files" level="INFORMATION" enabled="false" />
-      <scope name="Project sources" level="INFORMATION" enabled="true" />
-    </inspection_tool>
-    <inspection_tool class="VariableTypeCanBeExplicit" enabled="true" level="INFORMATION" enabled_by_default="false">
-      <scope name="Project Files" level="INFORMATION" enabled="true" />
-    </inspection_tool>
-    <inspection_tool class="WhileCanBeForeach" enabled="true" level="WARNING" enabled_by_default="false">
-      <scope name="Project Files" level="WARNING" enabled="true" />
     </inspection_tool>
   </profile>
 </component>
