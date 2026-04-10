@@ -1,20 +1,9 @@
 package net.noiraude.creditseditor.ui.panel;
 
-import java.awt.BorderLayout;
-import java.awt.Component;
-import java.awt.FlowLayout;
+import java.awt.*;
 import java.util.function.Consumer;
 
-import javax.swing.BorderFactory;
-import javax.swing.DefaultListCellRenderer;
-import javax.swing.DefaultListModel;
-import javax.swing.JButton;
-import javax.swing.JLabel;
-import javax.swing.JList;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.ListSelectionModel;
+import javax.swing.*;
 
 import net.noiraude.creditseditor.command.Command;
 import net.noiraude.creditseditor.command.impl.AddCategoryCommand;
@@ -36,20 +25,11 @@ import net.noiraude.creditseditor.ui.component.McFormatCode;
  * Structural edits (add, remove, move) are performed via commands issued through the
  * supplied executor. Call {@link #refresh(EditorModel)} after any model change.
  */
-public final class CategoryPanel extends JPanel {
+public final class CategoryPanel extends ListPanel<Object, EditorCategory> {
 
     /** Sentinel value that represents the "show all persons" state. */
     private static final Object ALL_SENTINEL = new Object() {};
 
-    private final Consumer<Command> onCommand;
-    private final Consumer<EditorCategory> onSelectionChanged;
-    private EditorModel model;
-
-    private final DefaultListModel<Object> listModel = new DefaultListModel<>();
-    private final JList<Object> list = new JList<>(listModel);
-
-    private final JButton addButton = new JButton("+");
-    private final JButton removeButton = new JButton("−");
     private final JButton upButton = new JButton("▲");
     private final JButton downButton = new JButton("▼");
 
@@ -59,22 +39,9 @@ public final class CategoryPanel extends JPanel {
      *                           {@code null} when the "All persons" sentinel is selected
      */
     public CategoryPanel(Consumer<Command> onCommand, Consumer<EditorCategory> onSelectionChanged) {
-        this.onCommand = onCommand;
-        this.onSelectionChanged = onSelectionChanged;
-        setLayout(new BorderLayout());
+        super("Categories", onCommand, onSelectionChanged);
 
-        list.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         list.setCellRenderer(new CategoryCellRenderer());
-        list.addListSelectionListener(e -> {
-            if (!e.getValueIsAdjusting()) {
-                updateButtons();
-                onSelectionChanged.accept(getSelectedCategory());
-            }
-        });
-
-        JScrollPane scroll = new JScrollPane(list);
-        scroll.setBorder(BorderFactory.createEtchedBorder());
-        add(scroll, BorderLayout.CENTER);
 
         // Toolbar
         addButton.setToolTipText("Add category");
@@ -103,37 +70,36 @@ public final class CategoryPanel extends JPanel {
      */
     public void refresh(EditorModel model) {
         this.model = model;
-
         String prevId = selectedCategoryId();
 
-        listModel.clear();
-        listModel.addElement(ALL_SENTINEL);
-        for (EditorCategory cat : model.categories) {
-            listModel.addElement(cat);
-        }
+        refreshing = true;
+        try {
+            listModel.clear();
+            listModel.addElement(ALL_SENTINEL);
+            for (EditorCategory cat : model.categories) {
+                listModel.addElement(cat);
+            }
 
-        // Restore previous selection
-        boolean restored = false;
-        if (prevId != null) {
-            for (int i = 1; i < listModel.size(); i++) {
-                EditorCategory cat = (EditorCategory) listModel.get(i);
-                if (cat.id.equals(prevId)) {
-                    list.setSelectedIndex(i);
-                    restored = true;
-                    break;
+            // Restore previous selection
+            boolean restored = false;
+            if (prevId != null) {
+                for (int i = 1; i < listModel.size(); i++) {
+                    EditorCategory cat = (EditorCategory) listModel.get(i);
+                    if (cat.id.equals(prevId)) {
+                        list.setSelectedIndex(i);
+                        restored = true;
+                        break;
+                    }
                 }
             }
-        }
-        if (!restored) {
-            list.setSelectedIndex(0);
+            if (!restored) {
+                list.setSelectedIndex(0);
+            }
+        } finally {
+            refreshing = false;
         }
 
         updateButtons();
-    }
-
-    /** Returns the underlying list component, for targeted repaint after field edits. */
-    public JList<Object> getList() {
-        return list;
     }
 
     /**
@@ -141,6 +107,11 @@ public final class CategoryPanel extends JPanel {
      * the "All persons" sentinel is selected or nothing is selected.
      */
     public EditorCategory getSelectedCategory() {
+        return getSelection();
+    }
+
+    @Override
+    protected EditorCategory getSelection() {
         Object sel = list.getSelectedValue();
         return (sel instanceof EditorCategory ec) ? ec : null;
     }
@@ -196,7 +167,8 @@ public final class CategoryPanel extends JPanel {
     // Helpers
     // -----------------------------------------------------------------------
 
-    private void updateButtons() {
+    @Override
+    protected void updateButtons() {
         EditorCategory cat = getSelectedCategory();
         boolean catSelected = cat != null && model != null;
         removeButton.setEnabled(catSelected);

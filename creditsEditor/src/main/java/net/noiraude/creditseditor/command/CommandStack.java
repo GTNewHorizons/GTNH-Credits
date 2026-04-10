@@ -21,7 +21,7 @@ public final class CommandStack {
 
     /**
      * The size of the undo stack at the last call to {@link #markClean()},
-     * or {@code -1} if the clean mark has been invalidated (i.e. the redo
+     * or {@code -1} if the clean mark has been invalidated (i.e., the redo
      * stack was cleared after the mark was set).
      */
     private int cleanMark = 0;
@@ -39,8 +39,8 @@ public final class CommandStack {
         if (!redoStack.isEmpty()) {
             redoStack.clear();
             // Clearing the redo stack destroys the path back to the clean mark when
-            // the mark was at a depth >= the current undo stack size (i.e. the mark
-            // was ahead of where we were before this execute).
+            // the mark was at a depth >= the current undo stack size (i.e., the mark
+            // was ahead of where we were before this executing).
             if (cleanMark >= undoStack.size()) {
                 cleanMark = -1;
             }
@@ -48,27 +48,29 @@ public final class CommandStack {
     }
 
     /**
-     * Undoes the most recently executed command.
+     * Undoes the most recently executed command and returns it.
      *
      * @throws IllegalStateException if there is nothing to undo
      */
-    public void undo() {
+    public Command undo() {
         if (undoStack.isEmpty()) throw new IllegalStateException("Nothing to undo");
         Command cmd = undoStack.pop();
         cmd.undo();
         redoStack.push(cmd);
+        return cmd;
     }
 
     /**
-     * Re-executes the most recently undone command.
+     * Re-executes the most recently undone command and returns it.
      *
      * @throws IllegalStateException if there is nothing to redo
      */
-    public void redo() {
+    public Command redo() {
         if (redoStack.isEmpty()) throw new IllegalStateException("Nothing to redo");
         Command cmd = redoStack.pop();
         cmd.execute();
         undoStack.push(cmd);
+        return cmd;
     }
 
     // -----------------------------------------------------------------------

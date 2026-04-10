@@ -61,7 +61,7 @@ public final class LangDocument {
 
     static final class KeyValueLine implements Line {
 
-        String key;
+        final String key;
         String value;
         boolean deleted;
 
@@ -83,7 +83,7 @@ public final class LangDocument {
 
     /**
      * Index of existing key-value lines, for fast lookup.
-     * Deleted lines remain in this index until write time.
+     * Deleted lines remain in this index until writing time.
      */
     private final Map<String, KeyValueLine> index;
 
@@ -118,7 +118,7 @@ public final class LangDocument {
     /**
      * Sets the value for {@code key}.
      * If the key already exists in the original file, its line is updated in place.
-     * If the key is new, it is queued for appending at the end of the file on write.
+     * If the key is new, it is queued for appending at the end of the file when writing.
      */
     public void set(String key, String value) {
         KeyValueLine existing = index.get(key);
@@ -180,7 +180,7 @@ public final class LangDocument {
         }
 
         if (!pendingInserts.isEmpty()) {
-            if (!lastWasBlank && sb.length() > 0) {
+            if (!lastWasBlank && !sb.isEmpty()) {
                 sb.append('\n');
             }
             for (Map.Entry<String, String> entry : pendingInserts.entrySet()) {

@@ -1,28 +1,15 @@
 package net.noiraude.creditseditor.ui.detail;
 
-import java.awt.BorderLayout;
-import java.awt.FlowLayout;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
+import java.awt.*;
 import java.util.List;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
-import javax.swing.BorderFactory;
-import javax.swing.JButton;
-import javax.swing.JComboBox;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTable;
-import javax.swing.ListSelectionModel;
+import javax.swing.*;
 import javax.swing.table.AbstractTableModel;
 
 import net.noiraude.creditseditor.command.Command;
 import net.noiraude.creditseditor.command.impl.AddMembershipCommand;
-import net.noiraude.creditseditor.command.impl.EditFieldCommand;
+import net.noiraude.creditseditor.command.impl.DocumentEditCommand;
 import net.noiraude.creditseditor.command.impl.RemoveMembershipCommand;
 import net.noiraude.creditseditor.model.EditorCategory;
 import net.noiraude.creditseditor.model.EditorMembership;
@@ -39,22 +26,16 @@ import net.noiraude.creditseditor.ui.component.MinecraftTextEditor;
  * the model directly. Call {@link #load(EditorPerson, EditorModel)} whenever the active
  * person changes or the model has been refreshed by an undo/redo.
  */
-public final class PersonDetailView extends JPanel {
+public final class PersonDetailView extends DetailView<EditorPerson> {
 
-    private final Consumer<Command> onCommand;
-    private EditorPerson current;
     private EditorModel model;
-    private boolean loading;
 
     private final MinecraftTextEditor nameEditor = new MinecraftTextEditor();
     private final MembershipTableModel tableModel = new MembershipTableModel();
     private final JTable membershipTable = new JTable(tableModel);
-    private final JButton addMembershipButton = new JButton("Add");
-    private final JButton removeMembershipButton = new JButton("Remove");
 
     public PersonDetailView(Consumer<Command> onCommand) {
-        this.onCommand = onCommand;
-        setLayout(new GridBagLayout());
+        super(onCommand);
 
         GridBagConstraints label = labelConstraints();
         GridBagConstraints field = fieldConstraints();
@@ -88,7 +69,9 @@ public final class PersonDetailView extends JPanel {
         membershipPanel.add(tableScroll, BorderLayout.CENTER);
 
         JPanel membershipToolbar = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 4));
+        JButton addMembershipButton = new JButton("Add");
         membershipToolbar.add(addMembershipButton);
+        JButton removeMembershipButton = new JButton("Remove");
         membershipToolbar.add(removeMembershipButton);
         membershipPanel.add(membershipToolbar, BorderLayout.SOUTH);
         add(membershipPanel, field);
@@ -96,11 +79,12 @@ public final class PersonDetailView extends JPanel {
         // Wire events
         nameEditor.addPropertyChangeListener("text", e -> {
             if (!loading && current != null) {
-                String newVal = (String) e.getNewValue();
-                if (!newVal.equals(current.name)) {
-                    onCommand.accept(
-                        new EditFieldCommand<>("Edit person name", () -> current.name, v -> current.name = v, newVal));
-                }
+                current.name = (String) e.getNewValue();
+            }
+        });
+        nameEditor.addUndoableEditListener(e -> {
+            if (!loading && current != null) {
+                onCommand.accept(new DocumentEditCommand("Edit person name", e.getEdit()));
             }
         });
 
@@ -129,10 +113,10 @@ public final class PersonDetailView extends JPanel {
 
         List<String> used = current.memberships.stream()
             .map(m -> m.categoryId)
-            .collect(Collectors.toList());
+            .toList();
         List<EditorCategory> available = model.categories.stream()
             .filter(c -> !used.contains(c.id))
-            .collect(Collectors.toList());
+            .toList();
 
         if (available.isEmpty()) {
             JOptionPane.showMessageDialog(
@@ -208,31 +192,5 @@ public final class PersonDetailView extends JPanel {
                 default -> "";
             };
         }
-    }
-
-    // -----------------------------------------------------------------------
-    // Layout helpers
-    // -----------------------------------------------------------------------
-
-    private static GridBagConstraints labelConstraints() {
-        GridBagConstraints c = new GridBagConstraints();
-        c.gridx = 0;
-        c.fill = GridBagConstraints.NONE;
-        c.anchor = GridBagConstraints.WEST;
-        c.weightx = 0;
-        c.weighty = 0;
-        c.insets = new Insets(4, 6, 4, 4);
-        return c;
-    }
-
-    private static GridBagConstraints fieldConstraints() {
-        GridBagConstraints c = new GridBagConstraints();
-        c.gridx = 1;
-        c.fill = GridBagConstraints.HORIZONTAL;
-        c.anchor = GridBagConstraints.WEST;
-        c.weightx = 1.0;
-        c.weighty = 0;
-        c.insets = new Insets(4, 0, 4, 6);
-        return c;
     }
 }

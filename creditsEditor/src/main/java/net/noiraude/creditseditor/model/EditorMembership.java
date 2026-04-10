@@ -9,11 +9,11 @@ import java.util.List;
  */
 public final class EditorMembership {
 
-    /** Id of the category this membership belongs to. */
-    public String categoryId;
+    /** {@code Id} of the category this membership belongs to. */
+    public final String categoryId;
 
-    /** Ordered list of role strings held in this category membership. May be empty. */
-    public List<String> roles;
+    /** Ordered list of role strings held in this category membership. Maybe empty. */
+    public final List<String> roles;
 
     public EditorMembership(String categoryId) {
         this.categoryId = categoryId;

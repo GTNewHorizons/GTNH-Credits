@@ -4,7 +4,7 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 
 /**
- * Mutable editor representation of a credits category.
+ * Mutable editor representation of a credits' category.
  *
  * <p>
  * {@code displayName} and {@code description} hold raw strings as they appear in the lang

@@ -6,17 +6,13 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.DirectoryStream;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import com.google.gson.GsonBuilder;
@@ -27,12 +23,12 @@ import com.google.gson.JsonObject;
  * over either a plain directory tree or a Minecraft resource pack zip file.
  *
  * <p>
- * Obtain an instance via {@link #open(String)}. The caller is responsible for
+ * Get an instance via {@link #open(String)}. The caller is responsible for
  * closing the instance when done; use try-with-resources.
  */
 public final class ResourceManager implements Closeable {
 
-    /** How the resource root is stored on disk. */
+    /** How the resource root is stored on a disk. */
     public enum Mode {
         /** A plain directory whose contents are the resource tree. */
         DIRECTORY,
@@ -41,15 +37,13 @@ public final class ResourceManager implements Closeable {
     }
 
     private final Path diskPath;
-    private final Mode mode;
     private final FileSystem zipFs; // null when mode == DIRECTORY
 
     /** Root path inside the active filesystem (directory path or zip root). */
     private final Path resourceRoot;
 
-    private ResourceManager(Path diskPath, Mode mode, FileSystem zipFs) {
+    private ResourceManager(Path diskPath, FileSystem zipFs) {
         this.diskPath = diskPath;
-        this.mode = mode;
         this.zipFs = zipFs;
         this.resourceRoot = (zipFs != null) ? zipFs.getPath("/") : diskPath;
     }
@@ -78,25 +72,20 @@ public final class ResourceManager implements Closeable {
 
         if (Files.exists(path)) {
             if (Files.isDirectory(path)) {
-                return new ResourceManager(path, Mode.DIRECTORY, null);
+                return new ResourceManager(path, null);
             } else if (isZipSuffix) {
-                return new ResourceManager(path, Mode.ZIP, openZipFilesystem(path, false));
+                return new ResourceManager(path, openZipFilesystem(path, false));
             } else {
                 throw new IOException("Path exists but is neither a directory nor a .zip file: " + path);
             }
         } else {
             if (isZipSuffix) {
-                return new ResourceManager(path, Mode.ZIP, createResourcePackZip(path));
+                return new ResourceManager(path, createResourcePackZip(path));
             } else {
                 Files.createDirectories(path);
-                return new ResourceManager(path, Mode.DIRECTORY, null);
+                return new ResourceManager(path, null);
             }
         }
-    }
-
-    /** Returns whether this manager wraps a directory or a zip file. */
-    public Mode getMode() {
-        return mode;
     }
 
     /** Returns the on-disk path of the directory or zip file. */
@@ -105,8 +94,8 @@ public final class ResourceManager implements Closeable {
     }
 
     /** Returns {@code true} if {@code relativePath} exists inside the resource root. */
-    public boolean exists(String relativePath) {
-        return Files.exists(resourceRoot.resolve(relativePath));
+    public boolean notExists(String relativePath) {
+        return !Files.exists(resourceRoot.resolve(relativePath));
     }
 
     /**
@@ -131,26 +120,6 @@ public final class ResourceManager implements Closeable {
             Files.createDirectories(parent);
         }
         return Files.newOutputStream(target, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-    }
-
-    /**
-     * Lists the immediate children of {@code relativeDir} inside the resource root.
-     * Returns an empty list if the directory does not exist.
-     *
-     * @throws IOException if the directory cannot be read
-     */
-    public List<Path> listFiles(String relativeDir) throws IOException {
-        Path dir = resourceRoot.resolve(relativeDir);
-        if (!Files.isDirectory(dir)) {
-            return Collections.emptyList();
-        }
-        List<Path> result = new ArrayList<>();
-        try (DirectoryStream<Path> stream = Files.newDirectoryStream(dir)) {
-            for (Path entry : stream) {
-                result.add(entry);
-            }
-        }
-        return result;
     }
 
     /** Closes the underlying zip filesystem, if any. Has no effect in directory mode. */
@@ -179,7 +148,7 @@ public final class ResourceManager implements Closeable {
         }
         // Write pack.mcmeta then close to flush the zip, then reopen for use.
         try (FileSystem fs = openZipFilesystem(zip, true)) {
-            Files.write(fs.getPath("pack.mcmeta"), buildPackMcmeta().getBytes(StandardCharsets.UTF_8));
+            Files.writeString(fs.getPath("pack.mcmeta"), buildPackMcmeta(), StandardCharsets.UTF_8);
         }
         return openZipFilesystem(zip, false);
     }

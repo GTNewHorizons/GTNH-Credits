@@ -79,7 +79,7 @@ public final class RoleIndex {
             String langKey = "credits.person.role." + KeySanitizer.sanitize(role);
             int count = roleToPersons.get(role)
                 .size();
-            result.add(new Entry(role, langKey, count, Collections.unmodifiableList(new ArrayList<>(e.getValue()))));
+            result.add(new Entry(role, langKey, count, List.copyOf(e.getValue())));
         }
         result.sort(Comparator.comparing(e -> e.raw));
 

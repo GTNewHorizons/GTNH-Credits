@@ -5,8 +5,8 @@ package net.noiraude.creditseditor.service;
  *
  * <p>
  * The algorithm is an independent reimplementation that must produce the same output as
- * the GTNH Credits mod at runtime, so that lang keys written by this editor are found by
- * the game. The algorithm is:
+ * the GTNH Credits mod at runtime so that the game finds lang keys written by this editor.
+ * The algorithm is:
  * <ol>
  * <li>Delete all {@code .} characters.</li>
  * <li>Delete all {@code -} characters.</li>

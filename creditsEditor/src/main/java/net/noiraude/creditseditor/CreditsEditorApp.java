@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
 
-import javax.swing.SwingUtilities;
+import javax.swing.*;
 
 import net.noiraude.creditseditor.ui.MainWindow;
 
@@ -14,6 +14,7 @@ public class CreditsEditorApp {
 
     private ResourceManager resourceManager;
 
+    @SuppressWarnings("unused")
     public static void main(String[] args) {
         FlatLightLaf.setup();
         new CreditsEditorApp().start(args);

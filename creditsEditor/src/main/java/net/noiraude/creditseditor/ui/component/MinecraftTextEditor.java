@@ -1,28 +1,28 @@
 package net.noiraude.creditseditor.ui.component;
 
-import java.awt.BorderLayout;
-import java.awt.CardLayout;
-import java.awt.Cursor;
-import java.awt.Insets;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
+import java.awt.*;
 
-import javax.swing.JButton;
-import javax.swing.JPanel;
-import javax.swing.JTextField;
+import javax.swing.*;
+import javax.swing.event.UndoableEditListener;
 
 /**
  * Single-line editable field for strings that may contain Minecraft {@code §x} formatting codes.
  *
  * <p>
- * Contains a {@link JTextField} (always the data source) and a {@link MinecraftTextRenderer}
- * (rendered preview), toggled by a {@code [<>]} / {@code [Aa]} button. Default mode is
- * <em>rendered</em>. Clicking the rendered view, or pressing the toggle button, switches to raw
- * mode and focuses the text field.
+ * {@link #setText} accepts and {@link #getText} returns values in Minecraft 1.7.10 lang file
+ * format: backslashes escaped as {@code \\}. Internally and visually, the editor uses unescaped
+ * backslashes.
+ *
+ * <p>
+ * Contains a {@link McWysiwygPane} (WYSIWYG rendered mode, the default) and a
+ * {@link JTextField} (raw mode, showing literal {@code §} codes with unescaped backslashes).
+ * A {@code [<>]} / {@code [Aa]} toggle button and a {@link McFormatToolbar} are shown in a top
+ * bar.
  *
  * <p>
  * Fires a {@code "text"} {@link java.beans.PropertyChangeEvent} whenever the value changes due
- * to user input. Programmatic calls to {@link #setText} do not fire the event.
+ * to user input. The event value is in lang file format. Programmatic calls to {@link #setText}
+ * do not fire the event.
  */
 public final class MinecraftTextEditor extends JPanel {
 
@@ -32,47 +32,69 @@ public final class MinecraftTextEditor extends JPanel {
     private static final String CARD_RENDERED = "rendered";
     private static final String CARD_RAW = "raw";
 
+    private final McWysiwygPane wysiwygPane = new McWysiwygPane(false);
     private final JTextField rawField = new JTextField();
-    private final MinecraftTextRenderer renderer = new MinecraftTextRenderer();
     private final JButton toggleButton = new JButton("<>");
     private final JPanel contentPanel = new JPanel(new CardLayout());
 
     private boolean renderedMode = true;
-    private boolean settingText = false;
+    private boolean settingText;
+    private boolean syncing;
 
     public MinecraftTextEditor() {
-        setLayout(new BorderLayout(2, 0));
+        setLayout(new BorderLayout(0, 0));
 
-        contentPanel.add(renderer, CARD_RENDERED);
+        McFormatToolbar toolbar = new McFormatToolbar();
+        wysiwygPane.connectToolbar(toolbar);
+        removeLafUndoManager(rawField);
+
+        contentPanel.add(wysiwygPane, CARD_RENDERED);
         contentPanel.add(rawField, CARD_RAW);
-
-        renderer.setCursor(Cursor.getPredefinedCursor(Cursor.TEXT_CURSOR));
-        renderer.addMouseListener(new MouseAdapter() {
-
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                if (renderedMode) setRenderedMode(false);
-            }
-        });
 
         toggleButton.setMargin(new Insets(1, 4, 1, 4));
         toggleButton.setFocusable(false);
         toggleButton.setToolTipText("Toggle raw / rendered mode");
         toggleButton.addActionListener(e -> setRenderedMode(!renderedMode));
 
-        rawField.getDocument()
-            .addDocumentListener(new AnyChangeListener(this::onTextChanged));
+        JPanel topBar = new JPanel(new BorderLayout(2, 0));
+        topBar.setOpaque(false);
+        topBar.add(toolbar, BorderLayout.CENTER);
+        topBar.add(toggleButton, BorderLayout.EAST);
 
+        add(topBar, BorderLayout.NORTH);
         add(contentPanel, BorderLayout.CENTER);
-        add(toggleButton, BorderLayout.EAST);
+
+        // When wysiwyg changes (display format), keep rawField in sync
+        wysiwygPane.addPropertyChangeListener(McWysiwygPane.PROP_TEXT, e -> {
+            if (!syncing && !settingText) {
+                syncing = true;
+                try {
+                    rawField.setText((String) e.getNewValue()); // display format
+                } finally {
+                    syncing = false;
+                }
+                // PROP_TEXT is fired from onRawChanged() triggered by rawField.setText above
+            }
+        });
+
+        // When rawField changes (display format), keep wysiwygPane in sync
+        rawField.getDocument()
+            .addDocumentListener(new AnyChangeListener(this::onRawChanged));
 
         showCard(CARD_RENDERED);
     }
 
-    private void onTextChanged() {
-        renderer.setText(rawField.getText());
+    private void onRawChanged() {
+        if (!syncing) {
+            syncing = true;
+            try {
+                wysiwygPane.setText(rawField.getText()); // display format
+            } finally {
+                syncing = false;
+            }
+        }
         if (!settingText) {
-            firePropertyChange(PROP_TEXT, null, rawField.getText());
+            firePropertyChange(PROP_TEXT, null, getText());
         }
     }
 
@@ -80,7 +102,9 @@ public final class MinecraftTextEditor extends JPanel {
         this.renderedMode = rendered;
         toggleButton.setText(rendered ? "<>" : "Aa");
         showCard(rendered ? CARD_RENDERED : CARD_RAW);
-        if (!rendered) {
+        if (rendered) {
+            wysiwygPane.requestPaneFocus();
+        } else {
             rawField.requestFocusInWindow();
         }
     }
@@ -90,40 +114,108 @@ public final class MinecraftTextEditor extends JPanel {
     }
 
     /**
-     * Sets the displayed text. Does not fire a {@code "text"} property change event.
+     * Sets the displayed text from a value in Minecraft lang file format.
      *
-     * @param text the raw string to display; {@code null} is treated as empty
+     * <p>
+     * Literal backslashes must be escaped as {@code \\}. Does not fire a {@code "text"}
+     * property change event.
+     *
+     * @param langValue the value in lang file format; {@code null} is treated as empty
      */
-    public void setText(String text) {
-        String value = (text != null) ? text : "";
+    public void setText(String langValue) {
+        String value = (langValue != null) ? langValue : "";
         settingText = true;
         try {
-            rawField.setText(value);
-            // onTextChanged fires synchronously and updates the renderer
+            rawField.setText(decodeLang(value)); // triggers onRawChanged which syncs wysiwygPane
         } finally {
             settingText = false;
         }
     }
 
-    /** Returns the current raw text value. */
+    /**
+     * Returns the current raw text value in Minecraft lang file format (backslashes escaped as
+     * {@code \\}).
+     */
     public String getText() {
-        return rawField.getText();
-    }
-
-    /** Returns {@code true} if the component is currently showing the rendered view. */
-    public boolean isRenderedMode() {
-        return renderedMode;
+        return encodeLang(rawField.getText());
     }
 
     /**
-     * Switches to rendered mode programmatically. Has no effect if already in rendered mode.
+     * Removes the L&F-installed {@code UndoManager} from the document of {@code c}.
      */
-    public void showRendered() {
-        if (!renderedMode) setRenderedMode(true);
+    private static void removeLafUndoManager(javax.swing.text.JTextComponent c) {
+        Object mgr = c.getClientProperty("JTextField.undoManager");
+        if (mgr instanceof UndoableEditListener) {
+            c.getDocument()
+                .removeUndoableEditListener((UndoableEditListener) mgr);
+        }
     }
 
-    /** Switches to raw mode and focuses the text field. Has no effect if already in raw mode. */
-    public void showRaw() {
-        if (renderedMode) setRenderedMode(false);
+    /**
+     * Registers an {@link UndoableEditListener} that is notified of document edits caused by user
+     * input. Events from programmatic {@link #setText} calls and cross-component sync are
+     * suppressed.
+     */
+    public void addUndoableEditListener(UndoableEditListener l) {
+        wysiwygPane.addUndoableEditListener(e -> { if (!syncing) l.undoableEditHappened(e); });
+        rawField.getDocument()
+            .addUndoableEditListener(e -> { if (!syncing && !settingText) l.undoableEditHappened(e); });
+    }
+
+    // ------------------------------------------------------------------
+    // Lang file escape / unescape
+    // ------------------------------------------------------------------
+
+    /**
+     * Decodes a Minecraft lang file value to display format.
+     *
+     * <p>
+     * Converts {@code \\} to a single backslash and {@code \n} to actual newline. Other
+     * {@code \x} sequences are passed through with the backslash preserved.
+     */
+    private static String decodeLang(String langValue) {
+        if (!langValue.contains("\\")) return langValue;
+        StringBuilder sb = new StringBuilder(langValue.length());
+        int i = 0;
+        while (i < langValue.length()) {
+            char c = langValue.charAt(i);
+            if (c == '\\' && i + 1 < langValue.length()) {
+                char next = langValue.charAt(i + 1);
+                if (next == 'n') {
+                    sb.append('\n');
+                    i += 2;
+                } else if (next == '\\') {
+                    sb.append('\\');
+                    i += 2;
+                } else {
+                    sb.append(c);
+                    i++;
+                }
+            } else {
+                sb.append(c);
+                i++;
+            }
+        }
+        return sb.toString();
+    }
+
+    /**
+     * Encodes a display-format string to Minecraft lang file format.
+     *
+     * <p>
+     * Converts backslashes to {@code \\} and actual newlines to {@code \n} (backslash-n).
+     */
+    private static String encodeLang(String displayValue) {
+        if (displayValue.isEmpty() || (!displayValue.contains("\\") && !displayValue.contains("\n"))) {
+            return displayValue;
+        }
+        StringBuilder sb = new StringBuilder(displayValue.length() + 4);
+        for (int i = 0; i < displayValue.length(); i++) {
+            char c = displayValue.charAt(i);
+            if (c == '\n') sb.append("\\n");
+            else if (c == '\\') sb.append("\\\\");
+            else sb.append(c);
+        }
+        return sb.toString();
     }
 }

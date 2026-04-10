@@ -14,13 +14,13 @@ import org.junit.Test;
 public class PersonCommandsTest {
 
     private EditorModel model;
-    private EditorPerson alice, bob;
+    private EditorPerson alice;
 
     @Before
     public void setUp() {
         model = new EditorModel();
         alice = new EditorPerson("Alice");
-        bob = new EditorPerson("Bob");
+        EditorPerson bob = new EditorPerson("Bob");
         model.persons.add(alice);
         model.persons.add(bob);
     }

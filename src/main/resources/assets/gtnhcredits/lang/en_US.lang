@@ -8,12 +8,12 @@ gui.credits.button.filter.exact_tip_line=Uses Regular Expressions to exactly mat
 gui.credits.button.filter.fuzzy_tip_line=Uses "Fuzzy Matching" to find closest matches to desired name
 
 credits.category.team=Core Team
-credits.category.team.detail=The core team is responsible for the overall direction, maintenance and release of GT New Horizons.\nTheir work spans design, coordination, infrastructure and long-term vision for the pack.
+credits.category.team.detail=§0The core team is responsible for the overall direction, maintenance and release of §3§lGT New Horizons§0.\nTheir work spans design, coordination, infrastructure and long-term vision for the pack.
 
 credits.category.dev=Developers
 credits.category.dev.detail=Developers design and implement the mods, scripts, configs and tooling that make GT New Horizons possible.\nThis includes everything from new gameplay systems to build pipeline improvements.
 
-credits.category.contrib=Contributors
+credits.category.contrib=§4Contributors
 credits.category.contrib.detail=Contributors have submitted fixes, content or improvements that found their way into the pack. Every contribution matters.
 
 credits.category.support=Supporters

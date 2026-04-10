@@ -56,7 +56,7 @@ public final class CreditsService {
      * Performs a round-trip parse before writing; throws if the data is invalid.
      *
      * @throws IOException           if the file cannot be written
-     * @throws CreditsParseException if the serialized data fails reparsing
+     * @throws CreditsParseException if the serialized data fails to reparse
      */
     public static void save(EditorModel model, ResourceManager rm) throws IOException, CreditsParseException {
         CreditsData data = toCreditsData(model);

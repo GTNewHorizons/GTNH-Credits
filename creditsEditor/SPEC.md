@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-The Credits Editor is a standalone Swing application for creating and maintaining the
+The Credit Editor is a standalone Swing application for creating and maintaining the
 `credits.json` and `lang/en_US.lang` files of a GTNH Credits resource pack. It targets
 team editors who work with data arriving from varied and partially structured sources.
 
@@ -35,12 +35,12 @@ not to the person globally.
 
 ### 2.2 Categories
 
-| Property     | Type        | Source       | Notes                             |
-| ------------ | ----------- | ------------ | --------------------------------- |
-| `id`         | key string  | credits.json | 1-32 chars, letter start/end      |
+| Property     | Type        | Source       | Notes                                |
+|--------------|-------------|--------------|--------------------------------------|
+| `id`         | key string  | credits.json | 1-32 chars, letter start/end         |
 | `class`      | string list | credits.json | subset of `person`, `role`, `detail` |
-| display name | string      | lang         | key `credits.category.{key}`      |
-| description  | string      | lang         | key `credits.category.{key}.detail` |
+| display name | string      | lang         | key `credits.category.{key}`         |
+| description  | string      | lang         | key `credits.category.{key}.detail`  |
 
 The `description` field uses paragraphs separated by `\n`. The editor always writes this
 syntax (not the indexed `.detail.N` syntax).
@@ -50,10 +50,10 @@ character with `_`, collapse consecutive `_` into one.
 
 ### 2.3 Persons
 
-| Property   | Type                      | Source       | Notes                          |
-| ---------- | ------------------------- | ------------ | ------------------------------ |
-| `name`     | string                    | credits.json | May contain Minecraft `§x` codes |
-| `category` | list of membership entries | credits.json | Ordered; see relationship above |
+| Property   | Type                       | Source       | Notes                            |
+|------------|----------------------------|--------------|----------------------------------|
+| `name`     | string                     | credits.json | May contain Minecraft `§x` codes |
+| `category` | list of membership entries | credits.json | Ordered; see relationship above  |
 
 Each membership entry is a `(catId, list of roles)` pair.
 
@@ -63,11 +63,11 @@ Roles are free-form strings associated with a person within a specific category 
 They do not exist as independent entities in the JSON, but the editor manages them globally
 to support reuse and refactoring.
 
-| Property     | Type   | Source       | Notes                                    |
-| ------------ | ------ | ------------ | ---------------------------------------- |
-| raw value    | string | credits.json | As stored in the JSON                    |
-| lang key     | string | derived      | `credits.person.role.{sanitized}`        |
-| display name | string | lang         | Optional; falls back to derived value    |
+| Property     | Type   | Source       | Notes                                 |
+|--------------|--------|--------------|---------------------------------------|
+| raw value    | string | credits.json | As stored in the JSON                 |
+| lang key     | string | derived      | `credits.person.role.{sanitized}`     |
+| display name | string | lang         | Optional; falls back to derived value |
 
 The sanitization algorithm is the same as for category ids.
 
@@ -75,14 +75,14 @@ The sanitization algorithm is the same as for category ids.
 ## 3. Resource Management
 
 The existing `ResourceManager` handles file access (directory or zip).
-GUI behaviours:
+GUI behaviors:
 
-| Action                | Behaviour                                                              |
-| --------------------- | ---------------------------------------------------------------------- |
-| File > Open Resources | File/directory chooser dialog                                          |
-| File > New Resources  | Creation dialog (name and type: directory or .zip)                     |
-| File > Save Resources | Writes `credits.json` + `lang/en_US.lang`; greyed out when clean      |
-| Window close          | If unsaved changes: confirmation dialog (Save / Discard / Cancel)      |
+| Action                | Behaviour                                                         |
+|-----------------------|-------------------------------------------------------------------|
+| File > Open Resources | File/directory chooser dialog                                     |
+| File > New Resources  | Creation dialog (name and type: directory or .zip)                |
+| File > Save Resources | Writes `credits.json` + `lang/en_US.lang`; greyed out when clean  |
+| Window close          | If unsaved changes: confirmation dialog (Save / Discard / Cancel) |
 
 The dirty indicator appears in the window title: `GTNH Credits Editor - name [*]`.
 
@@ -110,7 +110,7 @@ The **memberships** column adapts to the current category filter:
 - **Specific category selected:** shows only the roles the person holds in that category,
   e.g. `gtnh-creator, core-mods`; persons not in the category are hidden.
 
-**Default proportions:** left 20%, centre 50%, right 30%. All panes resizable via `JSplitPane`.
+**Default proportions:** left 20%, center 50%, right 30%. All panes are resizable via `JSplitPane`.
 
 **Menu bar:**
 
@@ -133,7 +133,7 @@ The list reflects the ordered array of categories in `credits.json`. Order here 
 controls the in-game display order.
 
 Each entry renders the category's **display name** (lang) using the `MinecraftTextRenderer`
-(WYSIWYG, see section 10). The lang key suffix (e.g. `team`) is shown in small grey text
+(WYSIWYG, see section 10). The lang key suffix (e.g. `team`) is shown in small gray text
 below the rendered name. If no lang entry exists for the name, the raw id is shown instead.
 
 The top of the list always contains a special **"All persons"** entry that is not part of
@@ -148,21 +148,21 @@ The list supports two equivalent reorder mechanisms for the selected category:
 
 Both produce the same `MoveCategoryOrder` undo entry.
 
-### 5.3 Toolbar (bottom of panel)
+### 5.3 Toolbar (bottom of a panel)
 
 ```
 [+]  [-]  [^]  [v]  [Roles...]
 ```
 
-| Button    | Effect                                                    |
-| --------- | --------------------------------------------------------- |
-| `+`       | Creates a new category; opens its form in the detail panel |
-| `-`       | Deletes the selected category (see 5.4)                   |
-| `^`       | Moves selected category one position up                   |
-| `v`       | Moves selected category one position down                 |
-| `Roles...`| Opens the role editor (section 8)                         |
+| Button     | Effect                                                     |
+|------------|------------------------------------------------------------|
+| `+`        | Creates a new category; opens its form in the detail panel |
+| `-`        | Deletes the selected category (see 5.4)                    |
+| `^`        | Moves selected category one position up                    |
+| `v`        | Moves selected category one position down                  |
+| `Roles...` | Opens the role editor (section 8)                          |
 
-Right-click on a list entry also provides: Duplicate, Delete.
+Right-clicking on a list entry also provides: Duplicate, Delete.
 
 ### 5.4 Category Deletion
 
@@ -171,7 +171,7 @@ If any persons have entries in this category, a warning dialog appears:
 Deletion removes the category from all affected persons.
 
 
-## 6. Persons Panel (centre)
+## 6. Persons Panel (center)
 
 ### 6.1 Filter Bar
 
@@ -183,16 +183,16 @@ Deletion removes the category from all affected persons.
 - **Role dropdown:** filters to persons having a given role in any category.
   Values: `(All roles)` + alphabetically sorted list of existing roles.
 - **"Select all" button:** selects every entry currently visible in the list.
-- Filters are combinatorial: name AND role AND category (chosen in left panel).
+- Filters are combinatorial: name AND role AND category (chosen in the left panel).
 
 ### 6.2 Person List
 
 Two-column `JTable`:
 
-| Column       | "All persons" view                          | Specific category view             |
-| ------------ | ------------------------------------------- | ---------------------------------- |
-| Name         | Minecraft-rendered name                     | Minecraft-rendered name            |
-| Memberships  | All `category (role, role, ...)` entries    | Roles in the selected category only |
+| Column      | "All persons" view                       | Specific category view              |
+|-------------|------------------------------------------|-------------------------------------|
+| Name        | Minecraft-rendered name                  | Minecraft-rendered name             |
+| Memberships | All `category (role, role, ...)` entries | Roles in the selected category only |
 
 Each person appears once in the list regardless of how many categories they belong to.
 When a specific category is selected, persons with no membership in that category are hidden.
@@ -206,7 +206,7 @@ Behaviours:
 ### 6.3 Actions
 
 | Element                 | Location        | Effect                                    |
-| ----------------------- | --------------- | ----------------------------------------- |
+|-------------------------|-----------------|-------------------------------------------|
 | `Add person`            | Bottom of panel | Creates a new person and selects it       |
 | `Import TSV`            | Bottom of panel | Opens the import dialog (section 9)       |
 | Right-click (selection) | List            | Context menu (section 6.4)                |
@@ -215,8 +215,8 @@ Behaviours:
 ### 6.4 Context Menu
 
 - Assign to category... (dropdown of categories; adds membership with no roles)
-- Remove from category... (dropdown of categories where they currently appear)
-- Add role in category... (pick category first, then role with autocomplete)
+- Remove from the category... (dropdown of categories where they currently appear)
+- Add a role in a category... (pick category first, then role with autocomplete)
 - Remove role... (list of roles common to the entire selection, across all their categories)
 - Delete person(s)
 
@@ -249,7 +249,7 @@ Description (en_US):                         <- MinecraftTextAreaEditor
 - **ID** is read-only after creation. Renaming an ID is a refactoring operation with lang
   key and reference impact; deferred to a future version or via explicit confirmation dialog.
 - **Name** uses `MinecraftTextEditor` (single-line, section 10.2). The lang key suffix
-  (e.g. `credits.category.team`) is shown as non-editable grey text below the field.
+  (e.g. `credits.category.team`) is shown as non-editable gray text below the field.
 - **Toggle buttons** for classes: pressed = class present in the JSON.
   If `role` is active without `person`, an inline warning is shown.
 - **Description** uses `MinecraftTextAreaEditor` (multi-line, section 10.3). It is only
@@ -310,13 +310,13 @@ Opens as a side panel (replacing the detail panel) or as a non-modal window.
 
 `JTable` with columns:
 
-| Column       | Content                                          | Editable    |
-| ------------ | ------------------------------------------------ | ----------- |
-| Role (raw)   | Value as stored in the JSON                      | No          |
-| Lang key     | `credits.person.role.{sanitized}`                | No          |
-| Display name | Value from lang (or derived if absent)           | Yes, inline |
-| Categories   | List of category ids that reference this role    | No          |
-| Persons      | Number of persons carrying this role             | No          |
+| Column       | Content                                       | Editable    |
+|--------------|-----------------------------------------------|-------------|
+| Role (raw)   | Value as stored in the JSON                   | No          |
+| Lang key     | `credits.person.role.{sanitized}`             | No          |
+| Display name | Value from lang (or derived if absent)        | Yes, inline |
+| Categories   | List of category ids that reference this role | No          |
+| Persons      | Number of persons carrying this role          | No          |
 
 - Column-sortable; default sort: alphabetical on "Role (raw)".
 - Alphabetical sort helps identify duplicates and near-miss spellings.
@@ -389,32 +389,32 @@ string in the data model:
 - Person name
 - Role display name (`credits.person.role.{sanitized}`)
 
-Three reusable components, all in `ui/component/`, handle display and editing of these
+Three reusable parts, all in `ui/component/`, handle display and editing of these
 strings. They depend only on `java.*`, `javax.swing.*`, and `java.awt.*`.
 
 ### 10.1 McFormatCode (parser, internal)
 
 A small value type and parser that splits a raw string into a list of styled segments.
 Each segment carries a character range and the active formatting state at that position
-(foreground colour, bold, italic, underline, strikethrough, obfuscated).
+(foreground color, bold, italic, underline, strikethrough, obfuscated).
 
-This is the shared parsing logic used by all three components. It has no Swing dependency
+This is the shared parsing logic used by all three parts. It has no Swing dependency
 and can be unit-tested independently.
 
 Supported codes and their effect on rendering state:
 
-| Code        | Effect                                      |
-| ----------- | ------------------------------------------- |
-| `§0` - `§9` | Set foreground colour (Minecraft palette)   |
-| `§a` - `§f` | Set foreground colour (Minecraft palette)   |
-| `§l`        | Bold on                                     |
-| `§o`        | Italic on                                   |
-| `§n`        | Underline on                                |
-| `§m`        | Strikethrough on                            |
-| `§k`        | Obfuscated on (random character cycling)    |
-| `§r`        | Reset all formatting to default             |
+| Code        | Effect                                    |
+|-------------|-------------------------------------------|
+| `§0` - `§9` | Set foreground colour (Minecraft palette) |
+| `§a` - `§f` | Set foreground colour (Minecraft palette) |
+| `§l`        | Bold on                                   |
+| `§o`        | Italic on                                 |
+| `§n`        | Underline on                              |
+| `§m`        | Strikethrough on                          |
+| `§k`        | Obfuscated on (random character cycling)  |
+| `§r`        | Reset all formatting to default           |
 
-The 16-colour Minecraft palette is defined as a static lookup table of `java.awt.Color`
+The 16-color Minecraft palette is defined as a static lookup table of `java.awt.Color`
 constants inside `McFormatCode`. No Minecraft class is referenced.
 
 ### 10.2 MinecraftTextRenderer (read-only)
@@ -422,7 +422,7 @@ constants inside `McFormatCode`. No Minecraft class is referenced.
 A `JComponent` that receives a raw string, parses it with `McFormatCode`, and paints
 each segment using Java2D (`Graphics2D`) with the appropriate `Font` and `Color`.
 
-- Bold, italic, underline, and strikethrough are composed from the standard `Font` API
+- Bold, italic, underline, and strikethrough are composed of the standard `Font` API
   and `Graphics2D.drawLine`.
 - Obfuscation (`§k`): a `javax.swing.Timer` fires every ~100 ms and replaces each
   obfuscated character with a random character of the same width from the same font.
@@ -462,7 +462,7 @@ The same `[<>]` / `[Aa]` toggle switches modes. Default mode: **Rendered**.
 
 In read-only list and table cells (category names, person names, role display names),
 the cell renderer is a `MinecraftTextRenderer`. Lang key suffixes shown as secondary
-text (e.g. the category id below the display name) are plain `String` painted without
+text (e.g., the category id below the display name) are plain `String` painted without
 any formatting-code parsing.
 
 
@@ -471,7 +471,7 @@ any formatting-code parsing.
 ### 11.1 File structure and ownership
 
 The `en_US.lang` file belongs to the broader GTNH Credits resource pack and contains keys
-from multiple concerns: GUI strings (`gui.*`), credits categories, credits detail text,
+from multiple concerns: GUI strings (`gui.*`), credits categories, credit detail text,
 person roles, and possibly others added in the future. The editor owns only a specific
 subset of keys.
 
@@ -488,7 +488,7 @@ sections it does not own.
 The editor reads and writes only these key prefixes:
 
 | Key prefix                        | Managed by                            |
-| --------------------------------- | ------------------------------------- |
+|-----------------------------------|---------------------------------------|
 | `credits.category.{key}`          | "Name" field in category detail       |
 | `credits.category.{key}.detail`   | "Description" area in category detail |
 | `credits.person.role.{sanitized}` | "Display name" column in role editor  |
@@ -496,7 +496,7 @@ The editor reads and writes only these key prefixes:
 All other keys (including `gui.*` and any other prefix) are treated as read-only foreign
 content. The editor must never alter, remove, or reorder them.
 
-### 11.3 Section grouping on write
+### 11.3 Section grouping on writing
 
 Editor-owned keys must be written in coherent groups, separated from foreign content by
 blank lines. The expected layout in the file is:
@@ -518,13 +518,13 @@ credits.person.role.dev=Developer
 credits.person.role.gtnh_creator=§6§lGTNH §f§lCreator
 ```
 
-When the editor writes the file it must:
+When the editor writes the file, it must:
 1. Output all foreign lines (key-value, comment, blank) exactly as read, in their
    original order.
 2. Replace the content of its own sections in place. If no editor-owned section exists
    yet, append it at the end, preceded by a blank line and an identifying comment.
 3. Within each editor-owned section, maintain one blank line between per-category groups
-   (name + detail together).
+   (name and detail together).
 4. Remove orphaned editor-owned keys (for deleted categories or roles) without leaving
    stray blank lines.
 
@@ -532,7 +532,7 @@ When the editor writes the file it must:
 
 `KeySanitizer` in the editor implements this algorithm independently (no dependency on
 the main mod). The algorithm must produce the same output as the mod does at runtime so
-that lang keys written by the editor are found by the game:
+that the game finds lang keys written by the editor:
 
 1. Delete all `.` (dot) characters.
 2. Delete all `-` (hyphen) characters.
@@ -549,21 +549,21 @@ Implemented with the **Command pattern**.
 
 ### 12.1 Atomic Commands
 
-| Command              | Undo                               |
-| -------------------- | ---------------------------------- |
-| AddCategory          | RemoveCategory                     |
-| RemoveCategory       | RestoreCategory (with persons)     |
-| EditCategoryField    | Restore previous value             |
-| MoveCategoryOrder    | Restore previous position          |
-| AddPerson            | RemovePerson                       |
-| RemovePerson         | RestorePerson                      |
-| EditPersonName       | Restore previous name              |
-| AddMembership        | RemoveMembership                   |
-| RemoveMembership     | AddMembership (with roles)         |
-| AddPersonRole        | RemovePersonRole                   |
-| RemovePersonRole     | AddPersonRole                      |
-| RenameRole           | Reverse the rename                 |
-| EditRoleLang         | Restore previous value             |
+| Command           | Undo                           |
+|-------------------|--------------------------------|
+| AddCategory       | RemoveCategory                 |
+| RemoveCategory    | RestoreCategory (with persons) |
+| EditCategoryField | Restore previous value         |
+| MoveCategoryOrder | Restore previous position      |
+| AddPerson         | RemovePerson                   |
+| RemovePerson      | RestorePerson                  |
+| EditPersonName    | Restore previous name          |
+| AddMembership     | RemoveMembership               |
+| RemoveMembership  | AddMembership (with roles)     |
+| AddPersonRole     | RemovePersonRole               |
+| RemovePersonRole  | AddPersonRole                  |
+| RenameRole        | Reverse the rename             |
+| EditRoleLang      | Restore previous value         |
 
 ### 12.2 Compound Commands
 
@@ -584,11 +584,11 @@ Implemented with the **Command pattern**.
 
 ### 13.1 Real-time Validation (on input)
 
-| Field       | Constraint                                  | Indicator     |
-| ----------- | ------------------------------------------- | ------------- |
-| Category ID | Key format: letter start/end, 1-32 chars    | Red border    |
-| Category ID | Unique within the file                      | Orange border |
-| Person name | Non-empty                                   | Red border    |
+| Field       | Constraint                               | Indicator     |
+|-------------|------------------------------------------|---------------|
+| Category ID | Key format: letter start/end, 1-32 chars | Red border    |
+| Category ID | Unique within the file                   | Orange border |
+| Person name | Non-empty                                | Red border    |
 
 ### 13.2 Validation on Save
 
@@ -598,17 +598,17 @@ Warnings (duplicate persons, categories without persons) are shown but do not bl
 
 ## 14. Keyboard Shortcuts
 
-| Shortcut       | Action                              |
-| -------------- | ----------------------------------- |
-| `Ctrl+S`       | Save                                |
-| `Ctrl+O`       | Open resources                      |
-| `Ctrl+Z`       | Undo                                |
-| `Ctrl+Y`       | Redo                                |
-| `Ctrl+Shift+Z` | Redo (alternative)                  |
-| `Ctrl+A`       | Select all (in focused list)        |
-| `Delete`       | Delete selection                    |
-| `F2`           | Rename / edit selected item         |
-| `Escape`       | Cancel current input                |
+| Shortcut       | Action                       |
+|----------------|------------------------------|
+| `Ctrl+S`       | Save                         |
+| `Ctrl+O`       | Open resources               |
+| `Ctrl+Z`       | Undo                         |
+| `Ctrl+Y`       | Redo                         |
+| `Ctrl+Shift+Z` | Redo (alternative)           |
+| `Ctrl+A`       | Select all (in focused list) |
+| `Delete`       | Delete selection             |
+| `F2`           | Rename / edit selected item  |
+| `Escape`       | Cancel current input         |
 
 
 ## 15. Package Architecture
@@ -710,7 +710,7 @@ Forbidden:
 - `ui` communicates with services and the command stack only; it never mutates
   `EditorModel` fields directly.
 
-### 15.4 Data flow on load
+### 15.4 Data flow on a load
 
 ```
 ResourceManager.openRead("credits.json")
@@ -738,7 +738,7 @@ LangModel
 ```
 
 If `CreditsParser` or `CreditsSerializer` throws, the save is aborted and the error
-is surfaced to the user. No partial writes occur (write to temp then rename, or write
+is surfaced to the user. No partial writes occur (write to temp, then rename, or write
 to an in-memory buffer before committing).
 
 
@@ -750,7 +750,7 @@ The following points will be specified during implementation:
   in the person list.
 - **DnD between JList and JTable:** precise `TransferHandler` implementation.
 - **Role autocomplete:** editable `JComboBox` or popup on `JTextField`.
-- **Obfuscation animation** (`§k`): Swing timer at short interval (~100 ms), active only
+- **Obfuscation animation** (`§k`): Swing timer at a short interval (~100 ms), active only
   when the component is visible.
 - **credits.json serialization format:** compact vs. pretty-print, key ordering.
 - **Person order in the JSON:** does the editor preserve insertion order or sort?

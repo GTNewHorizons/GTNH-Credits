@@ -9,15 +9,15 @@ import java.util.List;
  * <p>
  * The order of {@code categories} is significant: it controls the display order in-game.
  * The order of {@code persons} is the editing order and may differ from the order in
- * the saved {@code credits.json} (the parser sorts persons by name on load).
+ * the saved {@code credits.json} (the parser sorts persons by name on loading).
  */
 public final class EditorModel {
 
     /** Ordered list of categories. */
-    public List<EditorCategory> categories;
+    public final List<EditorCategory> categories;
 
     /** List of persons. */
-    public List<EditorPerson> persons;
+    public final List<EditorPerson> persons;
 
     public EditorModel() {
         this.categories = new ArrayList<>();

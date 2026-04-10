@@ -70,7 +70,7 @@ public final class LangService {
      * @throws IOException if the file exists but cannot be read
      */
     public static LangDocument load(net.noiraude.creditseditor.ResourceManager rm) throws IOException {
-        if (!rm.exists(LANG_PATH)) {
+        if (rm.notExists(LANG_PATH)) {
             return LangDocument.empty();
         }
         try (InputStream in = rm.openRead(LANG_PATH)) {

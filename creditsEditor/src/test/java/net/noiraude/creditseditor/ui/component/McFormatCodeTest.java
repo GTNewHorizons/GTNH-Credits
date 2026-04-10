@@ -6,8 +6,9 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-import java.awt.Color;
+import java.awt.*;
 import java.util.List;
+import java.util.Objects;
 
 import org.junit.Test;
 
@@ -32,12 +33,12 @@ public class McFormatCodeTest {
     }
 
     @Test
-    public void parse_plainText_oneSingleSegmentNullColor() {
+    public void parse_plainText_oneSingleSegmentNoColor() {
         List<McFormatCode.Segment> segs = McFormatCode.parse("hello");
         assertEquals(1, segs.size());
         assertEquals("hello", segs.getFirst().text);
-        assertNull(segs.getFirst().color);
-        assertFalse(segs.getFirst().bold);
+        assertNull(McFormatCode.activeColor(segs.getFirst().codes));
+        assertFalse(segs.getFirst().codes.contains(McFormatCode.BOLD));
     }
 
     @Test
@@ -62,8 +63,8 @@ public class McFormatCodeTest {
         List<McFormatCode.Segment> segs = McFormatCode.parse("§l§otext");
         assertEquals(1, segs.size());
         assertEquals("text", segs.getFirst().text);
-        assertTrue(segs.getFirst().bold);
-        assertTrue(segs.getFirst().italic);
+        assertTrue(segs.getFirst().codes.contains(McFormatCode.BOLD));
+        assertTrue(segs.getFirst().codes.contains(McFormatCode.ITALIC));
     }
 
     // -----------------------------------------------------------------------
@@ -75,27 +76,35 @@ public class McFormatCodeTest {
         // §a is index 10 = green
         List<McFormatCode.Segment> segs = McFormatCode.parse("§agreen");
         assertEquals(1, segs.size());
-        assertEquals(McFormatCode.PALETTE[10], segs.getFirst().color);
+        assertEquals(
+            McFormatCode.COLORS.get(10).color,
+            Objects.requireNonNull(McFormatCode.activeColor(segs.getFirst().codes)).color);
         assertEquals("green", segs.getFirst().text);
     }
 
     @Test
     public void parse_colorCode0_isBlack() {
         List<McFormatCode.Segment> segs = McFormatCode.parse("§0x");
-        assertEquals(new Color(0x000000), segs.getFirst().color);
+        assertEquals(
+            new Color(0x000000),
+            Objects.requireNonNull(McFormatCode.activeColor(segs.getFirst().codes)).color);
     }
 
     @Test
     public void parse_colorCodef_isWhite() {
         List<McFormatCode.Segment> segs = McFormatCode.parse("§fx");
-        assertEquals(new Color(0xFFFFFF), segs.getFirst().color);
+        assertEquals(
+            new Color(0xFFFFFF),
+            Objects.requireNonNull(McFormatCode.activeColor(segs.getFirst().codes)).color);
     }
 
     @Test
     public void parse_colorCodeUpperCase_treatedAsLowerCase() {
         // §A should behave the same as §a
         List<McFormatCode.Segment> segs = McFormatCode.parse("§Agreen");
-        assertEquals(McFormatCode.PALETTE[10], segs.getFirst().color);
+        assertEquals(
+            McFormatCode.COLORS.get(10).color,
+            Objects.requireNonNull(McFormatCode.activeColor(segs.getFirst().codes)).color);
     }
 
     @Test
@@ -103,8 +112,10 @@ public class McFormatCodeTest {
         // §l sets bold; §6 (color) should reset it
         List<McFormatCode.Segment> segs = McFormatCode.parse("§l§6text");
         assertEquals(1, segs.size());
-        assertFalse("colour code must reset bold", segs.getFirst().bold);
-        assertEquals(McFormatCode.PALETTE[6], segs.getFirst().color);
+        assertFalse("colour code must reset bold", segs.getFirst().codes.contains(McFormatCode.BOLD));
+        assertEquals(
+            McFormatCode.COLORS.get(6).color,
+            Objects.requireNonNull(McFormatCode.activeColor(segs.getFirst().codes)).color);
     }
 
     // -----------------------------------------------------------------------
@@ -114,45 +125,45 @@ public class McFormatCodeTest {
     @Test
     public void parse_boldCode_setsBold() {
         List<McFormatCode.Segment> segs = McFormatCode.parse("§lbold");
-        assertTrue(segs.getFirst().bold);
-        assertFalse(segs.getFirst().italic);
+        assertTrue(segs.getFirst().codes.contains(McFormatCode.BOLD));
+        assertFalse(segs.getFirst().codes.contains(McFormatCode.ITALIC));
     }
 
     @Test
     public void parse_italicCode_setsItalic() {
         assertTrue(
             McFormatCode.parse("§oitalic")
-                .getFirst().italic);
+                .getFirst().codes.contains(McFormatCode.ITALIC));
     }
 
     @Test
     public void parse_underlineCode_setsUnderline() {
         assertTrue(
             McFormatCode.parse("§ntext")
-                .getFirst().underline);
+                .getFirst().codes.contains(McFormatCode.UNDERLINE));
     }
 
     @Test
     public void parse_strikethroughCode_setsStrikethrough() {
         assertTrue(
             McFormatCode.parse("§mtext")
-                .getFirst().strikethrough);
+                .getFirst().codes.contains(McFormatCode.STRIKETHROUGH));
     }
 
     @Test
     public void parse_obfuscatedCode_setsObfuscated() {
         assertTrue(
             McFormatCode.parse("§ktext")
-                .getFirst().obfuscated);
+                .getFirst().codes.contains(McFormatCode.OBFUSCATED));
     }
 
     @Test
     public void parse_formatModifiers_areAdditive() {
         List<McFormatCode.Segment> segs = McFormatCode.parse("§l§o§ntext");
         McFormatCode.Segment seg = segs.getFirst();
-        assertTrue(seg.bold);
-        assertTrue(seg.italic);
-        assertTrue(seg.underline);
+        assertTrue(seg.codes.contains(McFormatCode.BOLD));
+        assertTrue(seg.codes.contains(McFormatCode.ITALIC));
+        assertTrue(seg.codes.contains(McFormatCode.UNDERLINE));
     }
 
     // -----------------------------------------------------------------------
@@ -163,15 +174,15 @@ public class McFormatCodeTest {
     public void parse_resetCode_clearsAllModifiers() {
         List<McFormatCode.Segment> segs = McFormatCode.parse("§l§o§rtext");
         McFormatCode.Segment seg = segs.getFirst();
-        assertFalse(seg.bold);
-        assertFalse(seg.italic);
-        assertNull(seg.color);
+        assertFalse(seg.codes.contains(McFormatCode.BOLD));
+        assertFalse(seg.codes.contains(McFormatCode.ITALIC));
+        assertNull(McFormatCode.activeColor(seg.codes));
     }
 
     @Test
     public void parse_resetCode_clearsPreviousColor() {
         List<McFormatCode.Segment> segs = McFormatCode.parse("§a§rtext");
-        assertNull(segs.getFirst().color);
+        assertNull(McFormatCode.activeColor(segs.getFirst().codes));
     }
 
     // -----------------------------------------------------------------------
@@ -197,13 +208,17 @@ public class McFormatCodeTest {
 
         McFormatCode.Segment first = segs.getFirst();
         assertEquals("GTNH ", first.text);
-        assertEquals(McFormatCode.PALETTE[6], first.color); // gold
-        assertTrue(first.bold);
+        assertEquals(
+            McFormatCode.COLORS.get(6).color,
+            Objects.requireNonNull(McFormatCode.activeColor(first.codes)).color); // gold
+        assertTrue(first.codes.contains(McFormatCode.BOLD));
 
         McFormatCode.Segment second = segs.get(1);
         assertEquals("Creator", second.text);
-        assertEquals(McFormatCode.PALETTE[15], second.color); // white
-        assertTrue(second.bold);
+        assertEquals(
+            McFormatCode.COLORS.get(15).color,
+            Objects.requireNonNull(McFormatCode.activeColor(second.codes)).color); // white
+        assertTrue(second.codes.contains(McFormatCode.BOLD));
     }
 
     @Test
@@ -211,26 +226,28 @@ public class McFormatCodeTest {
         List<McFormatCode.Segment> segs = McFormatCode.parse("§agreen§rdefault§cred");
         assertEquals(3, segs.size());
         assertEquals("green", segs.getFirst().text);
-        assertNotNull(segs.getFirst().color);
+        assertNotNull(McFormatCode.activeColor(segs.getFirst().codes));
         assertEquals("default", segs.get(1).text);
-        assertNull(segs.get(1).color);
+        assertNull(McFormatCode.activeColor(segs.get(1).codes));
         assertEquals("red", segs.get(2).text);
-        assertEquals(McFormatCode.PALETTE[12], segs.get(2).color);
+        assertEquals(
+            McFormatCode.COLORS.get(12).color,
+            Objects.requireNonNull(McFormatCode.activeColor(segs.get(2).codes)).color);
     }
 
     // -----------------------------------------------------------------------
-    // PALETTE
+    // COLORS
     // -----------------------------------------------------------------------
 
     @Test
-    public void palette_hasExactly16Colors() {
-        assertEquals(16, McFormatCode.PALETTE.length);
+    public void colors_hasExactly16Entries() {
+        assertEquals(16, McFormatCode.COLORS.size());
     }
 
     @Test
-    public void palette_allEntriesNonNull() {
-        for (int i = 0; i < McFormatCode.PALETTE.length; i++) {
-            assertNotNull("PALETTE[" + i + "] is null", McFormatCode.PALETTE[i]);
+    public void colors_allEntriesNonNull() {
+        for (int i = 0; i < McFormatCode.COLORS.size(); i++) {
+            assertNotNull("COLORS[" + i + "] is null", McFormatCode.COLORS.get(i).color);
         }
     }
 
@@ -260,7 +277,7 @@ public class McFormatCodeTest {
 
     @Test
     public void strip_trailingSection_preserved() {
-        // lone § at end has no following char it is literal content and must survive
+        // lone § at end has no following char as it is literal content and must survive
         assertEquals("hello§", McFormatCode.strip("hello§"));
     }
 }

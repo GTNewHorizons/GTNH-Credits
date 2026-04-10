@@ -1,31 +1,18 @@
 package net.noiraude.creditseditor.ui;
 
-import java.awt.BorderLayout;
-import java.awt.event.InputEvent;
-import java.awt.event.KeyEvent;
+import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.io.IOException;
 
-import javax.swing.JFileChooser;
-import javax.swing.JFrame;
-import javax.swing.JMenu;
-import javax.swing.JMenuBar;
-import javax.swing.JMenuItem;
-import javax.swing.JOptionPane;
-import javax.swing.JSplitPane;
-import javax.swing.KeyStroke;
+import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 
 import net.noiraude.creditseditor.ResourceManager;
-import net.noiraude.creditseditor.command.CommandStack;
+import net.noiraude.creditseditor.command.Command;
+import net.noiraude.creditseditor.command.impl.DocumentEditCommand;
+import net.noiraude.creditseditor.command.impl.EditFieldCommand;
 import net.noiraude.creditseditor.model.EditorCategory;
-import net.noiraude.creditseditor.model.EditorModel;
 import net.noiraude.creditseditor.model.EditorPerson;
-import net.noiraude.creditseditor.service.CreditsService;
-import net.noiraude.creditseditor.service.KeySanitizer;
-import net.noiraude.creditseditor.service.LangDocument;
-import net.noiraude.creditseditor.service.LangService;
 import net.noiraude.creditseditor.ui.panel.CategoryPanel;
 import net.noiraude.creditseditor.ui.panel.DetailPanel;
 import net.noiraude.creditseditor.ui.panel.PersonPanel;
@@ -35,39 +22,25 @@ import net.noiraude.creditseditor.ui.panel.PersonPanel;
  *
  * <p>
  * Layout: a horizontal split between the category list (left), a horizontal split between
- * the person list (centre) and the detail form (right). The File menu manages resource
+ * the person list (center) and the detail form (right). The File menu manages resource
  * open/save; the Edit menu provides undo and redo.
  */
 public final class MainWindow extends JFrame {
 
-    private ResourceManager resourceManager;
-    private EditorModel model;
-    private LangDocument langDoc;
-    private final CommandStack stack = new CommandStack();
+    private EditorSession session; // null when no resource is open
 
     // Selection state shared between panels
     private EditorCategory selectedCategory;
     private EditorPerson selectedPerson;
-
-    /**
-     * Set to {@code true} while {@link #refreshAll()} is rebuilding panel list models.
-     * Callbacks that modify selection or switch the detail card must be suppressed during
-     * this window to prevent the panel's model-clear events from cascading into spurious
-     * "nothing selected" states.
-     */
-    private boolean ignoreCallbacks = false;
 
     // Panels
     private final CategoryPanel categoryPanel;
     private final PersonPanel personPanel;
     private final DetailPanel detailPanel;
 
-    // Menu items that need enable/disable management
-    private final JMenuItem menuSave;
-    private final JMenuItem menuUndo;
-    private final JMenuItem menuRedo;
+    private final EditorMenuBar menuBar;
 
-    public MainWindow(ResourceManager resourceManager) {
+    public MainWindow(ResourceManager initialResource) {
         super("GTNH Credits Editor");
         setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
         addWindowListener(new WindowAdapter() {
@@ -78,15 +51,14 @@ public final class MainWindow extends JFrame {
             }
         });
 
-        // Build panels personPanel must be initialized before categoryPanel because the
+        // Build panels: personPanel must be initialized before categoryPanel because the
         // category-selection callback references personPanel.
-        detailPanel = new DetailPanel(cmd -> executeCommand(cmd));
+        detailPanel = new DetailPanel(this::executeCommand);
 
-        personPanel = new PersonPanel(cmd -> executeCommand(cmd), person -> {
-            if (ignoreCallbacks) return;
+        personPanel = new PersonPanel(this::executeCommand, person -> {
             selectedPerson = person;
             if (person != null) {
-                detailPanel.showPerson(person, model);
+                detailPanel.showPerson(person, session.model);
             } else if (selectedCategory != null) {
                 detailPanel.showCategory(selectedCategory);
             } else {
@@ -95,21 +67,17 @@ public final class MainWindow extends JFrame {
         });
 
         categoryPanel = new CategoryPanel(cmd -> {
-            stack.execute(cmd);
+            session.stack.execute(cmd);
             refreshAll();
-            updateMenuState();
             updateTitle();
         }, cat -> {
-            if (ignoreCallbacks) return;
             selectedCategory = cat;
             if (cat != null) {
-                // Category selected: filter persons and show category detail if no person
                 personPanel.setFilter(cat);
                 if (selectedPerson == null) {
                     detailPanel.showCategory(cat);
                 }
             } else {
-                // "All" selected
                 personPanel.setFilter(null);
                 if (selectedPerson == null) {
                     detailPanel.showEmpty();
@@ -130,58 +98,22 @@ public final class MainWindow extends JFrame {
         setLayout(new BorderLayout());
         add(mainSplit, BorderLayout.CENTER);
 
-        // Menu bar
-        JMenuBar menuBar = new JMenuBar();
-
-        // File menu
-        JMenu fileMenu = new JMenu("File");
-        JMenuItem menuOpen = new JMenuItem("Open Resources…");
-        JMenuItem menuNew = new JMenuItem("New Resources…");
-        menuSave = new JMenuItem("Save Resources");
-        JMenuItem menuQuit = new JMenuItem("Quit");
-
-        menuOpen.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.CTRL_DOWN_MASK));
-        menuSave.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK));
-
-        menuOpen.addActionListener(e -> handleOpen(false));
-        menuNew.addActionListener(e -> handleOpen(true));
-        menuSave.addActionListener(e -> handleSave());
-        menuQuit.addActionListener(e -> handleQuit());
-
-        fileMenu.add(menuOpen);
-        fileMenu.add(menuNew);
-        fileMenu.addSeparator();
-        fileMenu.add(menuSave);
-        fileMenu.addSeparator();
-        fileMenu.add(menuQuit);
-
-        // Edit menu
-        JMenu editMenu = new JMenu("Edit");
-        menuUndo = new JMenuItem("Undo");
-        menuRedo = new JMenuItem("Redo");
-
-        menuUndo.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_Z, InputEvent.CTRL_DOWN_MASK));
-        menuRedo.setAccelerator(
-            KeyStroke.getKeyStroke(KeyEvent.VK_Z, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK));
-
-        menuUndo.addActionListener(e -> handleUndo());
-        menuRedo.addActionListener(e -> handleRedo());
-
-        editMenu.add(menuUndo);
-        editMenu.add(menuRedo);
-
-        menuBar.add(fileMenu);
-        menuBar.add(editMenu);
+        menuBar = new EditorMenuBar(
+            () -> handleOpen(false),
+            () -> handleOpen(true),
+            this::handleSave,
+            this::handleQuit,
+            this::handleUndo,
+            this::handleRedo);
         setJMenuBar(menuBar);
 
         setSize(1100, 700);
         setLocationRelativeTo(null);
 
-        // Load initial resource if one was provided at startup
-        if (resourceManager != null) {
-            loadResource(resourceManager);
+        if (initialResource != null) {
+            loadResource(initialResource);
         } else {
-            updateMenuState();
+            menuBar.refresh(null);
             updateTitle();
         }
     }
@@ -191,21 +123,21 @@ public final class MainWindow extends JFrame {
     // -----------------------------------------------------------------------
 
     /**
-     * Executes a command through the stack. For {@link EditFieldCommand} instances (text-field
-     * edits) only repaints the lists so the display name can update without rebuilding the
-     * entire list model. For structural commands a full {@link #refreshAll()} is done.
+     * Executes a command through the stack. For field-level edits only repaints the lists so
+     * the display name can update without rebuilding the entire list model. For structural
+     * commands a full {@link #refreshAll()} is done.
      */
-    private void executeCommand(net.noiraude.creditseditor.command.Command cmd) {
-        stack.execute(cmd);
-        if (cmd instanceof net.noiraude.creditseditor.command.impl.EditFieldCommand) {
+    private void executeCommand(Command cmd) {
+        session.stack.execute(cmd);
+        if (cmd instanceof EditFieldCommand || cmd instanceof DocumentEditCommand) {
             categoryPanel.getList()
                 .repaint();
             personPanel.getList()
                 .repaint();
+            menuBar.refresh(session);
         } else {
-            refreshAll();
+            refreshAll(); // calls menuBar.refresh internally
         }
-        updateMenuState();
         updateTitle();
     }
 
@@ -214,16 +146,9 @@ public final class MainWindow extends JFrame {
     // -----------------------------------------------------------------------
 
     private void loadResource(ResourceManager rm) {
-        EditorModel loaded;
-        LangDocument lang;
+        EditorSession newSession;
         try {
-            if (!rm.exists(CreditsService.CREDITS_PATH)) {
-                // New resource: start from an empty model; LangService handles missing file
-                loaded = new EditorModel();
-            } else {
-                loaded = CreditsService.load(rm);
-            }
-            lang = LangService.load(rm);
+            newSession = EditorSession.load(rm);
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(
                 this,
@@ -233,51 +158,23 @@ public final class MainWindow extends JFrame {
             return;
         }
 
-        // Populate lang-derived fields from the lang document
-        for (EditorCategory cat : loaded.categories) {
-            String key = "credits.category." + KeySanitizer.sanitize(cat.id);
-            String name = lang.get(key);
-            cat.displayName = name != null ? name : "";
-            String detail = lang.get(key + ".detail");
-            cat.description = detail != null ? detail : "";
+        if (session != null && session.resourceManager != rm) {
+            session.close();
         }
+        session = newSession;
+        selectedCategory = null;
+        selectedPerson = null;
 
-        // Commit the loaded state
-        if (this.resourceManager != null && this.resourceManager != rm) {
-            try {
-                this.resourceManager.close();
-            } catch (IOException ignored) {}
-        }
-        this.resourceManager = rm;
-        this.model = loaded;
-        this.langDoc = lang;
-        this.selectedCategory = null;
-        this.selectedPerson = null;
-        stack.clear();
-
-        ignoreCallbacks = true;
-        try {
-            categoryPanel.refresh(model);
-            personPanel.refresh(model);
-        } finally {
-            ignoreCallbacks = false;
-        }
+        categoryPanel.refresh(session.model);
+        personPanel.refresh(session.model);
         detailPanel.showEmpty();
 
-        updateMenuState();
+        menuBar.refresh(session);
         updateTitle();
     }
 
     private void handleOpen(boolean createNew) {
-        if (stack.isDirty()) {
-            int choice = JOptionPane.showConfirmDialog(
-                this,
-                "There are unsaved changes. Discard and open a different resource?",
-                "Unsaved changes",
-                JOptionPane.YES_NO_OPTION,
-                JOptionPane.WARNING_MESSAGE);
-            if (choice != JOptionPane.YES_OPTION) return;
-        }
+        if (shouldAbort()) return;
 
         JFileChooser chooser = new JFileChooser();
         chooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
@@ -291,7 +188,7 @@ public final class MainWindow extends JFrame {
         ResourceManager rm;
         try {
             rm = ResourceManager.open(path);
-        } catch (IOException ex) {
+        } catch (Exception ex) {
             JOptionPane.showMessageDialog(
                 this,
                 "Cannot open resource:\n" + ex.getMessage(),
@@ -303,26 +200,9 @@ public final class MainWindow extends JFrame {
     }
 
     private void handleSave() {
-        if (resourceManager == null || model == null) return;
-
-        // Write lang-derived fields back into the lang document
-        for (EditorCategory cat : model.categories) {
-            String key = "credits.category." + KeySanitizer.sanitize(cat.id);
-            if (cat.displayName.isEmpty()) {
-                langDoc.remove(key);
-            } else {
-                langDoc.set(key, cat.displayName);
-            }
-            if (cat.description.isEmpty()) {
-                langDoc.remove(key + ".detail");
-            } else {
-                langDoc.set(key + ".detail", cat.description);
-            }
-        }
-
+        if (session == null) return;
         try {
-            CreditsService.save(model, resourceManager);
-            LangService.save(langDoc, resourceManager);
+            session.save();
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(
                 this,
@@ -331,7 +211,7 @@ public final class MainWindow extends JFrame {
                 JOptionPane.ERROR_MESSAGE);
             return;
         }
-        stack.markClean();
+        session.stack.markClean();
         updateTitle();
     }
 
@@ -340,16 +220,32 @@ public final class MainWindow extends JFrame {
     // -----------------------------------------------------------------------
 
     private void handleUndo() {
-        if (!stack.canUndo()) return;
-        stack.undo();
-        refreshAll();
-        updateTitle();
+        if (session == null || !session.stack.canUndo()) return;
+        afterUndoRedo(session.stack.undo());
     }
 
     private void handleRedo() {
-        if (!stack.canRedo()) return;
-        stack.redo();
-        refreshAll();
+        if (session == null || !session.stack.canRedo()) return;
+        afterUndoRedo(session.stack.redo());
+    }
+
+    /**
+     * Post-{@code undo}/{@code redo} UI refresh. For {@link DocumentEditCommand}s the document
+     * is already in the correct state and the model was already synced via a PROP_TEXT event,
+     * so only list repaints are needed. Calling {@code refreshAll()} (which invokes
+     * {@code setText}) would destroy the Swing {@code UndoableEdit} references and break later
+     * redo operations.
+     */
+    private void afterUndoRedo(Command cmd) {
+        if (cmd instanceof DocumentEditCommand) {
+            categoryPanel.getList()
+                .repaint();
+            personPanel.getList()
+                .repaint();
+            menuBar.refresh(session);
+        } else {
+            refreshAll(); // calls menuBar.refresh internally
+        }
         updateTitle();
     }
 
@@ -358,20 +254,8 @@ public final class MainWindow extends JFrame {
     // -----------------------------------------------------------------------
 
     private void handleQuit() {
-        if (stack.isDirty()) {
-            int choice = JOptionPane.showConfirmDialog(
-                this,
-                "There are unsaved changes. Quit anyway?",
-                "Unsaved changes",
-                JOptionPane.YES_NO_OPTION,
-                JOptionPane.WARNING_MESSAGE);
-            if (choice != JOptionPane.YES_OPTION) return;
-        }
-        if (resourceManager != null) {
-            try {
-                resourceManager.close();
-            } catch (IOException ignored) {}
-        }
+        if (shouldAbort()) return;
+        if (session != null) session.close();
         System.exit(0);
     }
 
@@ -381,66 +265,59 @@ public final class MainWindow extends JFrame {
 
     /**
      * Refreshes all panels from the current model state and re-applies the selection.
-     * Called after every command execute, undo, or redo.
+     * Called after every structural command execute, undo, or redo.
      */
     private void refreshAll() {
-        if (model == null) return;
+        if (session == null) return;
 
         // Re-resolve selectedCategory and selectedPerson by id/name so we survive
-        // undo of add (which removes the object from the list).
-        EditorCategory resolvedCat = null;
+        // reverting an Add command, which removes the object from the list.
         if (selectedCategory != null) {
             String id = selectedCategory.id;
-            resolvedCat = model.categories.stream()
+            selectedCategory = session.model.categories.stream()
                 .filter(c -> c.id.equals(id))
                 .findFirst()
                 .orElse(null);
-            selectedCategory = resolvedCat;
         }
-
-        EditorPerson resolvedPerson = null;
         if (selectedPerson != null) {
             String name = selectedPerson.name;
-            resolvedPerson = model.persons.stream()
+            selectedPerson = session.model.persons.stream()
                 .filter(p -> p.name.equals(name))
                 .findFirst()
                 .orElse(null);
-            selectedPerson = resolvedPerson;
         }
 
-        ignoreCallbacks = true;
-        try {
-            categoryPanel.refresh(model);
-            personPanel.refresh(model);
-        } finally {
-            ignoreCallbacks = false;
-        }
-        detailPanel.refresh(selectedCategory, selectedPerson, model);
+        categoryPanel.refresh(session.model);
+        personPanel.refresh(session.model);
+        detailPanel.refresh(selectedCategory, selectedPerson, session.model);
 
-        updateMenuState();
-    }
-
-    private void updateMenuState() {
-        boolean loaded = resourceManager != null && model != null;
-        menuSave.setEnabled(loaded);
-        menuUndo.setEnabled(stack.canUndo());
-        menuRedo.setEnabled(stack.canRedo());
-
-        String undoName = stack.peekUndoName();
-        menuUndo.setText(undoName != null ? "Undo " + undoName : "Undo");
-        String redoName = stack.peekRedoName();
-        menuRedo.setText(redoName != null ? "Redo " + redoName : "Redo");
+        menuBar.refresh(session);
     }
 
     private void updateTitle() {
         String base = "GTNH Credits Editor";
-        if (resourceManager != null) {
-            base += " " + resourceManager.getDiskPath()
+        if (session != null) {
+            base += " " + session.resourceManager.getDiskPath()
                 .getFileName();
-            if (stack.isDirty()) {
-                base += " *";
-            }
+            if (session.stack.isDirty()) base += " *";
         }
         setTitle(base);
+    }
+
+    /**
+     * Shows an "unsaved changes" confirmation dialog if needed.
+     *
+     * @return {@code true} if the caller should abort (no session, dirty and user declined),
+     *         {@code false} if the caller may proceed
+     */
+    private boolean shouldAbort() {
+        if (session == null || !session.stack.isDirty()) return false;
+        int choice = JOptionPane.showConfirmDialog(
+            this,
+            "There are unsaved changes. Discard them?",
+            "Unsaved changes",
+            JOptionPane.YES_NO_OPTION,
+            JOptionPane.WARNING_MESSAGE);
+        return choice != JOptionPane.YES_OPTION;
     }
 }

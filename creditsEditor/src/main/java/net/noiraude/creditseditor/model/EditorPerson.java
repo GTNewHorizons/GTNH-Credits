@@ -20,7 +20,7 @@ public final class EditorPerson {
     public String name;
 
     /** Ordered list of category memberships. */
-    public List<EditorMembership> memberships;
+    public final List<EditorMembership> memberships;
 
     public EditorPerson(String name) {
         this.name = name;

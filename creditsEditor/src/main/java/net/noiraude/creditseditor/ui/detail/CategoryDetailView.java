@@ -1,21 +1,14 @@
 package net.noiraude.creditseditor.ui.detail;
 
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
+import java.awt.*;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.function.Consumer;
 
-import javax.swing.Box;
-import javax.swing.BoxLayout;
-import javax.swing.JCheckBox;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JTextField;
-import javax.swing.UIManager;
+import javax.swing.*;
 
 import net.noiraude.creditseditor.command.Command;
+import net.noiraude.creditseditor.command.impl.DocumentEditCommand;
 import net.noiraude.creditseditor.command.impl.EditFieldCommand;
 import net.noiraude.creditseditor.model.EditorCategory;
 import net.noiraude.creditseditor.service.KeySanitizer;
@@ -30,15 +23,11 @@ import net.noiraude.creditseditor.ui.component.MinecraftTextEditor;
  * the model directly. Call {@link #load(EditorCategory)} whenever the active category
  * changes or the model has been refreshed by an undo/redo.
  */
-public final class CategoryDetailView extends JPanel {
+public final class CategoryDetailView extends DetailView<EditorCategory> {
 
     private static final String CLASS_PERSON = "person";
     private static final String CLASS_ROLE = "role";
     private static final String CLASS_DETAIL = "detail";
-
-    private final Consumer<Command> onCommand;
-    private EditorCategory current;
-    private boolean loading;
 
     private final JTextField idField = new JTextField();
     private final JLabel langKeyLabel = new JLabel();
@@ -46,12 +35,12 @@ public final class CategoryDetailView extends JPanel {
     private final JCheckBox classPerson = new JCheckBox("person");
     private final JCheckBox classRole = new JCheckBox("role");
     private final JCheckBox classDetail = new JCheckBox("detail");
-    private final JLabel descriptionLabel = new JLabel("Description:");
+    private final JLabel descriptionLabel = new JLabel("Details:");
     private final MinecraftTextAreaEditor descriptionEditor = new MinecraftTextAreaEditor();
+    private final java.awt.Component spacer = Box.createVerticalGlue();
 
     public CategoryDetailView(Consumer<Command> onCommand) {
-        this.onCommand = onCommand;
-        setLayout(new GridBagLayout());
+        super(onCommand);
 
         idField.setEditable(false);
         idField.setBackground(UIManager.getColor("Panel.background"));
@@ -80,7 +69,7 @@ public final class CategoryDetailView extends JPanel {
 
         // Row 3: Classes
         label.gridy = 3;
-        add(new JLabel("Classes:"), label);
+        add(new JLabel("Display:"), label);
         field.gridy = 3;
         JPanel classRow = new JPanel();
         classRow.setLayout(new BoxLayout(classRow, BoxLayout.X_AXIS));
@@ -93,42 +82,47 @@ public final class CategoryDetailView extends JPanel {
         classRow.add(Box.createHorizontalGlue());
         add(classRow, field);
 
-        // Row 4: Description (visible only when "detail" class is checked)
+        // Row 4: Details text (visible only when "detail" class is checked)
         label.gridy = 4;
         label.anchor = GridBagConstraints.NORTHWEST;
         label.insets = new Insets(6, 6, 4, 4);
         add(descriptionLabel, label);
         field.gridy = 4;
         field.fill = GridBagConstraints.BOTH;
-        field.weighty = 1.0;
+        field.weighty = 0;
         add(descriptionEditor, field);
+
+        // Row 5: Spacer always presents; absorbs extra vertical space when description is
+        // hidden so rows stay top-aligned. Weight is swapped to the description editor when
+        // the description row is visible, so the editor expands to fill the panel instead.
+        GridBagConstraints spacerGbc = new GridBagConstraints();
+        spacerGbc.gridy = 5;
+        spacerGbc.gridx = 0;
+        spacerGbc.gridwidth = 2;
+        spacerGbc.weighty = 1.0;
+        spacerGbc.fill = GridBagConstraints.VERTICAL;
+        add(spacer, spacerGbc);
 
         // Wire events
         displayNameEditor.addPropertyChangeListener("text", e -> {
             if (!loading && current != null) {
-                String newVal = (String) e.getNewValue();
-                if (!newVal.equals(current.displayName)) {
-                    onCommand.accept(
-                        new EditFieldCommand<>(
-                            "Edit display name",
-                            () -> current.displayName,
-                            v -> current.displayName = v,
-                            newVal));
-                }
+                current.displayName = (String) e.getNewValue();
+            }
+        });
+        displayNameEditor.addUndoableEditListener(e -> {
+            if (!loading && current != null) {
+                onCommand.accept(new DocumentEditCommand("Edit display name", e.getEdit()));
             }
         });
 
         descriptionEditor.addPropertyChangeListener("text", e -> {
             if (!loading && current != null) {
-                String newVal = (String) e.getNewValue();
-                if (!newVal.equals(current.description)) {
-                    onCommand.accept(
-                        new EditFieldCommand<>(
-                            "Edit description",
-                            () -> current.description,
-                            v -> current.description = v,
-                            newVal));
-                }
+                current.description = (String) e.getNewValue();
+            }
+        });
+        descriptionEditor.addUndoableEditListener(e -> {
+            if (!loading && current != null) {
+                onCommand.accept(new DocumentEditCommand("Edit details", e.getEdit()));
             }
         });
 
@@ -181,33 +175,17 @@ public final class CategoryDetailView extends JPanel {
         boolean visible = classDetail.isSelected();
         descriptionLabel.setVisible(visible);
         descriptionEditor.setVisible(visible);
+
+        // Transfer weighty to whichever component should absorb extra vertical space.
+        GridBagLayout gbl = (GridBagLayout) getLayout();
+        GridBagConstraints descGbc = gbl.getConstraints(descriptionEditor);
+        descGbc.weighty = visible ? 1.0 : 0;
+        gbl.setConstraints(descriptionEditor, descGbc);
+        GridBagConstraints spacerGbc = gbl.getConstraints(spacer);
+        spacerGbc.weighty = visible ? 0 : 1.0;
+        gbl.setConstraints(spacer, spacerGbc);
+
         revalidate();
         repaint();
-    }
-
-    // -----------------------------------------------------------------------
-    // Layout helpers
-    // -----------------------------------------------------------------------
-
-    private static GridBagConstraints labelConstraints() {
-        GridBagConstraints c = new GridBagConstraints();
-        c.gridx = 0;
-        c.fill = GridBagConstraints.NONE;
-        c.anchor = GridBagConstraints.WEST;
-        c.weightx = 0;
-        c.weighty = 0;
-        c.insets = new Insets(4, 6, 4, 4);
-        return c;
-    }
-
-    private static GridBagConstraints fieldConstraints() {
-        GridBagConstraints c = new GridBagConstraints();
-        c.gridx = 1;
-        c.fill = GridBagConstraints.HORIZONTAL;
-        c.anchor = GridBagConstraints.WEST;
-        c.weightx = 1.0;
-        c.weighty = 0;
-        c.insets = new Insets(4, 0, 4, 6);
-        return c;
     }
 }

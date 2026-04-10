@@ -1,23 +1,10 @@
 package net.noiraude.creditseditor.ui.panel;
 
-import java.awt.BorderLayout;
-import java.awt.Component;
-import java.awt.FlowLayout;
+import java.awt.*;
 import java.util.List;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
-import javax.swing.BorderFactory;
-import javax.swing.DefaultListCellRenderer;
-import javax.swing.DefaultListModel;
-import javax.swing.JButton;
-import javax.swing.JLabel;
-import javax.swing.JList;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTextField;
-import javax.swing.ListSelectionModel;
+import javax.swing.*;
 
 import net.noiraude.creditseditor.command.Command;
 import net.noiraude.creditseditor.command.impl.AddPersonCommand;
@@ -36,19 +23,11 @@ import net.noiraude.creditseditor.ui.component.McFormatCode;
  * {@link #setFilter(EditorCategory)} to restrict the visible set to members of a specific
  * category; pass {@code null} to show all persons.
  */
-public final class PersonPanel extends JPanel {
+public final class PersonPanel extends ListPanel<EditorPerson, EditorPerson> {
 
-    private final Consumer<Command> onCommand;
-    private final Consumer<EditorPerson> onSelectionChanged;
-    private EditorModel model;
     private EditorCategory filter;
 
-    private final DefaultListModel<EditorPerson> listModel = new DefaultListModel<>();
-    private final JList<EditorPerson> list = new JList<>(listModel);
     private final JTextField searchField = new JTextField();
-
-    private final JButton addButton = new JButton("+");
-    private final JButton removeButton = new JButton("−");
 
     /**
      * @param onCommand          receives each structural command to execute
@@ -56,9 +35,8 @@ public final class PersonPanel extends JPanel {
      *                           {@code null} when the selection is cleared
      */
     public PersonPanel(Consumer<Command> onCommand, Consumer<EditorPerson> onSelectionChanged) {
-        this.onCommand = onCommand;
-        this.onSelectionChanged = onSelectionChanged;
-        setLayout(new BorderLayout());
+        super("Persons", onCommand, onSelectionChanged);
+        list.setCellRenderer(new PersonCellRenderer());
 
         // Search bar
         searchField.putClientProperty("JTextField.placeholderText", "Filter by name…");
@@ -69,19 +47,6 @@ public final class PersonPanel extends JPanel {
         searchRow.add(new JLabel("Search:"), BorderLayout.WEST);
         searchRow.add(searchField, BorderLayout.CENTER);
         add(searchRow, BorderLayout.NORTH);
-
-        // List
-        list.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        list.setCellRenderer(new PersonCellRenderer());
-        list.addListSelectionListener(e -> {
-            if (!e.getValueIsAdjusting()) {
-                updateButtons();
-                onSelectionChanged.accept(list.getSelectedValue());
-            }
-        });
-        JScrollPane scroll = new JScrollPane(list);
-        scroll.setBorder(BorderFactory.createEtchedBorder());
-        add(scroll, BorderLayout.CENTER);
 
         // Toolbar
         addButton.setToolTipText("Add person");
@@ -112,12 +77,17 @@ public final class PersonPanel extends JPanel {
      */
     public void refresh(EditorModel model) {
         this.model = model;
-        applyFilter();
+        refreshing = true;
+        try {
+            applyFilter();
+        } finally {
+            refreshing = false;
+        }
     }
 
-    /** Returns the underlying list component, for targeted repaint after field edits. */
-    public JList<EditorPerson> getList() {
-        return list;
+    @Override
+    protected EditorPerson getSelection() {
+        return list.getSelectedValue();
     }
 
     /**
@@ -166,14 +136,14 @@ public final class PersonPanel extends JPanel {
 
         List<EditorPerson> visible = model.persons.stream()
             .filter(p -> passesFilter(p, search))
-            .collect(Collectors.toList());
+            .toList();
 
         listModel.clear();
         for (EditorPerson p : visible) {
             listModel.addElement(p);
         }
 
-        // Restore selection by name (reference equality then name equality)
+        // Restore selection by name
         boolean restored = false;
         if (prevName != null) {
             for (int i = 0; i < listModel.size(); i++) {
@@ -205,7 +175,8 @@ public final class PersonPanel extends JPanel {
         return true;
     }
 
-    private void updateButtons() {
+    @Override
+    protected void updateButtons() {
         removeButton.setEnabled(list.getSelectedValue() != null && model != null);
     }
 
