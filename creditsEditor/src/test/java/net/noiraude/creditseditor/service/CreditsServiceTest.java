@@ -38,8 +38,8 @@ public class CreditsServiceTest {
 
         assertEquals(2, model.categories.size());
         assertEquals("team", model.categories.getFirst().id);
-        assertTrue(model.categories.get(0).classes.contains("person"));
-        assertTrue(model.categories.get(0).classes.contains("role"));
+        assertTrue(model.categories.getFirst().classes.contains("person"));
+        assertTrue(model.categories.getFirst().classes.contains("role"));
         assertEquals("contrib", model.categories.get(1).id);
     }
 
@@ -54,7 +54,7 @@ public class CreditsServiceTest {
 
         EditorModel model = CreditsService.toEditorModel(data);
 
-        assertEquals("z", model.categories.get(0).id);
+        assertEquals("z", model.categories.getFirst().id);
         assertEquals("a", model.categories.get(1).id);
         assertEquals("m", model.categories.get(2).id);
     }
@@ -77,8 +77,8 @@ public class CreditsServiceTest {
         EditorPerson ep = model.persons.getFirst();
         assertEquals("Alice", ep.name);
         assertEquals(2, ep.memberships.size());
-        assertEquals("team", ep.memberships.get(0).categoryId);
-        assertEquals(Collections.singletonList("lead"), ep.memberships.get(0).roles);
+        assertEquals("team", ep.memberships.getFirst().categoryId);
+        assertEquals(Collections.singletonList("lead"), ep.memberships.getFirst().roles);
         assertEquals("dev", ep.memberships.get(1).categoryId);
         assertEquals(Arrays.asList("backend", "infra"), ep.memberships.get(1).roles);
     }
@@ -174,7 +174,7 @@ public class CreditsServiceTest {
         EditorModel restored = CreditsService.toEditorModel(CreditsService.toCreditsData(original));
 
         assertEquals(2, restored.categories.size());
-        assertEquals("team", restored.categories.get(0).id);
+        assertEquals("team", restored.categories.getFirst().id);
         assertEquals("contrib", restored.categories.get(1).id);
 
         assertEquals(1, restored.persons.size());

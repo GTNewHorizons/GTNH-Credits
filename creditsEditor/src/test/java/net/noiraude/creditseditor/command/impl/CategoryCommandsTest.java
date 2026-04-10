@@ -126,7 +126,7 @@ public class CategoryCommandsTest {
     public void moveCategory_forward_endsAtTargetIndex() {
         // Move team (index 0) to index 2 → [dev, contrib, team]
         new MoveCategoryOrderCommand(model, team, 2).execute();
-        assertEquals("dev", model.categories.get(0).id);
+        assertEquals("dev", model.categories.getFirst().id);
         assertEquals("contrib", model.categories.get(1).id);
         assertEquals("team", model.categories.get(2).id);
     }
@@ -135,7 +135,7 @@ public class CategoryCommandsTest {
     public void moveCategory_backward_endsAtTargetIndex() {
         // Move contrib (index 2) to index 0 → [contrib, team, dev]
         new MoveCategoryOrderCommand(model, contrib, 0).execute();
-        assertEquals("contrib", model.categories.get(0).id);
+        assertEquals("contrib", model.categories.getFirst().id);
         assertEquals("team", model.categories.get(1).id);
         assertEquals("dev", model.categories.get(2).id);
     }
@@ -145,7 +145,7 @@ public class CategoryCommandsTest {
         MoveCategoryOrderCommand cmd = new MoveCategoryOrderCommand(model, team, 2);
         cmd.execute();
         cmd.undo();
-        assertEquals("team", model.categories.get(0).id);
+        assertEquals("team", model.categories.getFirst().id);
         assertEquals("dev", model.categories.get(1).id);
         assertEquals("contrib", model.categories.get(2).id);
     }
@@ -154,7 +154,7 @@ public class CategoryCommandsTest {
     public void moveCategory_adjacentDown_swapsWithNext() {
         // Move team (0) to index 1 → [dev, team, contrib]
         new MoveCategoryOrderCommand(model, team, 1).execute();
-        assertEquals("dev", model.categories.get(0).id);
+        assertEquals("dev", model.categories.getFirst().id);
         assertEquals("team", model.categories.get(1).id);
     }
 
@@ -162,7 +162,7 @@ public class CategoryCommandsTest {
     public void moveCategory_adjacentUp_swapsWithPrevious() {
         // Move dev (1) to index 0 → [dev, team, contrib]
         new MoveCategoryOrderCommand(model, dev, 0).execute();
-        assertEquals("dev", model.categories.get(0).id);
+        assertEquals("dev", model.categories.getFirst().id);
         assertEquals("team", model.categories.get(1).id);
     }
 }

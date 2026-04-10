@@ -65,7 +65,7 @@ public final class CreditsSerializer {
             List<String> sorted = new ArrayList<>(cat.classes);
             Collections.sort(sorted);
             if (sorted.size() == 1) {
-                obj.addProperty("class", sorted.get(0));
+                obj.addProperty("class", sorted.getFirst());
             } else {
                 JsonArray arr = new JsonArray();
                 for (String cls : sorted) arr.add(cls);
@@ -93,7 +93,7 @@ public final class CreditsSerializer {
     private static JsonElement serializeMemberships(Map<String, List<String>> categoryRoles) {
         List<Map.Entry<String, List<String>>> entries = new ArrayList<>(categoryRoles.entrySet());
         if (entries.size() == 1) {
-            return serializeEntry(entries.get(0));
+            return serializeEntry(entries.getFirst());
         }
         JsonArray arr = new JsonArray();
         for (Map.Entry<String, List<String>> entry : entries) {
@@ -110,7 +110,7 @@ public final class CreditsSerializer {
         }
         JsonObject obj = new JsonObject();
         if (roles.size() == 1) {
-            obj.addProperty(catId, roles.get(0));
+            obj.addProperty(catId, roles.getFirst());
         } else {
             JsonArray arr = new JsonArray();
             for (String role : roles) arr.add(role);

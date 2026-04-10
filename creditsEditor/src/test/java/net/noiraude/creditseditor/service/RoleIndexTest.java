@@ -132,7 +132,7 @@ public class RoleIndexTest {
 
         List<RoleIndex.Entry> entries = RoleIndex.build(model)
             .entries();
-        assertEquals("aaa", entries.get(0).raw);
+        assertEquals("aaa", entries.getFirst().raw);
         assertEquals("mmm", entries.get(1).raw);
         assertEquals("zzz", entries.get(2).raw);
     }

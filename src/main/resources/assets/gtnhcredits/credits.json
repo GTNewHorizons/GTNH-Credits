@@ -3,34 +3,19 @@
   "category": [
     {
       "id": "team",
-      "class": [
-        "detail",
-        "person",
-        "role"
-      ]
+      "class": ["detail", "person", "role"]
     },
     {
       "id": "dev",
-      "class": [
-        "detail",
-        "person",
-        "role"
-      ]
+      "class": ["detail", "person", "role"]
     },
     {
       "id": "contrib",
-      "class": [
-        "detail",
-        "person",
-        "role"
-      ]
+      "class": ["detail", "person", "role"]
     },
     {
       "id": "support",
-      "class": [
-        "detail",
-        "person"
-      ]
+      "class": ["detail", "person"]
     },
     {
       "id": "thanks",
@@ -42,25 +27,15 @@
     },
     {
       "id": "Key Test",
-      "class": [
-        "detail",
-        "person",
-        "role"
-      ]
+      "class": ["detail", "person", "role"]
     },
     {
       "id": "No-Trans Cat",
-      "class": [
-        "detail",
-        "person"
-      ]
+      "class": ["detail", "person"]
     },
     {
       "id": "Empty View",
-      "class": [
-        "detail",
-        "person"
-      ]
+      "class": ["detail", "person"]
     },
     {
       "id": "Indexed Detail",
@@ -142,10 +117,7 @@
     {
       "name": "Glease",
       "category": {
-        "dev": [
-          "dev",
-          "core-mods"
-        ]
+        "dev": ["dev", "core-mods"]
       }
     },
     {
@@ -218,26 +190,17 @@
       "name": "Technovangelist",
       "category": [
         {
-          "team": [
-            "dev",
-            "infra"
-          ]
+          "team": ["dev", "infra"]
         },
         {
-          "dev": [
-            "dev",
-            "infra"
-          ]
+          "dev": ["dev", "infra"]
         }
       ]
     },
     {
       "name": "Translated Person",
       "category": {
-        "Key Test": [
-          "Test-Role",
-          "Core.Mod"
-        ]
+        "Key Test": ["Test-Role", "Core.Mod"]
       }
     },
     {

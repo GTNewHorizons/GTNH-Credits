@@ -53,20 +53,20 @@ public class CreditsSerializerTest {
     public void category_noClasses_omitsClassField() throws Exception {
         CreditsData rt = roundTrip(oneCategory("team"));
         assertEquals(1, rt.categories.size());
-        assertEquals("team", rt.categories.get(0).id);
-        assertTrue(rt.categories.get(0).classes.isEmpty());
+        assertEquals("team", rt.categories.getFirst().id);
+        assertTrue(rt.categories.getFirst().classes.isEmpty());
     }
 
     @Test
     public void category_singleClass_roundTrips() throws Exception {
         CreditsData rt = roundTrip(oneCategory("team", "person"));
-        assertEquals(Collections.singleton("person"), rt.categories.get(0).classes);
+        assertEquals(Collections.singleton("person"), rt.categories.getFirst().classes);
     }
 
     @Test
     public void category_multipleClasses_roundTrips() throws Exception {
         CreditsData rt = roundTrip(oneCategory("team", "person", "role", "detail"));
-        assertEquals(new LinkedHashSet<>(Arrays.asList("detail", "person", "role")), rt.categories.get(0).classes);
+        assertEquals(new LinkedHashSet<>(Arrays.asList("detail", "person", "role")), rt.categories.getFirst().classes);
     }
 
     @Test
@@ -80,7 +80,7 @@ public class CreditsSerializerTest {
         CreditsData rt = roundTrip(data);
         assertEquals(
             Arrays.asList("alpha", "beta", "gamma"),
-            Arrays.asList(rt.categories.get(0).id, rt.categories.get(1).id, rt.categories.get(2).id));
+            Arrays.asList(rt.categories.getFirst().id, rt.categories.get(1).id, rt.categories.get(2).id));
     }
 
     // -----------------------------------------------------------------------
@@ -102,10 +102,10 @@ public class CreditsSerializerTest {
             Collections.singletonList(person("Alice", "contrib")));
         CreditsData rt = roundTrip(data);
         assertEquals(1, rt.persons.size());
-        assertEquals("Alice", rt.persons.get(0).name);
-        assertTrue(rt.persons.get(0).categoryRoles.containsKey("contrib"));
+        assertEquals("Alice", rt.persons.getFirst().name);
+        assertTrue(rt.persons.getFirst().categoryRoles.containsKey("contrib"));
         assertTrue(
-            rt.persons.get(0).categoryRoles.get("contrib")
+            rt.persons.getFirst().categoryRoles.get("contrib")
                 .isEmpty());
     }
 
@@ -115,7 +115,7 @@ public class CreditsSerializerTest {
             Collections.singletonList(new CreditsCategory("dev", Collections.emptySet())),
             Collections.singletonList(person("Bob", "dev", "lead")));
         CreditsData rt = roundTrip(data);
-        assertEquals(Collections.singletonList("lead"), rt.persons.get(0).categoryRoles.get("dev"));
+        assertEquals(Collections.singletonList("lead"), rt.persons.getFirst().categoryRoles.get("dev"));
     }
 
     @Test
@@ -124,7 +124,7 @@ public class CreditsSerializerTest {
             Collections.singletonList(new CreditsCategory("dev", Collections.emptySet())),
             Collections.singletonList(person("Bob", "dev", "lead", "infra")));
         CreditsData rt = roundTrip(data);
-        assertEquals(Arrays.asList("lead", "infra"), rt.persons.get(0).categoryRoles.get("dev"));
+        assertEquals(Arrays.asList("lead", "infra"), rt.persons.getFirst().categoryRoles.get("dev"));
     }
 
     @Test
@@ -143,7 +143,7 @@ public class CreditsSerializerTest {
             Collections.singletonList(p));
         CreditsData rt = roundTrip(data);
 
-        CreditsPerson rp = rt.persons.get(0);
+        CreditsPerson rp = rt.persons.getFirst();
         assertEquals("Carol", rp.name);
         assertEquals(Collections.singletonList("lead"), rp.categoryRoles.get("team"));
         assertEquals(Arrays.asList("backend", "infra"), rp.categoryRoles.get("dev"));
@@ -158,7 +158,7 @@ public class CreditsSerializerTest {
             Collections.singletonList(new CreditsCategory("team", Collections.emptySet())),
             Collections.singletonList(person("§cRed §lBold§r", "team")));
         CreditsData rt = roundTrip(data);
-        assertEquals("§cRed §lBold§r", rt.persons.get(0).name);
+        assertEquals("§cRed §lBold§r", rt.persons.getFirst().name);
     }
 
     @Test
@@ -167,7 +167,7 @@ public class CreditsSerializerTest {
         List<CreditsPerson> persons = Arrays.asList(person("Alice", "c"), person("Bob", "c"), person("Carol", "c"));
         CreditsData rt = roundTrip(new CreditsData(cats, persons));
         // Parser sorts by name; verify all names present
-        List<String> names = Arrays.asList(rt.persons.get(0).name, rt.persons.get(1).name, rt.persons.get(2).name);
+        List<String> names = Arrays.asList(rt.persons.getFirst().name, rt.persons.get(1).name, rt.persons.get(2).name);
         assertTrue(names.containsAll(Arrays.asList("Alice", "Bob", "Carol")));
     }
 
@@ -221,7 +221,7 @@ public class CreditsSerializerTest {
                 .findFirst()
                 .orElse(null));
         assertEquals(1, rt.persons.size());
-        assertEquals("Dev", rt.persons.get(0).name);
-        assertEquals(Collections.singletonList("lead"), rt.persons.get(0).categoryRoles.get("team"));
+        assertEquals("Dev", rt.persons.getFirst().name);
+        assertEquals(Collections.singletonList("lead"), rt.persons.getFirst().categoryRoles.get("team"));
     }
 }
