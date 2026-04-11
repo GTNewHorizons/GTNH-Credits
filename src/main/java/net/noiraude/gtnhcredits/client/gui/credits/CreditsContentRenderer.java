@@ -4,7 +4,6 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -15,8 +14,8 @@ import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraft.util.StringTranslate;
 import net.noiraude.gtnhcredits.repository.CreditsController;
-import net.noiraude.libcredits.model.CreditsCategory;
-import net.noiraude.libcredits.model.CreditsPerson;
+import net.noiraude.libcredits.model.DocumentCategory;
+import net.noiraude.libcredits.model.DocumentPerson;
 
 import com.cleanroommc.modularui.api.drawable.IKey;
 import com.cleanroommc.modularui.api.drawable.ITextLine;
@@ -32,7 +31,7 @@ import cpw.mods.fml.relauncher.SideOnly;
 final class CreditsContentRenderer {
 
     /**
-     * Reflection handles for StringTranslate internals used to enumerate indexed detail paragraph keys.
+     * Reflection handles for StringTranslate internals used to list indexed detail paragraph keys.
      * {@code getInstance()} (obfuscated {@code func_74808_a}) is package-private; accessed via reflection.
      * {@code languageList} (obfuscated {@code field_74816_c}) is the translation map.
      */
@@ -56,11 +55,11 @@ final class CreditsContentRenderer {
 
     static void render(RichText rt, CreditsController controller, int contentWidth) {
         rt.alignment(Alignment.CenterLeft);
-        CreditsCategory category = controller.getSelectedCategory();
+        DocumentCategory category = controller.getSelectedCategory();
         if (category == null) return;
         boolean detailRendered = category.classes.contains("detail") && appendDetail(rt, category.id);
         if (!category.classes.contains("person")) return;
-        List<CreditsPerson> persons = controller.getPersonsForCategory(category);
+        List<DocumentPerson> persons = controller.getPersonsForCategory(category);
         if (persons.isEmpty()) return;
         if (detailRendered) rt.emptyLine();
         if (category.classes.contains("role")) {
@@ -192,7 +191,7 @@ final class CreditsContentRenderer {
         }
 
         /**
-         * Compares two tokens from the same position. Both being digit-only → numeric comparison
+         * Compares two tokens from the same position. Both are digit-only → numeric comparisons
          * (shorter = smaller; equal length → lexicographic, which is equivalent to numeric for
          * zero-padded-free suffixes). Mixed or non-digit → lexicographic.
          */
@@ -206,21 +205,20 @@ final class CreditsContentRenderer {
 
     // -------------------------------------------------------------------------
 
-    private static void appendPersonsWithRoles(RichText rt, List<CreditsPerson> persons, int contentWidth) {
-        for (CreditsPerson person : persons) {
+    private static void appendPersonsWithRoles(RichText rt, List<DocumentPerson> persons, int contentWidth) {
+        for (DocumentPerson person : persons) {
             rt.addLine(buildPersonLine(person, contentWidth));
         }
     }
 
-    private static CenteredLine buildPersonLine(CreditsPerson person, int contentWidth) {
+    private static CenteredLine buildPersonLine(DocumentPerson person, int contentWidth) {
         final FontRenderer fr = Minecraft.getMinecraft().fontRenderer;
         final String separator = " §l-§r ";
         final int separatorWidth = fr.getStringWidth(EnumChatFormatting.getTextWithoutFormattingCodes(separator)) + 1;
 
-        // Persons returned by getPersonsForCategory have exactly one category entry.
-        Iterator<List<String>> it = person.categoryRoles.values()
-            .iterator();
-        List<String> personRoles = it.hasNext() ? it.next() : Collections.emptyList();
+        // Persons returned by getPersonsForCategory have exactly one category membership.
+        List<String> personRoles = person.memberships.isEmpty() ? Collections.emptyList()
+            : person.memberships.get(0).roles;
         int nameWidth = fr.getStringWidth(person.name);
         int rolesAvailable = contentWidth - nameWidth - separatorWidth;
         if (personRoles.isEmpty() || rolesAvailable <= 0) {
@@ -251,13 +249,13 @@ final class CreditsContentRenderer {
     }
 
     @SuppressWarnings("SizeReplaceableByIsEmpty")
-    private static void appendPersonsInline(RichText rt, List<CreditsPerson> persons, int contentWidth) {
+    private static void appendPersonsInline(RichText rt, List<DocumentPerson> persons, int contentWidth) {
         FontRenderer fr = Minecraft.getMinecraft().fontRenderer;
         int separatorWidth = fr.getStringWidth(", ");
         int commaWidth = fr.getStringWidth(",");
         StringBuilder line = new StringBuilder();
         int lineWidth = 0;
-        for (CreditsPerson person : persons) {
+        for (DocumentPerson person : persons) {
             int nameWidth = fr.getStringWidth(person.name);
             if (line.length() > 0) {
                 if (lineWidth + separatorWidth + nameWidth > contentWidth) {
