@@ -9,40 +9,41 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
 
-import net.noiraude.libcredits.model.CreditsCategory;
-import net.noiraude.libcredits.model.CreditsData;
-import net.noiraude.libcredits.model.CreditsPerson;
+import net.noiraude.libcredits.model.CreditsDocument;
+import net.noiraude.libcredits.model.DocumentCategory;
+import net.noiraude.libcredits.model.DocumentMembership;
+import net.noiraude.libcredits.model.DocumentPerson;
 import net.noiraude.libcredits.parser.CreditsParser;
 
 import org.junit.Test;
 
+@SuppressWarnings("unused")
 public class CreditsSerializerTest {
 
     // -----------------------------------------------------------------------
     // Round-trip helpers
     // -----------------------------------------------------------------------
 
-    private static CreditsData roundTrip(CreditsData data) throws Exception {
+    private static CreditsDocument roundTrip(CreditsDocument doc) throws Exception {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        CreditsSerializer.write(data, out);
+        CreditsSerializer.write(doc, out);
         return CreditsParser.parse(new ByteArrayInputStream(out.toByteArray()));
     }
 
-    private static CreditsData oneCategory(String id, String... classes) {
-        return new CreditsData(
-            Collections.singletonList(new CreditsCategory(id, new LinkedHashSet<>(Arrays.asList(classes)))),
-            Collections.emptyList());
+    private static CreditsDocument oneCategory(String id, String... classes) {
+        CreditsDocument doc = CreditsDocument.empty();
+        DocumentCategory cat = new DocumentCategory(id);
+        cat.classes = new LinkedHashSet<>(Arrays.asList(classes));
+        doc.categories.add(cat);
+        return doc;
     }
 
-    private static CreditsPerson person(String name, String catId, String... roles) {
-        Map<String, List<String>> cr = new LinkedHashMap<>();
-        cr.put(catId, Arrays.asList(roles));
-        return new CreditsPerson(name, cr);
+    private static DocumentPerson person(String name, String catId, String... roles) {
+        DocumentPerson p = new DocumentPerson(name);
+        p.memberships.add(new DocumentMembership(catId, Arrays.asList(roles)));
+        return p;
     }
 
     // -----------------------------------------------------------------------
@@ -51,36 +52,35 @@ public class CreditsSerializerTest {
 
     @Test
     public void category_noClasses_omitsClassField() throws Exception {
-        CreditsData rt = roundTrip(oneCategory("team"));
+        CreditsDocument rt = roundTrip(oneCategory("team"));
         assertEquals(1, rt.categories.size());
-        assertEquals("team", rt.categories.getFirst().id);
-        assertTrue(rt.categories.getFirst().classes.isEmpty());
+        assertEquals("team", rt.categories.get(0).id);
+        assertTrue(rt.categories.get(0).classes.isEmpty());
     }
 
     @Test
     public void category_singleClass_roundTrips() throws Exception {
-        CreditsData rt = roundTrip(oneCategory("team", "person"));
-        assertEquals(Collections.singleton("person"), rt.categories.getFirst().classes);
+        CreditsDocument rt = roundTrip(oneCategory("team", "person"));
+        assertEquals(1, rt.categories.get(0).classes.size());
+        assertTrue(rt.categories.get(0).classes.contains("person"));
     }
 
     @Test
     public void category_multipleClasses_roundTrips() throws Exception {
-        CreditsData rt = roundTrip(oneCategory("team", "person", "role", "detail"));
-        assertEquals(new LinkedHashSet<>(Arrays.asList("detail", "person", "role")), rt.categories.getFirst().classes);
+        CreditsDocument rt = roundTrip(oneCategory("team", "person", "role", "detail"));
+        assertEquals(new LinkedHashSet<>(Arrays.asList("detail", "person", "role")), rt.categories.get(0).classes);
     }
 
     @Test
     public void category_orderPreserved() throws Exception {
-        CreditsData data = new CreditsData(
-            Arrays.asList(
-                new CreditsCategory("alpha", Collections.emptySet()),
-                new CreditsCategory("beta", Collections.emptySet()),
-                new CreditsCategory("gamma", Collections.emptySet())),
-            Collections.emptyList());
-        CreditsData rt = roundTrip(data);
+        CreditsDocument doc = CreditsDocument.empty();
+        doc.categories.add(new DocumentCategory("alpha"));
+        doc.categories.add(new DocumentCategory("beta"));
+        doc.categories.add(new DocumentCategory("gamma"));
+        CreditsDocument rt = roundTrip(doc);
         assertEquals(
             Arrays.asList("alpha", "beta", "gamma"),
-            Arrays.asList(rt.categories.getFirst().id, rt.categories.get(1).id, rt.categories.get(2).id));
+            Arrays.asList(rt.categories.get(0).id, rt.categories.get(1).id, rt.categories.get(2).id));
     }
 
     // -----------------------------------------------------------------------
@@ -97,78 +97,83 @@ public class CreditsSerializerTest {
 
     @Test
     public void person_singleCategoryNoRoles_roundTrips() throws Exception {
-        CreditsData data = new CreditsData(
-            Collections.singletonList(new CreditsCategory("contrib", Collections.emptySet())),
-            Collections.singletonList(person("Alice", "contrib")));
-        CreditsData rt = roundTrip(data);
+        CreditsDocument doc = oneCategory("contrib");
+        doc.persons.add(person("Alice", "contrib"));
+        CreditsDocument rt = roundTrip(doc);
         assertEquals(1, rt.persons.size());
-        assertEquals("Alice", rt.persons.getFirst().name);
-        assertTrue(rt.persons.getFirst().categoryRoles.containsKey("contrib"));
-        assertTrue(
-            rt.persons.getFirst().categoryRoles.get("contrib")
-                .isEmpty());
+        assertEquals("Alice", rt.persons.get(0).name);
+        assertEquals(1, rt.persons.get(0).memberships.size());
+        assertEquals("contrib", rt.persons.get(0).memberships.get(0).categoryId);
+        assertTrue(rt.persons.get(0).memberships.get(0).roles.isEmpty());
     }
 
     @Test
     public void person_singleCategoryOneRole_roundTrips() throws Exception {
-        CreditsData data = new CreditsData(
-            Collections.singletonList(new CreditsCategory("dev", Collections.emptySet())),
-            Collections.singletonList(person("Bob", "dev", "lead")));
-        CreditsData rt = roundTrip(data);
-        assertEquals(Collections.singletonList("lead"), rt.persons.getFirst().categoryRoles.get("dev"));
+        CreditsDocument doc = oneCategory("dev");
+        doc.persons.add(person("Bob", "dev", "lead"));
+        CreditsDocument rt = roundTrip(doc);
+        assertEquals(Collections.singletonList("lead"), rt.persons.get(0).memberships.get(0).roles);
     }
 
     @Test
     public void person_singleCategoryMultipleRoles_roundTrips() throws Exception {
-        CreditsData data = new CreditsData(
-            Collections.singletonList(new CreditsCategory("dev", Collections.emptySet())),
-            Collections.singletonList(person("Bob", "dev", "lead", "infra")));
-        CreditsData rt = roundTrip(data);
-        assertEquals(Arrays.asList("lead", "infra"), rt.persons.getFirst().categoryRoles.get("dev"));
+        CreditsDocument doc = oneCategory("dev");
+        doc.persons.add(person("Bob", "dev", "lead", "infra"));
+        CreditsDocument rt = roundTrip(doc);
+        assertEquals(Arrays.asList("lead", "infra"), rt.persons.get(0).memberships.get(0).roles);
     }
 
     @Test
     public void person_multipleCategories_roundTrips() throws Exception {
-        Map<String, List<String>> cr = new LinkedHashMap<>();
-        cr.put("team", Collections.singletonList("lead"));
-        cr.put("dev", Arrays.asList("backend", "infra"));
-        cr.put("contrib", Collections.emptyList());
-        CreditsPerson p = new CreditsPerson("Carol", cr);
+        CreditsDocument doc = CreditsDocument.empty();
+        doc.categories.add(new DocumentCategory("team"));
+        doc.categories.add(new DocumentCategory("dev"));
+        doc.categories.add(new DocumentCategory("contrib"));
 
-        CreditsData data = new CreditsData(
-            Arrays.asList(
-                new CreditsCategory("team", Collections.emptySet()),
-                new CreditsCategory("dev", Collections.emptySet()),
-                new CreditsCategory("contrib", Collections.emptySet())),
-            Collections.singletonList(p));
-        CreditsData rt = roundTrip(data);
+        DocumentPerson p = new DocumentPerson("Carol");
+        p.memberships.add(new DocumentMembership("team", Collections.singletonList("lead")));
+        p.memberships.add(new DocumentMembership("dev", Arrays.asList("backend", "infra")));
+        p.memberships.add(new DocumentMembership("contrib"));
+        doc.persons.add(p);
 
-        CreditsPerson rp = rt.persons.getFirst();
+        CreditsDocument rt = roundTrip(doc);
+        DocumentPerson rp = rt.persons.get(0);
         assertEquals("Carol", rp.name);
-        assertEquals(Collections.singletonList("lead"), rp.categoryRoles.get("team"));
-        assertEquals(Arrays.asList("backend", "infra"), rp.categoryRoles.get("dev"));
-        assertTrue(
-            rp.categoryRoles.get("contrib")
-                .isEmpty());
+        assertEquals(3, rp.memberships.size());
+        assertEquals("team", rp.memberships.get(0).categoryId);
+        assertEquals(Collections.singletonList("lead"), rp.memberships.get(0).roles);
+        assertEquals("dev", rp.memberships.get(1).categoryId);
+        assertEquals(Arrays.asList("backend", "infra"), rp.memberships.get(1).roles);
+        assertEquals("contrib", rp.memberships.get(2).categoryId);
+        assertTrue(rp.memberships.get(2).roles.isEmpty());
     }
 
+    @SuppressWarnings("SpellCheckingInspection")
     @Test
     public void person_nameWithFormattingCodes_preserved() throws Exception {
-        CreditsData data = new CreditsData(
-            Collections.singletonList(new CreditsCategory("team", Collections.emptySet())),
-            Collections.singletonList(person("§cRed §lBold§r", "team")));
-        CreditsData rt = roundTrip(data);
-        assertEquals("§cRed §lBold§r", rt.persons.getFirst().name);
+        CreditsDocument doc = oneCategory("team");
+        doc.persons.add(person("§cRed §lBold§r", "team"));
+        CreditsDocument rt = roundTrip(doc);
+        assertEquals("§cRed §lBold§r", rt.persons.get(0).name);
     }
 
     @Test
     public void multiplePersons_allPreserved() throws Exception {
-        List<CreditsCategory> cats = Collections.singletonList(new CreditsCategory("c", Collections.emptySet()));
-        List<CreditsPerson> persons = Arrays.asList(person("Alice", "c"), person("Bob", "c"), person("Carol", "c"));
-        CreditsData rt = roundTrip(new CreditsData(cats, persons));
-        // Parser sorts by name; verify all names present
-        List<String> names = Arrays.asList(rt.persons.getFirst().name, rt.persons.get(1).name, rt.persons.get(2).name);
-        assertTrue(names.containsAll(Arrays.asList("Alice", "Bob", "Carol")));
+        CreditsDocument doc = oneCategory("c");
+        doc.persons.add(person("Alice", "c"));
+        doc.persons.add(person("Bob", "c"));
+        doc.persons.add(person("Carol", "c"));
+        CreditsDocument rt = roundTrip(doc);
+        assertEquals(3, rt.persons.size());
+        assertTrue(
+            rt.persons.stream()
+                .anyMatch(p -> p.name.equals("Alice")));
+        assertTrue(
+            rt.persons.stream()
+                .anyMatch(p -> p.name.equals("Bob")));
+        assertTrue(
+            rt.persons.stream()
+                .anyMatch(p -> p.name.equals("Carol")));
     }
 
     // -----------------------------------------------------------------------
@@ -192,22 +197,25 @@ public class CreditsSerializerTest {
     }
 
     // -----------------------------------------------------------------------
-    // Full round-trip: parse -> serialize -> parse, data equals original
+    // Full round-trip: serialize -> parse, data preserved
     // -----------------------------------------------------------------------
 
     @Test
     public void fullRoundTrip_noDataLost() throws Exception {
-        Map<String, List<String>> cr = new LinkedHashMap<>();
-        cr.put("team", Collections.singletonList("lead"));
-        cr.put("contrib", Collections.emptyList());
+        CreditsDocument doc = CreditsDocument.empty();
+        DocumentCategory team = new DocumentCategory("team");
+        team.classes = new LinkedHashSet<>(Arrays.asList("person", "role"));
+        DocumentCategory contrib = new DocumentCategory("contrib");
+        contrib.classes = new LinkedHashSet<>(Arrays.asList("person", "detail"));
+        doc.categories.add(team);
+        doc.categories.add(contrib);
 
-        CreditsData original = new CreditsData(
-            Arrays.asList(
-                new CreditsCategory("team", new LinkedHashSet<>(Arrays.asList("person", "role"))),
-                new CreditsCategory("contrib", new LinkedHashSet<>(Arrays.asList("person", "detail")))),
-            Collections.singletonList(new CreditsPerson("Dev", cr)));
+        DocumentPerson p = new DocumentPerson("Dev");
+        p.memberships.add(new DocumentMembership("team", Collections.singletonList("lead")));
+        p.memberships.add(new DocumentMembership("contrib"));
+        doc.persons.add(p);
 
-        CreditsData rt = roundTrip(original);
+        CreditsDocument rt = roundTrip(doc);
 
         assertEquals(2, rt.categories.size());
         assertNotNull(
@@ -221,7 +229,7 @@ public class CreditsSerializerTest {
                 .findFirst()
                 .orElse(null));
         assertEquals(1, rt.persons.size());
-        assertEquals("Dev", rt.persons.getFirst().name);
-        assertEquals(Collections.singletonList("lead"), rt.persons.getFirst().categoryRoles.get("team"));
+        assertEquals("Dev", rt.persons.get(0).name);
+        assertEquals(Collections.singletonList("lead"), rt.persons.get(0).memberships.get(0).roles);
     }
 }
