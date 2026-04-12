@@ -1,28 +1,27 @@
 package net.noiraude.creditseditor.command.impl;
 
-import net.noiraude.creditseditor.command.Command;
-import net.noiraude.creditseditor.model.EditorCategory;
-import net.noiraude.creditseditor.model.EditorModel;
+import net.noiraude.libcredits.model.CreditsDocument;
+import net.noiraude.libcredits.model.DocumentCategory;
 
 /** Appends a new category to the end of the category list. */
-public final class AddCategoryCommand implements Command {
+public final class AddCategoryCommand extends AbstractStructuralCommand {
 
-    private final EditorModel model;
-    private final EditorCategory category;
+    private final CreditsDocument creditsDoc;
+    private final DocumentCategory category;
 
-    public AddCategoryCommand(EditorModel model, EditorCategory category) {
-        this.model = model;
+    public AddCategoryCommand(CreditsDocument creditsDoc, DocumentCategory category) {
+        this.creditsDoc = creditsDoc;
         this.category = category;
     }
 
     @Override
     public void execute() {
-        model.categories.add(category);
+        creditsDoc.categories.add(category);
     }
 
     @Override
     public void undo() {
-        model.categories.remove(category);
+        creditsDoc.categories.remove(category);
     }
 
     @Override

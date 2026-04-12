@@ -1,5 +1,7 @@
 package net.noiraude.creditseditor;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
@@ -15,6 +17,14 @@ import java.nio.file.StandardOpenOption;
 import java.util.HashMap;
 import java.util.Map;
 
+import net.noiraude.libcredits.lang.LangDocument;
+import net.noiraude.libcredits.lang.LangParser;
+import net.noiraude.libcredits.lang.LangSerializer;
+import net.noiraude.libcredits.model.CreditsDocument;
+import net.noiraude.libcredits.parser.CreditsParseException;
+import net.noiraude.libcredits.parser.CreditsParser;
+import net.noiraude.libcredits.serializer.CreditsSerializer;
+
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 
@@ -23,24 +33,26 @@ import com.google.gson.JsonObject;
  * over either a plain directory tree or a Minecraft resource pack zip file.
  *
  * <p>
- * Get an instance via {@link #open(String)}. The caller is responsible for
- * closing the instance when done; use try-with-resources.
+ * Get an instance via {@link #open(String)}, then call {@link #loadDocuments()} to parse the
+ * resource files. The caller is responsible for closing the instance when done; use
+ * try-with-resources.
  */
 public final class ResourceManager implements Closeable {
 
-    /** How the resource root is stored on a disk. */
-    public enum Mode {
-        /** A plain directory whose contents are the resource tree. */
-        DIRECTORY,
-        /** A Minecraft resource pack zip file. */
-        ZIP
-    }
+    /** Relative path of the credits JSON inside the resource root. */
+    public static final String CREDITS_PATH = "assets/gtnhcredits/credits.json";
+
+    /** Relative path of the English lang file inside the resource root. */
+    public static final String LANG_PATH = "assets/gtnhcredits/lang/en_US.lang";
 
     private final Path diskPath;
-    private final FileSystem zipFs; // null when mode == DIRECTORY
+    private final FileSystem zipFs; // null for directory-mode instances
 
     /** Root path inside the active filesystem (directory path or zip root). */
     private final Path resourceRoot;
+
+    private CreditsDocument creditsDoc;
+    private LangDocument langDoc;
 
     private ResourceManager(Path diskPath, FileSystem zipFs) {
         this.diskPath = diskPath;
@@ -52,13 +64,12 @@ public final class ResourceManager implements Closeable {
      * Opens or creates the resource root described by {@code pathArg}.
      *
      * <ul>
-     * <li>Existing directory: opened as-is in {@link Mode#DIRECTORY} mode.</li>
-     * <li>Existing {@code .zip} file: opened as a resource pack in {@link Mode#ZIP} mode.</li>
+     * <li>Existing directory: opened as-is in directory mode.</li>
+     * <li>Existing {@code .zip} file: opened as a resource pack in zip mode.</li>
      * <li>Non-existent path without {@code .zip} suffix: directory is created and opened in
-     * {@link Mode#DIRECTORY} mode.</li>
+     * directory mode.</li>
      * <li>Non-existent path with {@code .zip} suffix: a new resource pack zip is created with
-     * a {@code pack.mcmeta} for Minecraft 1.7.10 (pack_format 1), then opened in
-     * {@link Mode#ZIP} mode.</li>
+     * a {@code pack.mcmeta} for Minecraft 1.7.10 (pack_format 1), then opened in zip mode.</li>
      * </ul>
      *
      * @param pathArg the path argument supplied by the user
@@ -88,12 +99,57 @@ public final class ResourceManager implements Closeable {
         }
     }
 
+    /**
+     * Parses the credits JSON and lang file from the resource root and stores the resulting
+     * documents internally. Must be called once before {@link #getCreditsDoc()},
+     * {@link #getLangDoc()}, or {@link #isDirty()} are meaningful.
+     *
+     * @throws IOException           if a file exists but cannot be read
+     * @throws CreditsParseException if the credits JSON is structurally invalid
+     */
+    public void loadDocuments() throws IOException, CreditsParseException {
+        if (notExists(CREDITS_PATH)) {
+            creditsDoc = CreditsDocument.empty();
+        } else {
+            try (InputStream in = openRead(CREDITS_PATH)) {
+                creditsDoc = CreditsParser.parse(in);
+            }
+        }
+
+        if (notExists(LANG_PATH)) {
+            langDoc = LangParser.empty();
+        } else {
+            try (InputStream in = openRead(LANG_PATH)) {
+                langDoc = LangParser.parse(in);
+            }
+        }
+    }
+
+    /** Returns the mutable credits document loaded by {@link #loadDocuments()}. */
+    public CreditsDocument getCreditsDoc() {
+        return creditsDoc;
+    }
+
+    /** Returns the mutable lang document loaded by {@link #loadDocuments()}. */
+    public LangDocument getLangDoc() {
+        return langDoc;
+    }
+
+    /**
+     * Returns {@code true} if any loaded document has unsaved changes.
+     * Returns {@code false} if {@link #loadDocuments()} has not been called yet.
+     */
+    public boolean isDirty() {
+        if (creditsDoc == null || langDoc == null) return false;
+        return creditsDoc.isDirty() || langDoc.isDirty();
+    }
+
     /** Returns the on-disk path of the directory or zip file. */
     public Path getDiskPath() {
         return diskPath;
     }
 
-    /** Returns {@code true} if {@code relativePath} exists inside the resource root. */
+    /** Returns {@code true} if {@code relativePath} does not exist inside the resource root. */
     public boolean notExists(String relativePath) {
         return !Files.exists(resourceRoot.resolve(relativePath));
     }
@@ -120,6 +176,34 @@ public final class ResourceManager implements Closeable {
             Files.createDirectories(parent);
         }
         return Files.newOutputStream(target, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+    }
+
+    /**
+     * Validates {@code data} via a round-trip parse and writes it to {@code credits.json}.
+     * Throws before writing if validation fails.
+     *
+     * @throws IOException           if the file cannot be written
+     * @throws CreditsParseException if the serialized data fails to reparse
+     */
+    public void writeCredits() throws IOException, CreditsParseException {
+        ByteArrayOutputStream buf = new ByteArrayOutputStream();
+        CreditsSerializer.write(creditsDoc, buf);
+        byte[] bytes = buf.toByteArray();
+        CreditsParser.parse(new ByteArrayInputStream(bytes)); // round-trip validation
+        try (OutputStream out = openWrite(CREDITS_PATH)) {
+            out.write(bytes);
+        }
+    }
+
+    /**
+     * Saves the lang document to {@code lang/en_US.lang}.
+     *
+     * @throws IOException if the file cannot be written
+     */
+    public void writeLang() throws IOException {
+        try (OutputStream out = openWrite(LANG_PATH)) {
+            LangSerializer.write(langDoc, out);
+        }
     }
 
     /** Closes the underlying zip filesystem, if any. Has no effect in directory mode. */

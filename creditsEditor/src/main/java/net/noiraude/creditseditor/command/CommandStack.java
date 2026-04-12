@@ -12,7 +12,7 @@ import java.util.Deque;
  * clean mark, which is reflected by {@link #isDirty()}.
  *
  * <p>
- * Executing a new command after one or more undos clears the redo stack.
+ * Executing a new command after one or more undoing clears the redo stack.
  */
 public final class CommandStack {
 
@@ -32,8 +32,10 @@ public final class CommandStack {
 
     /**
      * Executes {@code command}, pushes it onto the undo stack, and clears the redo stack.
+     *
+     * @return {@code true} if the command is a {@link Command#isLightEdit() light edit}
      */
-    public void execute(Command command) {
+    public boolean execute(Command command) {
         command.execute();
         undoStack.push(command);
         if (!redoStack.isEmpty()) {
@@ -45,32 +47,35 @@ public final class CommandStack {
                 cleanMark = -1;
             }
         }
+        return command.isLightEdit();
     }
 
     /**
-     * Undoes the most recently executed command and returns it.
+     * Undoes the most recently executed command.
      *
+     * @return {@code true} if the undone command was a {@link Command#isLightEdit() light edit}
      * @throws IllegalStateException if there is nothing to undo
      */
-    public Command undo() {
+    public boolean undo() {
         if (undoStack.isEmpty()) throw new IllegalStateException("Nothing to undo");
         Command cmd = undoStack.pop();
         cmd.undo();
         redoStack.push(cmd);
-        return cmd;
+        return cmd.isLightEdit();
     }
 
     /**
-     * Re-executes the most recently undone command and returns it.
+     * Re-executes the most recently undone command.
      *
+     * @return {@code true} if the redone command was a {@link Command#isLightEdit() light edit}
      * @throws IllegalStateException if there is nothing to redo
      */
-    public Command redo() {
+    public boolean redo() {
         if (redoStack.isEmpty()) throw new IllegalStateException("Nothing to redo");
         Command cmd = redoStack.pop();
         cmd.execute();
         undoStack.push(cmd);
-        return cmd;
+        return cmd.isLightEdit();
     }
 
     // -----------------------------------------------------------------------

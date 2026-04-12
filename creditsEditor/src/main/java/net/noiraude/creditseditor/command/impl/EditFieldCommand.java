@@ -3,8 +3,6 @@ package net.noiraude.creditseditor.command.impl;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-import net.noiraude.creditseditor.command.Command;
-
 /**
  * Generic command that sets a single field on any mutable object.
  *
@@ -14,7 +12,7 @@ import net.noiraude.creditseditor.command.Command;
  *
  * @param <T> the type of the field value
  */
-public final class EditFieldCommand<T> implements Command {
+public final class EditFieldCommand<T> extends AbstractLightEditCommand {
 
     private final String displayName;
     private final Supplier<T> getter;
@@ -44,4 +42,5 @@ public final class EditFieldCommand<T> implements Command {
     public String getDisplayName() {
         return displayName;
     }
+
 }

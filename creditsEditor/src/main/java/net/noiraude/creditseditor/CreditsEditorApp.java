@@ -12,8 +12,6 @@ import com.formdev.flatlaf.FlatLightLaf;
 
 public class CreditsEditorApp {
 
-    private ResourceManager resourceManager;
-
     @SuppressWarnings("unused")
     public static void main(String[] args) {
         FlatLightLaf.setup();
@@ -44,24 +42,11 @@ public class CreditsEditorApp {
             System.exit(0);
         }
 
-        if (args.resource() != null) {
-            try {
-                resourceManager = ResourceManager.open(args.resource());
-            } catch (IOException e) {
-                System.err.println(cmd() + ": " + e.getMessage());
-                System.exit(1);
-            }
-        }
-
-        final ResourceManager rm = resourceManager;
+        final String resourcePath = args.resource();
         SwingUtilities.invokeLater(() -> {
-            MainWindow window = new MainWindow(rm);
+            MainWindow window = new MainWindow(resourcePath);
             window.setVisible(true);
         });
-    }
-
-    public ResourceManager getResourceManager() {
-        return resourceManager;
     }
 
     private static String cmd() {

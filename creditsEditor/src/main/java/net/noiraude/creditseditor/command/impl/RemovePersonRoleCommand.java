@@ -1,7 +1,6 @@
 package net.noiraude.creditseditor.command.impl;
 
-import net.noiraude.creditseditor.command.Command;
-import net.noiraude.creditseditor.model.EditorMembership;
+import net.noiraude.libcredits.model.DocumentMembership;
 
 /**
  * Removes a role string from a category membership's role list.
@@ -9,13 +8,13 @@ import net.noiraude.creditseditor.model.EditorMembership;
  * <p>
  * Undo restores the role at its original position.
  */
-public final class RemovePersonRoleCommand implements Command {
+public final class RemovePersonRoleCommand extends AbstractStructuralCommand {
 
-    private final EditorMembership membership;
+    private final DocumentMembership membership;
     private final String role;
     private int savedIndex;
 
-    public RemovePersonRoleCommand(EditorMembership membership, String role) {
+    public RemovePersonRoleCommand(DocumentMembership membership, String role) {
         this.membership = membership;
         this.role = role;
     }

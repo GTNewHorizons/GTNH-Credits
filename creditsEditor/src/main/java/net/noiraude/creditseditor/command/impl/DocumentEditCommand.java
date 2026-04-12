@@ -2,8 +2,6 @@ package net.noiraude.creditseditor.command.impl;
 
 import javax.swing.undo.UndoableEdit;
 
-import net.noiraude.creditseditor.command.Command;
-
 /**
  * Command that wraps a {@link UndoableEdit} captured from a text component's document.
  *
@@ -13,7 +11,7 @@ import net.noiraude.creditseditor.command.Command;
  * Execute is a no-op on the first call (edit already applied) and calls
  * {@link UndoableEdit#redo()} on later calls (redo after undo).
  */
-public final class DocumentEditCommand implements Command {
+public final class DocumentEditCommand extends AbstractLightEditCommand {
 
     private final String displayName;
     private final UndoableEdit edit;
@@ -42,4 +40,5 @@ public final class DocumentEditCommand implements Command {
     public String getDisplayName() {
         return displayName;
     }
+
 }

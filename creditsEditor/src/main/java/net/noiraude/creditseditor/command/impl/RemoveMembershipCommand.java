@@ -1,8 +1,7 @@
 package net.noiraude.creditseditor.command.impl;
 
-import net.noiraude.creditseditor.command.Command;
-import net.noiraude.creditseditor.model.EditorMembership;
-import net.noiraude.creditseditor.model.EditorPerson;
+import net.noiraude.libcredits.model.DocumentMembership;
+import net.noiraude.libcredits.model.DocumentPerson;
 
 /**
  * Removes a category membership from a person's membership list.
@@ -10,13 +9,13 @@ import net.noiraude.creditseditor.model.EditorPerson;
  * <p>
  * Undo restores the membership at its original position.
  */
-public final class RemoveMembershipCommand implements Command {
+public final class RemoveMembershipCommand extends AbstractStructuralCommand {
 
-    private final EditorPerson person;
-    private final EditorMembership membership;
+    private final DocumentPerson person;
+    private final DocumentMembership membership;
     private int savedIndex;
 
-    public RemoveMembershipCommand(EditorPerson person, EditorMembership membership) {
+    public RemoveMembershipCommand(DocumentPerson person, DocumentMembership membership) {
         this.person = person;
         this.membership = membership;
     }

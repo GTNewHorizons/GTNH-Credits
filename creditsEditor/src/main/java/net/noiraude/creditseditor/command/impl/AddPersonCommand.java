@@ -1,28 +1,27 @@
 package net.noiraude.creditseditor.command.impl;
 
-import net.noiraude.creditseditor.command.Command;
-import net.noiraude.creditseditor.model.EditorModel;
-import net.noiraude.creditseditor.model.EditorPerson;
+import net.noiraude.libcredits.model.CreditsDocument;
+import net.noiraude.libcredits.model.DocumentPerson;
 
 /** Appends a new person to the end of the person list. */
-public final class AddPersonCommand implements Command {
+public final class AddPersonCommand extends AbstractStructuralCommand {
 
-    private final EditorModel model;
-    private final EditorPerson person;
+    private final CreditsDocument creditsDoc;
+    private final DocumentPerson person;
 
-    public AddPersonCommand(EditorModel model, EditorPerson person) {
-        this.model = model;
+    public AddPersonCommand(CreditsDocument creditsDoc, DocumentPerson person) {
+        this.creditsDoc = creditsDoc;
         this.person = person;
     }
 
     @Override
     public void execute() {
-        model.persons.add(person);
+        creditsDoc.persons.add(person);
     }
 
     @Override
     public void undo() {
-        model.persons.remove(person);
+        creditsDoc.persons.remove(person);
     }
 
     @Override

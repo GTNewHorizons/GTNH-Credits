@@ -10,16 +10,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import net.noiraude.creditseditor.model.EditorMembership;
-import net.noiraude.creditseditor.model.EditorModel;
-import net.noiraude.creditseditor.model.EditorPerson;
+import net.noiraude.libcredits.model.CreditsDocument;
+import net.noiraude.libcredits.model.DocumentMembership;
+import net.noiraude.libcredits.model.DocumentPerson;
 
 /**
- * Derived, read-only view of all roles present in an {@link EditorModel}.
+ * Derived, read-only view of all roles present in a {@link CreditsDocument}.
  *
  * <p>
- * Built on demand via {@link #build(EditorModel)}. Not updated automatically when the model
- * changes; rebuild after each mutation that may affect roles.
+ * Built on demand via {@link #build(CreditsDocument)}. Not updated automatically when the
+ * document changes; rebuild after each mutation that may affect roles.
  */
 public final class RoleIndex {
 
@@ -53,17 +53,17 @@ public final class RoleIndex {
     }
 
     /**
-     * Builds a {@link RoleIndex} by scanning the entire model.
+     * Builds a {@link RoleIndex} by scanning the entire document.
      *
      * <p>
      * The resulting entry list is sorted alphabetically by {@link Entry#raw}.
      */
-    public static RoleIndex build(EditorModel model) {
+    public static RoleIndex build(CreditsDocument creditsDoc) {
         Map<String, Set<String>> roleToCats = new LinkedHashMap<>();
-        Map<String, Set<EditorPerson>> roleToPersons = new LinkedHashMap<>();
+        Map<String, Set<DocumentPerson>> roleToPersons = new LinkedHashMap<>();
 
-        for (EditorPerson person : model.persons) {
-            for (EditorMembership membership : person.memberships) {
+        for (DocumentPerson person : creditsDoc.persons) {
+            for (DocumentMembership membership : person.memberships) {
                 for (String role : membership.roles) {
                     roleToCats.computeIfAbsent(role, k -> new LinkedHashSet<>())
                         .add(membership.categoryId);
