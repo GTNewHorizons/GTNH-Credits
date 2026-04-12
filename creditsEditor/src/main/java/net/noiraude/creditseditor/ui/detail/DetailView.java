@@ -1,11 +1,12 @@
 package net.noiraude.creditseditor.ui.detail;
 
+import static net.noiraude.creditseditor.ui.UiScale.scaled;
+
 import java.awt.*;
-import java.util.function.Consumer;
 
 import javax.swing.*;
 
-import net.noiraude.creditseditor.command.Command;
+import net.noiraude.creditseditor.command.CommandExecutor;
 
 /**
  * Base panel for detail form views.
@@ -17,13 +18,13 @@ import net.noiraude.creditseditor.command.Command;
  *
  * @param <T> the type of the model item being edited
  */
-abstract class DetailView<T> extends JPanel {
+public abstract class DetailView<T> extends JPanel {
 
-    protected final Consumer<Command> onCommand;
+    protected final CommandExecutor onCommand;
     protected T current;
     protected boolean loading;
 
-    protected DetailView(Consumer<Command> onCommand) {
+    protected DetailView(CommandExecutor onCommand) {
         this.onCommand = onCommand;
         setLayout(new GridBagLayout());
     }
@@ -36,7 +37,7 @@ abstract class DetailView<T> extends JPanel {
         c.anchor = GridBagConstraints.WEST;
         c.weightx = 0;
         c.weighty = 0;
-        c.insets = new Insets(4, 6, 4, 4);
+        c.insets = new Insets(scaled(4), scaled(6), scaled(4), scaled(4));
         return c;
     }
 
@@ -48,7 +49,7 @@ abstract class DetailView<T> extends JPanel {
         c.anchor = GridBagConstraints.WEST;
         c.weightx = 1.0;
         c.weighty = 0;
-        c.insets = new Insets(4, 0, 4, 6);
+        c.insets = new Insets(scaled(4), 0, scaled(4), scaled(6));
         return c;
     }
 }

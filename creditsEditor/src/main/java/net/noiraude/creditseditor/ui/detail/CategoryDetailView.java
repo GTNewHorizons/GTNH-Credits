@@ -1,33 +1,38 @@
 package net.noiraude.creditseditor.ui.detail;
 
+import static net.noiraude.creditseditor.ui.UiScale.scaled;
+
 import java.awt.*;
 import java.util.LinkedHashSet;
 import java.util.Set;
-import java.util.function.Consumer;
 
 import javax.swing.*;
 
-import net.noiraude.creditseditor.command.Command;
+import net.noiraude.creditseditor.command.CommandExecutor;
 import net.noiraude.creditseditor.command.impl.DocumentEditCommand;
 import net.noiraude.creditseditor.command.impl.EditFieldCommand;
-import net.noiraude.creditseditor.model.EditorCategory;
 import net.noiraude.creditseditor.service.KeySanitizer;
 import net.noiraude.creditseditor.ui.component.MinecraftTextAreaEditor;
 import net.noiraude.creditseditor.ui.component.MinecraftTextEditor;
+import net.noiraude.libcredits.lang.LangDocument;
+import net.noiraude.libcredits.model.DocumentCategory;
 
 /**
- * Form panel that displays and edits the fields of a single {@link EditorCategory}.
+ * Form panel that displays and edits the fields of a single {@link DocumentCategory}.
  *
  * <p>
- * Changes fire {@link Command} objects through the supplied executor rather than mutating
- * the model directly. Call {@link #load(EditorCategory)} whenever the active category
- * changes or the model has been refreshed by an undo/redo.
+ * Lang-derived fields (display name, description) are read from and written to the
+ * {@link LangDocument} directly via {@link #setContext(LangDocument)}, so no synchronisation
+ * step is needed. Call {@link #load(DocumentCategory)} whenever the active category changes
+ * or the document has been refreshed by an undo/redo.
  */
-public final class CategoryDetailView extends DetailView<EditorCategory> {
+public final class CategoryDetailView extends DetailView<DocumentCategory> {
 
     private static final String CLASS_PERSON = "person";
     private static final String CLASS_ROLE = "role";
     private static final String CLASS_DETAIL = "detail";
+
+    private LangDocument langDoc;
 
     private final JTextField idField = new JTextField();
     private final JLabel langKeyLabel = new JLabel();
@@ -39,13 +44,17 @@ public final class CategoryDetailView extends DetailView<EditorCategory> {
     private final MinecraftTextAreaEditor descriptionEditor = new MinecraftTextAreaEditor();
     private final java.awt.Component spacer = Box.createVerticalGlue();
 
-    public CategoryDetailView(Consumer<Command> onCommand) {
+    public CategoryDetailView(CommandExecutor onCommand) {
         super(onCommand);
-
         idField.setEditable(false);
         idField.setBackground(UIManager.getColor("Panel.background"));
         langKeyLabel.setForeground(UIManager.getColor("Label.disabledForeground"));
+        buildLayout();
+        wireEvents();
+        updateDescriptionVisibility();
+    }
 
+    private void buildLayout() {
         GridBagConstraints label = labelConstraints();
         GridBagConstraints field = fieldConstraints();
 
@@ -71,28 +80,19 @@ public final class CategoryDetailView extends DetailView<EditorCategory> {
         label.gridy = 3;
         add(new JLabel("Display:"), label);
         field.gridy = 3;
-        JPanel classRow = new JPanel();
-        classRow.setLayout(new BoxLayout(classRow, BoxLayout.X_AXIS));
-        classRow.setOpaque(false);
-        classRow.add(classPerson);
-        classRow.add(Box.createHorizontalStrut(8));
-        classRow.add(classRole);
-        classRow.add(Box.createHorizontalStrut(8));
-        classRow.add(classDetail);
-        classRow.add(Box.createHorizontalGlue());
-        add(classRow, field);
+        add(buildClassRow(), field);
 
         // Row 4: Details text (visible only when "detail" class is checked)
         label.gridy = 4;
         label.anchor = GridBagConstraints.NORTHWEST;
-        label.insets = new Insets(6, 6, 4, 4);
+        label.insets = new Insets(scaled(6), scaled(6), scaled(4), scaled(4));
         add(descriptionLabel, label);
         field.gridy = 4;
         field.fill = GridBagConstraints.BOTH;
         field.weighty = 0;
         add(descriptionEditor, field);
 
-        // Row 5: Spacer always presents; absorbs extra vertical space when description is
+        // Row 5: Spacer always present; absorbs extra vertical space when description is
         // hidden so rows stay top-aligned. Weight is swapped to the description editor when
         // the description row is visible, so the editor expands to fill the panel instead.
         GridBagConstraints spacerGbc = new GridBagConstraints();
@@ -102,52 +102,91 @@ public final class CategoryDetailView extends DetailView<EditorCategory> {
         spacerGbc.weighty = 1.0;
         spacerGbc.fill = GridBagConstraints.VERTICAL;
         add(spacer, spacerGbc);
+    }
 
-        // Wire events
+    private JPanel buildClassRow() {
+        JPanel classRow = new JPanel();
+        classRow.setLayout(new BoxLayout(classRow, BoxLayout.X_AXIS));
+        classRow.setOpaque(false);
+        classRow.add(classPerson);
+        classRow.add(Box.createHorizontalStrut(scaled(8)));
+        classRow.add(classRole);
+        classRow.add(Box.createHorizontalStrut(scaled(8)));
+        classRow.add(classDetail);
+        classRow.add(Box.createHorizontalGlue());
+        return classRow;
+    }
+
+    private void wireEvents() {
+        wireDisplayNameEvents();
+        wireDescriptionEvents();
+        wireClassCheckboxEvents();
+    }
+
+    private void wireDisplayNameEvents() {
         displayNameEditor.addPropertyChangeListener("text", e -> {
-            if (!loading && current != null) {
-                current.displayName = (String) e.getNewValue();
+            if (!loading && current != null && langDoc != null) {
+                String key = "credits.category." + KeySanitizer.sanitize(current.id);
+                String value = (String) e.getNewValue();
+                if (value.isEmpty()) langDoc.remove(key);
+                else langDoc.set(key, value);
             }
         });
         displayNameEditor.addUndoableEditListener(e -> {
             if (!loading && current != null) {
-                onCommand.accept(new DocumentEditCommand("Edit display name", e.getEdit()));
+                onCommand.execute(new DocumentEditCommand("Edit display name", e.getEdit()));
             }
         });
+    }
 
+    private void wireDescriptionEvents() {
         descriptionEditor.addPropertyChangeListener("text", e -> {
-            if (!loading && current != null) {
-                current.description = (String) e.getNewValue();
+            if (!loading && current != null && langDoc != null) {
+                String key = "credits.category." + KeySanitizer.sanitize(current.id) + ".detail";
+                String value = (String) e.getNewValue();
+                if (value.isEmpty()) langDoc.remove(key);
+                else langDoc.set(key, value);
             }
         });
         descriptionEditor.addUndoableEditListener(e -> {
             if (!loading && current != null) {
-                onCommand.accept(new DocumentEditCommand("Edit details", e.getEdit()));
+                onCommand.execute(new DocumentEditCommand("Edit details", e.getEdit()));
             }
         });
+    }
 
+    private void wireClassCheckboxEvents() {
         classPerson.addActionListener(e -> onClassToggle(CLASS_PERSON, classPerson.isSelected()));
         classRole.addActionListener(e -> onClassToggle(CLASS_ROLE, classRole.isSelected()));
         classDetail.addActionListener(e -> {
             onClassToggle(CLASS_DETAIL, classDetail.isSelected());
             updateDescriptionVisibility();
         });
+    }
 
-        updateDescriptionVisibility();
+    /**
+     * Sets the lang document used for reading and writing display name and description.
+     * Call once after a session is loaded.
+     */
+    public void setContext(LangDocument langDoc) {
+        this.langDoc = langDoc;
     }
 
     /**
      * Populates all fields from {@code cat} without firing any commands.
-     * Call after any external model change (undo, redo, or initial load).
+     * Call after any external model change: initial load, undo, or redo.
      */
-    public void load(EditorCategory cat) {
+    public void load(DocumentCategory cat) {
         current = cat;
         loading = true;
         try {
+            String key = "credits.category." + KeySanitizer.sanitize(cat.id);
             idField.setText(cat.id);
-            langKeyLabel.setText("credits.category." + KeySanitizer.sanitize(cat.id));
-            displayNameEditor.setText(cat.displayName);
-            descriptionEditor.setText(cat.description);
+            langKeyLabel.setText(key);
+            String name = langDoc != null ? langDoc.get(key) : null;
+            displayNameEditor.setText(name != null ? name : "");
+            String detail = langDoc != null ? langDoc.get(key + ".detail") : null;
+            descriptionEditor.setText(detail != null ? detail : "");
             classPerson.setSelected(cat.classes.contains(CLASS_PERSON));
             classRole.setSelected(cat.classes.contains(CLASS_ROLE));
             classDetail.setSelected(cat.classes.contains(CLASS_DETAIL));
@@ -166,7 +205,7 @@ public final class CategoryDetailView extends DetailView<EditorCategory> {
             newSet.remove(cls);
         }
         if (!newSet.equals(current.classes)) {
-            onCommand.accept(
+            onCommand.execute(
                 new EditFieldCommand<>("Edit classes", () -> current.classes, v -> current.classes = v, newSet));
         }
     }

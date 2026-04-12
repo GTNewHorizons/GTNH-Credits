@@ -1,5 +1,7 @@
 package net.noiraude.creditseditor.ui.component;
 
+import static net.noiraude.creditseditor.ui.UiScale.scaled;
+
 import java.awt.*;
 
 import javax.swing.*;
@@ -51,12 +53,12 @@ public final class MinecraftTextEditor extends JPanel {
         contentPanel.add(wysiwygPane, CARD_RENDERED);
         contentPanel.add(rawField, CARD_RAW);
 
-        toggleButton.setMargin(new Insets(1, 4, 1, 4));
+        toggleButton.setMargin(new Insets(scaled(1), scaled(4), scaled(1), scaled(4)));
         toggleButton.setFocusable(false);
         toggleButton.setToolTipText("Toggle raw / rendered mode");
         toggleButton.addActionListener(e -> setRenderedMode(!renderedMode));
 
-        JPanel topBar = new JPanel(new BorderLayout(2, 0));
+        JPanel topBar = new JPanel(new BorderLayout(scaled(2), 0));
         topBar.setOpaque(false);
         topBar.add(toolbar, BorderLayout.CENTER);
         topBar.add(toggleButton, BorderLayout.EAST);

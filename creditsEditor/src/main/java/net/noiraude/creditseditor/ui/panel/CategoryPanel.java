@@ -5,13 +5,15 @@ import java.util.function.Consumer;
 
 import javax.swing.*;
 
-import net.noiraude.creditseditor.command.Command;
+import net.noiraude.creditseditor.command.CommandExecutor;
 import net.noiraude.creditseditor.command.impl.AddCategoryCommand;
 import net.noiraude.creditseditor.command.impl.MoveCategoryOrderCommand;
 import net.noiraude.creditseditor.command.impl.RemoveCategoryCommand;
-import net.noiraude.creditseditor.model.EditorCategory;
-import net.noiraude.creditseditor.model.EditorModel;
-import net.noiraude.creditseditor.ui.component.McFormatCode;
+import net.noiraude.creditseditor.service.KeySanitizer;
+import net.noiraude.creditseditor.ui.component.McText;
+import net.noiraude.libcredits.lang.LangDocument;
+import net.noiraude.libcredits.model.CreditsDocument;
+import net.noiraude.libcredits.model.DocumentCategory;
 
 /**
  * Left-side panel showing the ordered list of categories.
@@ -23,22 +25,25 @@ import net.noiraude.creditseditor.ui.component.McFormatCode;
  *
  * <p>
  * Structural edits (add, remove, move) are performed via commands issued through the
- * supplied executor. Call {@link #refresh(EditorModel)} after any model change.
+ * supplied executor. Call {@link #refresh(CreditsDocument, LangDocument)} after any
+ * document change.
  */
-public final class CategoryPanel extends ListPanel<Object, EditorCategory> {
+public final class CategoryPanel extends ListPanel<Object, DocumentCategory> {
 
     /** Sentinel value that represents the "show all persons" state. */
     private static final Object ALL_SENTINEL = new Object() {};
+
+    private LangDocument langDoc;
 
     private final JButton upButton = new JButton("▲");
     private final JButton downButton = new JButton("▼");
 
     /**
      * @param onCommand          receives each structural command to execute
-     * @param onSelectionChanged called with the selected {@link EditorCategory}, or
+     * @param onSelectionChanged called with the selected {@link DocumentCategory}, or
      *                           {@code null} when the "All persons" sentinel is selected
      */
-    public CategoryPanel(Consumer<Command> onCommand, Consumer<EditorCategory> onSelectionChanged) {
+    public CategoryPanel(CommandExecutor onCommand, Consumer<DocumentCategory> onSelectionChanged) {
         super("Categories", onCommand, onSelectionChanged);
 
         list.setCellRenderer(new CategoryCellRenderer());
@@ -65,18 +70,19 @@ public final class CategoryPanel extends ListPanel<Object, EditorCategory> {
     }
 
     /**
-     * Repopulates the list from {@code model}, preserving the selection by category id
-     * where possible.
+     * Repopulates the list from {@code creditsDoc}, preserving the selection by category id
+     * where possible. {@code langDoc} is used by the cell renderer to resolve display names.
      */
-    public void refresh(EditorModel model) {
-        this.model = model;
+    public void refresh(CreditsDocument creditsDoc, LangDocument langDoc) {
+        this.creditsDoc = creditsDoc;
+        this.langDoc = langDoc;
         String prevId = selectedCategoryId();
 
         refreshing = true;
         try {
             listModel.clear();
             listModel.addElement(ALL_SENTINEL);
-            for (EditorCategory cat : model.categories) {
+            for (DocumentCategory cat : creditsDoc.categories) {
                 listModel.addElement(cat);
             }
 
@@ -84,7 +90,7 @@ public final class CategoryPanel extends ListPanel<Object, EditorCategory> {
             boolean restored = false;
             if (prevId != null) {
                 for (int i = 1; i < listModel.size(); i++) {
-                    EditorCategory cat = (EditorCategory) listModel.get(i);
+                    DocumentCategory cat = (DocumentCategory) listModel.get(i);
                     if (cat.id.equals(prevId)) {
                         list.setSelectedIndex(i);
                         restored = true;
@@ -103,17 +109,17 @@ public final class CategoryPanel extends ListPanel<Object, EditorCategory> {
     }
 
     /**
-     * Returns the currently selected {@link EditorCategory}, or {@code null} when
+     * Returns the currently selected {@link DocumentCategory}, or {@code null} when
      * the "All persons" sentinel is selected or nothing is selected.
      */
-    public EditorCategory getSelectedCategory() {
+    public DocumentCategory getSelectedCategory() {
         return getSelection();
     }
 
     @Override
-    protected EditorCategory getSelection() {
+    protected DocumentCategory getSelection() {
         Object sel = list.getSelectedValue();
-        return (sel instanceof EditorCategory ec) ? ec : null;
+        return (sel instanceof DocumentCategory dc) ? dc : null;
     }
 
     // -----------------------------------------------------------------------
@@ -121,12 +127,12 @@ public final class CategoryPanel extends ListPanel<Object, EditorCategory> {
     // -----------------------------------------------------------------------
 
     private void onAdd() {
-        if (model == null) return;
+        if (creditsDoc == null) return;
         String id = JOptionPane.showInputDialog(this, "Category ID:", "Add category", JOptionPane.PLAIN_MESSAGE);
         if (id == null || id.isBlank()) return;
         id = id.strip();
         String finalId = id;
-        boolean exists = model.categories.stream()
+        boolean exists = creditsDoc.categories.stream()
             .anyMatch(c -> c.id.equals(finalId));
         if (exists) {
             JOptionPane.showMessageDialog(
@@ -136,12 +142,12 @@ public final class CategoryPanel extends ListPanel<Object, EditorCategory> {
                 JOptionPane.WARNING_MESSAGE);
             return;
         }
-        onCommand.accept(new AddCategoryCommand(model, new EditorCategory(finalId)));
+        onCommand.execute(new AddCategoryCommand(creditsDoc, new DocumentCategory(finalId)));
     }
 
     private void onRemove() {
-        EditorCategory cat = getSelectedCategory();
-        if (cat == null || model == null) return;
+        DocumentCategory cat = getSelectedCategory();
+        if (cat == null || creditsDoc == null) return;
         int confirm = JOptionPane.showConfirmDialog(
             this,
             "Remove category '" + cat.id + "'?\nAll memberships in this category will also be removed.",
@@ -149,18 +155,18 @@ public final class CategoryPanel extends ListPanel<Object, EditorCategory> {
             JOptionPane.OK_CANCEL_OPTION,
             JOptionPane.WARNING_MESSAGE);
         if (confirm == JOptionPane.OK_OPTION) {
-            onCommand.accept(new RemoveCategoryCommand(model, cat));
+            onCommand.execute(new RemoveCategoryCommand(creditsDoc, cat));
         }
     }
 
     private void onMove(int delta) {
-        if (model == null) return;
-        EditorCategory cat = getSelectedCategory();
+        if (creditsDoc == null) return;
+        DocumentCategory cat = getSelectedCategory();
         if (cat == null) return;
-        int idx = model.categories.indexOf(cat);
+        int idx = creditsDoc.categories.indexOf(cat);
         int target = idx + delta;
-        if (target < 0 || target >= model.categories.size()) return;
-        onCommand.accept(new MoveCategoryOrderCommand(model, cat, target));
+        if (target < 0 || target >= creditsDoc.categories.size()) return;
+        onCommand.execute(new MoveCategoryOrderCommand(creditsDoc, cat, target));
     }
 
     // -----------------------------------------------------------------------
@@ -169,16 +175,16 @@ public final class CategoryPanel extends ListPanel<Object, EditorCategory> {
 
     @Override
     protected void updateButtons() {
-        EditorCategory cat = getSelectedCategory();
-        boolean catSelected = cat != null && model != null;
+        DocumentCategory cat = getSelectedCategory();
+        boolean catSelected = cat != null && creditsDoc != null;
         removeButton.setEnabled(catSelected);
-        int idx = catSelected ? model.categories.indexOf(cat) : -1;
+        int idx = catSelected ? creditsDoc.categories.indexOf(cat) : -1;
         upButton.setEnabled(catSelected && idx > 0);
-        downButton.setEnabled(catSelected && idx < model.categories.size() - 1);
+        downButton.setEnabled(catSelected && idx < creditsDoc.categories.size() - 1);
     }
 
     private String selectedCategoryId() {
-        EditorCategory cat = getSelectedCategory();
+        DocumentCategory cat = getSelectedCategory();
         return cat != null ? cat.id : null;
     }
 
@@ -186,7 +192,7 @@ public final class CategoryPanel extends ListPanel<Object, EditorCategory> {
     // Cell renderer
     // -----------------------------------------------------------------------
 
-    private static final class CategoryCellRenderer extends DefaultListCellRenderer {
+    private final class CategoryCellRenderer extends DefaultListCellRenderer {
 
         @Override
         public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected,
@@ -197,12 +203,13 @@ public final class CategoryPanel extends ListPanel<Object, EditorCategory> {
                 label.setFont(
                     label.getFont()
                         .deriveFont(java.awt.Font.ITALIC));
-            } else if (value instanceof EditorCategory cat) {
-                String display = cat.displayName.isEmpty() ? cat.id : McFormatCode.strip(cat.displayName);
-                if (cat.displayName.isEmpty()) {
-                    label.setText("[" + display + "]");
+            } else if (value instanceof DocumentCategory cat) {
+                String langKey = "credits.category." + KeySanitizer.sanitize(cat.id);
+                String displayName = langDoc != null ? langDoc.get(langKey) : null;
+                if (displayName == null || displayName.isEmpty()) {
+                    label.setText("[" + cat.id + "]");
                 } else {
-                    label.setText(display);
+                    label.setText(McText.strip(displayName));
                 }
             }
             return label;

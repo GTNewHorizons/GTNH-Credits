@@ -1,5 +1,7 @@
 package net.noiraude.creditseditor.ui.component;
 
+import static net.noiraude.creditseditor.ui.UiScale.scaled;
+
 import java.awt.*;
 
 import javax.swing.*;
@@ -60,12 +62,12 @@ public final class MinecraftTextAreaEditor extends JPanel {
         contentCard.add(wysiwygPane, CARD_RENDERED);
         contentCard.add(rawScroll, CARD_RAW);
 
-        toggleButton.setMargin(new Insets(1, 4, 1, 4));
+        toggleButton.setMargin(new Insets(scaled(1), scaled(4), scaled(1), scaled(4)));
         toggleButton.setFocusable(false);
         toggleButton.setToolTipText("Toggle raw / rendered mode");
         toggleButton.addActionListener(e -> setRenderedMode(!renderedMode));
 
-        JPanel topBar = new JPanel(new BorderLayout(2, 0));
+        JPanel topBar = new JPanel(new BorderLayout(scaled(2), 0));
         topBar.setOpaque(false);
         topBar.add(toolbar, BorderLayout.CENTER);
         topBar.add(toggleButton, BorderLayout.EAST);
@@ -149,24 +151,6 @@ public final class MinecraftTextAreaEditor extends JPanel {
      */
     public String getText() {
         return encodeLang(rawArea.getText());
-    }
-
-    /** Returns {@code true} if the component is currently showing the WYSIWYG rendered view. */
-    public boolean isRenderedMode() {
-        return renderedMode;
-    }
-
-    /**
-     * Switches to rendered (WYSIWYG) mode programmatically. Has no effect if already in rendered
-     * mode.
-     */
-    public void showRendered() {
-        if (!renderedMode) setRenderedMode(true);
-    }
-
-    /** Switches to raw mode and focuses the text area. Has no effect if already in raw mode. */
-    public void showRaw() {
-        if (renderedMode) setRenderedMode(false);
     }
 
     /**

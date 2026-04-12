@@ -1,18 +1,18 @@
 package net.noiraude.creditseditor.ui.panel;
 
 import java.awt.*;
-import java.util.function.Consumer;
 
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
 
-import net.noiraude.creditseditor.command.Command;
-import net.noiraude.creditseditor.model.EditorCategory;
-import net.noiraude.creditseditor.model.EditorModel;
-import net.noiraude.creditseditor.model.EditorPerson;
-import net.noiraude.creditseditor.ui.component.McFormatCode;
+import net.noiraude.creditseditor.command.CommandExecutor;
+import net.noiraude.creditseditor.ui.component.McText;
 import net.noiraude.creditseditor.ui.detail.CategoryDetailView;
 import net.noiraude.creditseditor.ui.detail.PersonDetailView;
+import net.noiraude.libcredits.lang.LangDocument;
+import net.noiraude.libcredits.model.CreditsDocument;
+import net.noiraude.libcredits.model.DocumentCategory;
+import net.noiraude.libcredits.model.DocumentPerson;
 
 /**
  * Right-side panel that displays the appropriate detail form depending on what is selected
@@ -21,7 +21,8 @@ import net.noiraude.creditseditor.ui.detail.PersonDetailView;
  * <p>
  * Uses a {@link CardLayout} to switch between an empty hint, a {@link CategoryDetailView},
  * and a {@link PersonDetailView}. Callers drive the active card via {@link #showEmpty()},
- * {@link #showCategory(EditorCategory)}, and {@link #showPerson(EditorPerson, EditorModel)}.
+ * {@link #showCategory(DocumentCategory)}, and {@link #showPerson(DocumentPerson)}.
+ * Call {@link #setContext(CreditsDocument, LangDocument)} once after a session loads.
  */
 public final class DetailPanel extends JPanel {
 
@@ -34,7 +35,7 @@ public final class DetailPanel extends JPanel {
     private final CategoryDetailView categoryView;
     private final PersonDetailView personView;
 
-    public DetailPanel(Consumer<Command> onCommand) {
+    public DetailPanel(CommandExecutor onCommand) {
         setLayout(new BorderLayout());
         setBorder(detailBorder);
         categoryView = new CategoryDetailView(onCommand);
@@ -57,6 +58,15 @@ public final class DetailPanel extends JPanel {
         cards.show(cardPanel, CARD_EMPTY);
     }
 
+    /**
+     * Sets the document context used by the detail views for lang reads/writes and
+     * category lookups. Call once after a session is loaded.
+     */
+    public void setContext(CreditsDocument creditsDoc, LangDocument langDoc) {
+        categoryView.setContext(langDoc);
+        personView.setContext(creditsDoc, langDoc);
+    }
+
     /** Shows the empty hint card. */
     public void showEmpty() {
         setDetailTitle("Details");
@@ -64,27 +74,27 @@ public final class DetailPanel extends JPanel {
     }
 
     /** Loads {@code category} into the category detail view and shows it. */
-    public void showCategory(EditorCategory category) {
+    public void showCategory(DocumentCategory category) {
         setDetailTitle("Category: " + category.id);
         categoryView.load(category);
         cards.show((JPanel) getComponent(0), CARD_CATEGORY);
     }
 
     /** Loads {@code person} into the person detail view and shows it. */
-    public void showPerson(EditorPerson person, EditorModel model) {
-        setDetailTitle("Person: " + McFormatCode.strip(person.name));
-        personView.load(person, model);
+    public void showPerson(DocumentPerson person) {
+        setDetailTitle("Person: " + McText.strip(person.name));
+        personView.load(person);
         cards.show((JPanel) getComponent(0), CARD_PERSON);
     }
 
     /**
-     * Refreshes the currently visible detail view from the model, preserving the displayed
-     * item. Call after any external model change (undo, redo).
+     * Refreshes the currently visible detail view from the document, preserving the displayed
+     * item. Call after any external document change (undo, redo).
      */
-    public void refresh(EditorCategory selectedCategory, EditorPerson selectedPerson, EditorModel model) {
+    public void refresh(DocumentCategory selectedCategory, DocumentPerson selectedPerson) {
         if (selectedPerson != null) {
-            setDetailTitle("Person: " + McFormatCode.strip(selectedPerson.name));
-            personView.load(selectedPerson, model);
+            setDetailTitle("Person: " + McText.strip(selectedPerson.name));
+            personView.load(selectedPerson);
             cards.show((JPanel) getComponent(0), CARD_PERSON);
         } else if (selectedCategory != null) {
             setDetailTitle("Category: " + selectedCategory.id);

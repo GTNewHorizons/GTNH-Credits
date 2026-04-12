@@ -4,74 +4,110 @@ import java.io.IOException;
 
 import net.noiraude.creditseditor.ResourceManager;
 import net.noiraude.creditseditor.command.CommandStack;
-import net.noiraude.creditseditor.model.EditorCategory;
-import net.noiraude.creditseditor.model.EditorModel;
-import net.noiraude.creditseditor.service.CreditsService;
-import net.noiraude.creditseditor.service.KeySanitizer;
-import net.noiraude.creditseditor.service.LangDocument;
-import net.noiraude.creditseditor.service.LangService;
+import net.noiraude.libcredits.lang.LangDocument;
+import net.noiraude.libcredits.model.CreditsDocument;
 
 /**
- * Holds the open resource for one editing session: the resource manager, the model, the lang
- * document, and the undo/redo stack.
+ * Facade for one editing session: encapsulates the {@link ResourceManager}, loaded
+ * documents, and the undo/redo stack.
  *
  * <p>
- * Instances are created via the {@link #load} factory and are immutable with respect to the
- * resource they point to. The model data inside is mutable (edits happen in place).
+ * Instances are created via {@link #open(String)}. The resource they point to is
+ * immutable; the document data inside is mutable (edits happen in place).
+ *
+ * <p>
+ * Dirty state is content-based: {@link #isDirty()} returns {@code true} only when the
+ * serialized JSON or the lang file would differ from what is currently on disk. The
+ * {@link CommandStack} is kept solely for undo/redo; it is not authoritative for dirty state.
+ *
+ * <p>
+ * No other class should access {@link ResourceManager} directly. All file I/O flow
+ * through this facade.
  */
 final class EditorSession {
 
-    final ResourceManager resourceManager;
-    final EditorModel model;
-    final LangDocument langDoc;
+    private final ResourceManager resourceManager;
     final CommandStack stack = new CommandStack();
 
-    private EditorSession(ResourceManager resourceManager, EditorModel model, LangDocument langDoc) {
+    private EditorSession(ResourceManager resourceManager) {
         this.resourceManager = resourceManager;
-        this.model = model;
-        this.langDoc = langDoc;
     }
 
     /**
-     * Opens a session from {@code rm}, loading and merging the credit JSON and lang file.
+     * Opens a resource at {@code path} (directory or zip) and loads the credit JSON
+     * and lang file.
      *
-     * @throws Exception if either file cannot be read or parsed
+     * @param path filesystem path to the resource directory or zip file
+     * @return a ready-to-use session
+     * @throws Exception if the path cannot be opened or the files cannot be parsed
      */
-    static EditorSession load(ResourceManager rm) throws Exception {
-        EditorModel model;
-        if (rm.notExists(CreditsService.CREDITS_PATH)) {
-            model = new EditorModel();
-        } else {
-            model = CreditsService.load(rm);
+    static EditorSession open(String path) throws Exception {
+        ResourceManager rm = ResourceManager.open(path);
+        try {
+            rm.loadDocuments();
+            return new EditorSession(rm);
+        } catch (Exception ex) {
+            try {
+                rm.close();
+            } catch (IOException suppressed) {
+                ex.addSuppressed(suppressed);
+            }
+            throw ex;
         }
-        LangDocument lang = LangService.load(rm);
+    }
 
-        for (EditorCategory cat : model.categories) {
-            String key = "credits.category." + KeySanitizer.sanitize(cat.id);
-            String name = lang.get(key);
-            cat.displayName = name != null ? name : "";
-            String detail = lang.get(key + ".detail");
-            cat.description = detail != null ? detail : "";
-        }
+    /** Convenience accessor for the credits document held by the resource manager. */
+    CreditsDocument creditsDoc() {
+        return resourceManager.getCreditsDoc();
+    }
 
-        return new EditorSession(rm, model, lang);
+    /** Convenience accessor for the lang document held by the resource manager. */
+    LangDocument langDoc() {
+        return resourceManager.getLangDoc();
+    }
+
+    /** Returns the file name of the resource directory or zip, for use in the title bar. */
+    String displayPath() {
+        return resourceManager.getDiskPath()
+            .getFileName()
+            .toString();
     }
 
     /**
-     * Writes model data back to the resource files.
+     * Returns {@code true} if either the JSON or the lang file would differ from what is
+     * currently on disk. Always returns {@code false} immediately after a successful
+     * {@link #save()} or a fresh {@link #open(String)}.
      *
-     * @throws Exception if either file cannot be written
+     * <p>
+     * Delegates to {@link ResourceManager#isDirty()}, which is the authority for the
+     * combined dirty state of all resources it manages.
+     */
+    boolean isDirty() {
+        return resourceManager.isDirty();
+    }
+
+    /**
+     * Writes modified resource files back to disk.
+     *
+     * <p>
+     * Each file is written only when its content-based dirty flag is set. After a
+     * successful writing the corresponding dirty flag is cleared.
+     *
+     * @throws Exception if a file cannot be serialized or written
      */
     void save() throws Exception {
-        for (EditorCategory cat : model.categories) {
-            String key = "credits.category." + KeySanitizer.sanitize(cat.id);
-            if (cat.displayName.isEmpty()) langDoc.remove(key);
-            else langDoc.set(key, cat.displayName);
-            if (cat.description.isEmpty()) langDoc.remove(key + ".detail");
-            else langDoc.set(key + ".detail", cat.description);
+        CreditsDocument creditsDoc = resourceManager.getCreditsDoc();
+        LangDocument langDoc = resourceManager.getLangDoc();
+
+        if (creditsDoc.isDirty()) {
+            resourceManager.writeCredits();
+            creditsDoc.markClean();
         }
-        CreditsService.save(model, resourceManager);
-        LangService.save(langDoc, resourceManager);
+
+        if (langDoc.isDirty()) {
+            resourceManager.writeLang();
+            langDoc.markClean();
+        }
     }
 
     /** Closes the resource manager, silently swallowing any {@link IOException}. */

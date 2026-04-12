@@ -7,9 +7,11 @@ import java.util.EnumSet;
 import java.util.List;
 
 import javax.swing.text.AttributeSet;
-import javax.swing.text.MutableAttributeSet;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.Element;
 import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
+import javax.swing.text.StyledDocument;
 
 /**
  * Minecraft {@code §x} formatting codes.
@@ -23,7 +25,7 @@ import javax.swing.text.StyleConstants;
  * <p>
  * Supported codes:
  * <ul>
- * <li>{@code §0}–{@code §f}: set foreground color (Minecraft palette); also resets all active
+ * <li>{@code §0}-{@code §f}: set foreground color (Minecraft palette); also resets all active
  * modifiers.
  * <li>{@code §l}: bold on
  * <li>{@code §o}: italic on
@@ -69,21 +71,15 @@ public enum McFormatCode {
      */
     public static final Object ATTR_OBFUSCATED = "mc-obfuscated";
 
-    /** The 16 color codes in palette order ({@code §0}–{@code §f}). */
+    /** The 16 color codes in palette order ({@code §0}-{@code §f}). */
     public static final List<McFormatCode> COLORS;
-
-    /** The 5 modifier codes: bold, italic, underline, strikethrough, obfuscated. */
-    public static final List<McFormatCode> MODIFIERS;
 
     static {
         List<McFormatCode> colors = new ArrayList<>(16);
-        List<McFormatCode> modifiers = new ArrayList<>(5);
         for (McFormatCode c : values()) {
             if (c.color != null) colors.add(c);
-            else if (c != RESET) modifiers.add(c);
         }
         COLORS = Collections.unmodifiableList(colors);
-        MODIFIERS = Collections.unmodifiableList(modifiers);
     }
 
     /** The § code character (the char after {@code §}). */
@@ -103,7 +99,7 @@ public enum McFormatCode {
         this.color = color;
     }
 
-    /** Returns {@code true} if this is one of the 16 color codes ({@code §0}–{@code §f}). */
+    /** Returns {@code true} if this is one of the 16 color codes ({@code §0}-{@code §f}). */
     public boolean isColor() {
         return color != null;
     }
@@ -147,8 +143,7 @@ public enum McFormatCode {
      * <p>
      * Color codes set {@link StyleConstants#Foreground}. Modifier codes set their corresponding
      * {@link StyleConstants} attribute to {@code true} (or {@link #ATTR_OBFUSCATED} for
-     * {@link #OBFUSCATED}). Has no effect for {@link #RESET}; use
-     * {@link #clearAttributes(MutableAttributeSet)} instead.
+     * {@link #OBFUSCATED}). Has no effect for {@link #RESET}.
      */
     public void applyTo(SimpleAttributeSet attrs) {
         switch (this) {
@@ -193,13 +188,9 @@ public enum McFormatCode {
             case UNDERLINE -> StyleConstants.isUnderline(attrs);
             case STRIKETHROUGH -> StyleConstants.isStrikeThrough(attrs);
             case OBFUSCATED -> Boolean.TRUE.equals(attrs.getAttribute(ATTR_OBFUSCATED));
-            default -> color != null && color.equals(StyleConstants.getForeground(attrs));
+            default -> color != null && attrs.isDefined(StyleConstants.Foreground)
+                && color.equals(StyleConstants.getForeground(attrs));
         };
-    }
-
-    /** Removes all formatting attributes from {@code attrs} (equivalent to {@code §r}). */
-    public static void clearAttributes(MutableAttributeSet attrs) {
-        attrs.removeAttributes(attrs.copyAttributes());
     }
 
     /**
@@ -212,6 +203,84 @@ public enum McFormatCode {
             if (c != RESET && c.isActive(attrs)) result.add(c);
         }
         return result;
+    }
+
+    /**
+     * Computes which codes are active across the characters in {@code doc} over {@code [start,
+     * end)}, excluding paragraph separator ({@code '\n'}) characters.
+     *
+     * @return a {@link SelectionPresence} whose {@code all} set contains codes active on every
+     *         character and whose {@code any} set contains codes active on at least one character
+     */
+    public static SelectionPresence computePresence(StyledDocument doc, int start, int end) {
+        EnumSet<McFormatCode> all = null; // null until the first non-newline run is seen
+        EnumSet<McFormatCode> any = EnumSet.noneOf(McFormatCode.class);
+        boolean anyLacksColor = false;
+        int offset = start;
+        while (offset < end) {
+            Element elem = doc.getCharacterElement(offset);
+            int runEnd = Math.min(elem.getEndOffset(), end);
+            String text;
+            try {
+                text = doc.getText(offset, runEnd - offset);
+            } catch (BadLocationException ignored) {
+                offset = runEnd;
+                continue;
+            }
+            if (containsNonNewline(text)) {
+                EnumSet<McFormatCode> active = fromAttributes(elem.getAttributes());
+                if (activeColor(active) == null) anyLacksColor = true;
+                if (all == null) {
+                    all = EnumSet.copyOf(active.isEmpty() ? EnumSet.noneOf(McFormatCode.class) : active);
+                } else {
+                    all.retainAll(active); // intersection: keep only codes present everywhere
+                }
+                any.addAll(active); // union: accumulate codes present anywhere
+            }
+            offset = runEnd;
+        }
+        return new SelectionPresence(all != null ? all : EnumSet.noneOf(McFormatCode.class), any, anyLacksColor);
+    }
+
+    static boolean containsNonNewline(String text) {
+        for (int i = 0; i < text.length(); i++) {
+            if (text.charAt(i) != '\n') return true;
+        }
+        return false;
+    }
+
+    // ------------------------------------------------------------------
+    // SelectionPresence
+    // ------------------------------------------------------------------
+
+    /**
+     * Holds the result of a selection-wide formatting scan.
+     *
+     * <p>
+     * {@code all} contains every {@link McFormatCode} active on every character in the selection.
+     * {@code any} contains every code active on at least one character. A code in {@code any} but
+     * not in {@code all} is in a mixed (indeterminate) state. {@code anyLacksColor} is
+     * {@code true} when at least one character in the selection carries no color attribute.
+     */
+    public static final class SelectionPresence {
+
+        /** Codes active on every character in the selection. */
+        public final EnumSet<McFormatCode> all;
+
+        /** Codes active on at least one character in the selection. */
+        public final EnumSet<McFormatCode> any;
+
+        /**
+         * {@code true} when at least one selected character has no color attribute (default
+         * color).
+         */
+        public final boolean anyLacksColor;
+
+        SelectionPresence(EnumSet<McFormatCode> all, EnumSet<McFormatCode> any, boolean anyLacksColor) {
+            this.all = all;
+            this.any = any;
+            this.anyLacksColor = anyLacksColor;
+        }
     }
 
     /**
@@ -334,18 +403,9 @@ public enum McFormatCode {
      * Returns a plain-text copy of {@code raw} with all {@code §x} sequences removed.
      *
      * @param raw the string to strip; {@code null} is returned as-is
+     * @see McText#strip(String)
      */
     public static String strip(String raw) {
-        if (raw == null) return null;
-        if (raw.isEmpty()) return raw;
-        StringBuilder sb = new StringBuilder(raw.length());
-        for (int i = 0; i < raw.length(); i++) {
-            if (raw.charAt(i) == '§' && i + 1 < raw.length()) {
-                i++;
-            } else {
-                sb.append(raw.charAt(i));
-            }
-        }
-        return sb.toString();
+        return McText.strip(raw);
     }
 }

@@ -2,39 +2,42 @@ package net.noiraude.creditseditor.ui.detail;
 
 import java.awt.*;
 import java.util.List;
-import java.util.function.Consumer;
 
 import javax.swing.*;
 import javax.swing.table.AbstractTableModel;
 
-import net.noiraude.creditseditor.command.Command;
+import net.noiraude.creditseditor.command.CommandExecutor;
 import net.noiraude.creditseditor.command.impl.AddMembershipCommand;
 import net.noiraude.creditseditor.command.impl.DocumentEditCommand;
 import net.noiraude.creditseditor.command.impl.RemoveMembershipCommand;
-import net.noiraude.creditseditor.model.EditorCategory;
-import net.noiraude.creditseditor.model.EditorMembership;
-import net.noiraude.creditseditor.model.EditorModel;
-import net.noiraude.creditseditor.model.EditorPerson;
-import net.noiraude.creditseditor.ui.component.McFormatCode;
+import net.noiraude.creditseditor.service.KeySanitizer;
+import net.noiraude.creditseditor.ui.component.McText;
 import net.noiraude.creditseditor.ui.component.MinecraftTextEditor;
+import net.noiraude.libcredits.lang.LangDocument;
+import net.noiraude.libcredits.model.CreditsDocument;
+import net.noiraude.libcredits.model.DocumentCategory;
+import net.noiraude.libcredits.model.DocumentMembership;
+import net.noiraude.libcredits.model.DocumentPerson;
 
 /**
- * Form panel that displays and edits the fields of a single {@link EditorPerson}.
+ * Form panel that displays and edits the fields of a single {@link DocumentPerson}.
  *
  * <p>
- * Changes fire {@link Command} objects through the supplied executor rather than mutating
- * the model directly. Call {@link #load(EditorPerson, EditorModel)} whenever the active
- * person changes or the model has been refreshed by an undo/redo.
+ * Changes are dispatched through the supplied {@link CommandExecutor} rather than mutating
+ * the document directly. Call {@link #setContext(CreditsDocument, LangDocument)} once after
+ * a session loads, then {@link #load(DocumentPerson)} whenever the active person changes or
+ * the document has been refreshed by an undo/redo.
  */
-public final class PersonDetailView extends DetailView<EditorPerson> {
+public final class PersonDetailView extends DetailView<DocumentPerson> {
 
-    private EditorModel model;
+    private CreditsDocument creditsDoc;
+    private LangDocument langDoc;
 
     private final MinecraftTextEditor nameEditor = new MinecraftTextEditor();
     private final MembershipTableModel tableModel = new MembershipTableModel();
     private final JTable membershipTable = new JTable(tableModel);
 
-    public PersonDetailView(Consumer<Command> onCommand) {
+    public PersonDetailView(CommandExecutor onCommand) {
         super(onCommand);
 
         GridBagConstraints label = labelConstraints();
@@ -84,7 +87,7 @@ public final class PersonDetailView extends DetailView<EditorPerson> {
         });
         nameEditor.addUndoableEditListener(e -> {
             if (!loading && current != null) {
-                onCommand.accept(new DocumentEditCommand("Edit person name", e.getEdit()));
+                onCommand.execute(new DocumentEditCommand("Edit person name", e.getEdit()));
             }
         });
 
@@ -93,12 +96,20 @@ public final class PersonDetailView extends DetailView<EditorPerson> {
     }
 
     /**
-     * Populates all fields from {@code person} without firing any commands.
-     * Call after any external model change (undo, redo, or initial load).
+     * Sets the document context used for category lookups and display name resolution.
+     * Call once after a session is loaded.
      */
-    public void load(EditorPerson person, EditorModel model) {
+    public void setContext(CreditsDocument creditsDoc, LangDocument langDoc) {
+        this.creditsDoc = creditsDoc;
+        this.langDoc = langDoc;
+    }
+
+    /**
+     * Populates all fields from {@code person} without firing any commands.
+     * Call after any external model change: initial load, undo, or redo.
+     */
+    public void load(DocumentPerson person) {
         current = person;
-        this.model = model;
         loading = true;
         try {
             nameEditor.setText(person.name);
@@ -109,34 +120,38 @@ public final class PersonDetailView extends DetailView<EditorPerson> {
     }
 
     private void onAddMembership() {
-        if (current == null || model == null) return;
+        if (current == null || creditsDoc == null) return;
 
         List<String> used = current.memberships.stream()
             .map(m -> m.categoryId)
             .toList();
-        List<EditorCategory> available = model.categories.stream()
+        List<DocumentCategory> available = creditsDoc.categories.stream()
             .filter(c -> !used.contains(c.id))
             .toList();
 
         if (available.isEmpty()) {
             JOptionPane.showMessageDialog(
                 this,
-                McFormatCode.strip(current.name) + " is already a member of all categories.",
+                McText.strip(current.name) + " is already a member of all categories.",
                 "No categories available",
                 JOptionPane.INFORMATION_MESSAGE);
             return;
         }
 
         String[] labels = available.stream()
-            .map(c -> c.id + (c.displayName.isEmpty() ? "" : " " + McFormatCode.strip(c.displayName)))
+            .map(c -> {
+                String displayName = langDoc != null ? langDoc.get("credits.category." + KeySanitizer.sanitize(c.id))
+                    : null;
+                return c.id + (displayName == null || displayName.isEmpty() ? "" : " " + McText.strip(displayName));
+            })
             .toArray(String[]::new);
         JComboBox<String> combo = new JComboBox<>(labels);
         int result = JOptionPane
             .showConfirmDialog(this, combo, "Add membership", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
         if (result != JOptionPane.OK_OPTION) return;
 
-        EditorCategory chosen = available.get(combo.getSelectedIndex());
-        onCommand.accept(new AddMembershipCommand(current, new EditorMembership(chosen.id)));
+        DocumentCategory chosen = available.get(combo.getSelectedIndex());
+        onCommand.execute(new AddMembershipCommand(current, new DocumentMembership(chosen.id)));
     }
 
     private void onRemoveMembership() {
@@ -150,8 +165,8 @@ public final class PersonDetailView extends DetailView<EditorPerson> {
                 JOptionPane.WARNING_MESSAGE);
             return;
         }
-        EditorMembership membership = current.memberships.get(row);
-        onCommand.accept(new RemoveMembershipCommand(current, membership));
+        DocumentMembership membership = current.memberships.get(row);
+        onCommand.execute(new RemoveMembershipCommand(current, membership));
     }
 
     // -----------------------------------------------------------------------
@@ -161,9 +176,9 @@ public final class PersonDetailView extends DetailView<EditorPerson> {
     private static final class MembershipTableModel extends AbstractTableModel {
 
         private static final String[] COLUMNS = { "Category", "Roles" };
-        private List<EditorMembership> memberships = List.of();
+        private List<DocumentMembership> memberships = List.of();
 
-        void setMemberships(List<EditorMembership> memberships) {
+        void setMemberships(List<DocumentMembership> memberships) {
             this.memberships = memberships;
             fireTableDataChanged();
         }
@@ -185,7 +200,7 @@ public final class PersonDetailView extends DetailView<EditorPerson> {
 
         @Override
         public Object getValueAt(int row, int col) {
-            EditorMembership m = memberships.get(row);
+            DocumentMembership m = memberships.get(row);
             return switch (col) {
                 case 0 -> m.categoryId;
                 case 1 -> String.join(", ", m.roles);

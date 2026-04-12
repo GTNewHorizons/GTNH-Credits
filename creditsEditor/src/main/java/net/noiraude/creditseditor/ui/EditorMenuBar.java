@@ -15,11 +15,36 @@ import javax.swing.*;
  */
 final class EditorMenuBar extends JMenuBar {
 
+    /**
+     * File-menu callbacks: open, new, save, quit.
+     */
+    record FileActions(Runnable onOpen, Runnable onNew, Runnable onSave, Runnable onQuit) {
+
+    }
+
+    /** Edit-menu callbacks: undo and redo. */
+    static final class EditActions {
+
+        final Runnable onUndo;
+        final Runnable onRedo;
+
+        EditActions(Runnable onUndo, Runnable onRedo) {
+            this.onUndo = onUndo;
+            this.onRedo = onRedo;
+        }
+    }
+
     private final JMenuItem menuSave;
     private final JMenuItem menuUndo;
     private final JMenuItem menuRedo;
 
-    EditorMenuBar(Runnable onOpen, Runnable onNew, Runnable onSave, Runnable onQuit, Runnable onUndo, Runnable onRedo) {
+    EditorMenuBar(FileActions fileActions, EditActions editActions) {
+        Runnable onOpen = fileActions.onOpen;
+        Runnable onNew = fileActions.onNew;
+        Runnable onSave = fileActions.onSave;
+        Runnable onQuit = fileActions.onQuit;
+        Runnable onUndo = editActions.onUndo;
+        Runnable onRedo = editActions.onRedo;
         JMenu fileMenu = new JMenu("File");
         JMenuItem menuOpen = new JMenuItem("Open Resources…");
         JMenuItem menuNew = new JMenuItem("New Resources…");
