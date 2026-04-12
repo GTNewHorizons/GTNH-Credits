@@ -10,17 +10,22 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
+import net.noiraude.libcredits.lang.LangDocument;
+import net.noiraude.libcredits.lang.LangParser;
+import net.noiraude.libcredits.lang.LangSerializer;
+
 import org.junit.Test;
 
+@SuppressWarnings("unused")
 public class LangServiceTest {
 
     private static LangDocument load(String content) throws IOException {
-        return LangService.load(new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8)));
+        return LangParser.parse(new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8)));
     }
 
     private static String write(LangDocument doc) throws IOException {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        doc.writeTo(out);
+        LangSerializer.write(doc, out);
         return out.toString(StandardCharsets.UTF_8);
     }
 
@@ -100,9 +105,9 @@ public class LangServiceTest {
 
     @Test
     public void contains_returnsFalseAfterRemoval() throws IOException {
-        LangDocument doc = load("key=value\n");
-        doc.remove("key");
-        assertFalse(doc.contains("key"));
+        LangDocument doc = load("credits.category.team=value\n");
+        doc.remove("credits.category.team");
+        assertFalse(doc.contains("credits.category.team"));
     }
 
     @Test

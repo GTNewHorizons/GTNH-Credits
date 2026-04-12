@@ -11,6 +11,7 @@ import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 
+@SuppressWarnings("unused")
 public class CommandStackTest {
 
     private CommandStack stack;

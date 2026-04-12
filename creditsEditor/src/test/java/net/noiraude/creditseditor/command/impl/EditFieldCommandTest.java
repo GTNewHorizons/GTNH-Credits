@@ -2,53 +2,46 @@ package net.noiraude.creditseditor.command.impl;
 
 import static org.junit.Assert.assertEquals;
 
-import net.noiraude.creditseditor.model.EditorCategory;
+import net.noiraude.libcredits.model.DocumentCategory;
 
 import org.junit.Test;
 
+@SuppressWarnings("unused")
 public class EditFieldCommandTest {
 
     @Test
     public void execute_setsNewValue() {
-        EditorCategory cat = new EditorCategory("team");
-        cat.displayName = "Old";
+        DocumentCategory cat = new DocumentCategory("team");
+        cat.id = "old";
 
-        new EditFieldCommand<>("edit", () -> cat.displayName, v -> cat.displayName = v, "New").execute();
+        new EditFieldCommand<>("edit", () -> cat.id, v -> cat.id = v, "new").execute();
 
-        assertEquals("New", cat.displayName);
+        assertEquals("new", cat.id);
     }
 
     @Test
     public void undo_restoresOldValue() {
-        EditorCategory cat = new EditorCategory("team");
-        cat.displayName = "Old";
+        DocumentCategory cat = new DocumentCategory("team");
+        cat.id = "old";
 
-        EditFieldCommand<String> cmd = new EditFieldCommand<>(
-            "edit",
-            () -> cat.displayName,
-            v -> cat.displayName = v,
-            "New");
+        EditFieldCommand<String> cmd = new EditFieldCommand<>("edit", () -> cat.id, v -> cat.id = v, "new");
         cmd.execute();
         cmd.undo();
 
-        assertEquals("Old", cat.displayName);
+        assertEquals("old", cat.id);
     }
 
     @Test
     public void executeUndoExecute_cyclesCorrectly() {
-        EditorCategory cat = new EditorCategory("team");
-        cat.displayName = "Old";
+        DocumentCategory cat = new DocumentCategory("team");
+        cat.id = "old";
 
-        EditFieldCommand<String> cmd = new EditFieldCommand<>(
-            "edit",
-            () -> cat.displayName,
-            v -> cat.displayName = v,
-            "New");
+        EditFieldCommand<String> cmd = new EditFieldCommand<>("edit", () -> cat.id, v -> cat.id = v, "new");
         cmd.execute();
         cmd.undo();
         cmd.execute();
 
-        assertEquals("New", cat.displayName);
+        assertEquals("new", cat.id);
     }
 
     @Test

@@ -4,25 +4,26 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import net.noiraude.creditseditor.model.EditorMembership;
-import net.noiraude.creditseditor.model.EditorModel;
-import net.noiraude.creditseditor.model.EditorPerson;
+import net.noiraude.libcredits.model.CreditsDocument;
+import net.noiraude.libcredits.model.DocumentMembership;
+import net.noiraude.libcredits.model.DocumentPerson;
 
 import org.junit.Before;
 import org.junit.Test;
 
+@SuppressWarnings("unused")
 public class PersonCommandsTest {
 
-    private EditorModel model;
-    private EditorPerson alice;
+    private CreditsDocument creditsDoc;
+    private DocumentPerson alice;
 
     @Before
     public void setUp() {
-        model = new EditorModel();
-        alice = new EditorPerson("Alice");
-        EditorPerson bob = new EditorPerson("Bob");
-        model.persons.add(alice);
-        model.persons.add(bob);
+        creditsDoc = CreditsDocument.empty();
+        alice = new DocumentPerson("Alice");
+        DocumentPerson bob = new DocumentPerson("Bob");
+        creditsDoc.persons.add(alice);
+        creditsDoc.persons.add(bob);
     }
 
     // -----------------------------------------------------------------------
@@ -31,20 +32,20 @@ public class PersonCommandsTest {
 
     @Test
     public void addPerson_execute_appendsToList() {
-        EditorPerson carol = new EditorPerson("Carol");
-        new AddPersonCommand(model, carol).execute();
-        assertEquals(3, model.persons.size());
-        assertEquals("Carol", model.persons.get(2).name);
+        DocumentPerson carol = new DocumentPerson("Carol");
+        new AddPersonCommand(creditsDoc, carol).execute();
+        assertEquals(3, creditsDoc.persons.size());
+        assertEquals("Carol", creditsDoc.persons.get(2).name);
     }
 
     @Test
     public void addPerson_undo_removesFromList() {
-        EditorPerson carol = new EditorPerson("Carol");
-        AddPersonCommand cmd = new AddPersonCommand(model, carol);
+        DocumentPerson carol = new DocumentPerson("Carol");
+        AddPersonCommand cmd = new AddPersonCommand(creditsDoc, carol);
         cmd.execute();
         cmd.undo();
-        assertEquals(2, model.persons.size());
-        assertFalse(model.persons.contains(carol));
+        assertEquals(2, creditsDoc.persons.size());
+        assertFalse(creditsDoc.persons.contains(carol));
     }
 
     // -----------------------------------------------------------------------
@@ -53,27 +54,27 @@ public class PersonCommandsTest {
 
     @Test
     public void removePerson_execute_removesFromList() {
-        new RemovePersonCommand(model, alice).execute();
-        assertEquals(1, model.persons.size());
-        assertFalse(model.persons.contains(alice));
+        new RemovePersonCommand(creditsDoc, alice).execute();
+        assertEquals(1, creditsDoc.persons.size());
+        assertFalse(creditsDoc.persons.contains(alice));
     }
 
     @Test
     public void removePerson_undo_restoresAtOriginalIndex() {
-        RemovePersonCommand cmd = new RemovePersonCommand(model, alice);
+        RemovePersonCommand cmd = new RemovePersonCommand(creditsDoc, alice);
         cmd.execute();
         cmd.undo();
-        assertEquals(2, model.persons.size());
-        assertEquals("Alice", model.persons.getFirst().name);
+        assertEquals(2, creditsDoc.persons.size());
+        assertEquals("Alice", creditsDoc.persons.getFirst().name);
     }
 
     @Test
     public void removePerson_membershipsPreservedOnUndo() {
-        alice.memberships.add(new EditorMembership("team"));
-        RemovePersonCommand cmd = new RemovePersonCommand(model, alice);
+        alice.memberships.add(new DocumentMembership("team"));
+        RemovePersonCommand cmd = new RemovePersonCommand(creditsDoc, alice);
         cmd.execute();
         cmd.undo();
-        assertEquals(1, model.persons.getFirst().memberships.size());
+        assertEquals(1, creditsDoc.persons.getFirst().memberships.size());
     }
 
     // -----------------------------------------------------------------------
@@ -82,7 +83,7 @@ public class PersonCommandsTest {
 
     @Test
     public void addMembership_execute_appendsMembership() {
-        EditorMembership m = new EditorMembership("team");
+        DocumentMembership m = new DocumentMembership("team");
         new AddMembershipCommand(alice, m).execute();
         assertEquals(1, alice.memberships.size());
         assertEquals("team", alice.memberships.getFirst().categoryId);
@@ -90,7 +91,7 @@ public class PersonCommandsTest {
 
     @Test
     public void addMembership_undo_removesMembership() {
-        EditorMembership m = new EditorMembership("team");
+        DocumentMembership m = new DocumentMembership("team");
         AddMembershipCommand cmd = new AddMembershipCommand(alice, m);
         cmd.execute();
         cmd.undo();
@@ -103,8 +104,8 @@ public class PersonCommandsTest {
 
     @Test
     public void removeMembership_execute_removesFromList() {
-        EditorMembership dev = new EditorMembership("dev");
-        alice.memberships.add(new EditorMembership("team"));
+        DocumentMembership dev = new DocumentMembership("dev");
+        alice.memberships.add(new DocumentMembership("team"));
         alice.memberships.add(dev);
         new RemoveMembershipCommand(alice, dev).execute();
         assertEquals(1, alice.memberships.size());
@@ -113,10 +114,10 @@ public class PersonCommandsTest {
 
     @Test
     public void removeMembership_undo_restoresAtOriginalIndex() {
-        EditorMembership dev = new EditorMembership("dev");
-        alice.memberships.add(new EditorMembership("team"));
+        DocumentMembership dev = new DocumentMembership("dev");
+        alice.memberships.add(new DocumentMembership("team"));
         alice.memberships.add(dev);
-        alice.memberships.add(new EditorMembership("contrib"));
+        alice.memberships.add(new DocumentMembership("contrib"));
         RemoveMembershipCommand cmd = new RemoveMembershipCommand(alice, dev);
         cmd.execute();
         cmd.undo();
@@ -130,7 +131,7 @@ public class PersonCommandsTest {
 
     @Test
     public void addRole_execute_appendsRole() {
-        EditorMembership m = new EditorMembership("team");
+        DocumentMembership m = new DocumentMembership("team");
         new AddPersonRoleCommand(m, "lead").execute();
         assertEquals(1, m.roles.size());
         assertEquals("lead", m.roles.getFirst());
@@ -138,7 +139,7 @@ public class PersonCommandsTest {
 
     @Test
     public void addRole_undo_removesFirstOccurrence() {
-        EditorMembership m = new EditorMembership("team");
+        DocumentMembership m = new DocumentMembership("team");
         m.roles.add("lead");
         AddPersonRoleCommand cmd = new AddPersonRoleCommand(m, "infra");
         cmd.execute();
@@ -153,7 +154,7 @@ public class PersonCommandsTest {
 
     @Test
     public void removeRole_execute_removesFromList() {
-        EditorMembership m = new EditorMembership("team");
+        DocumentMembership m = new DocumentMembership("team");
         m.roles.add("lead");
         m.roles.add("infra");
         new RemovePersonRoleCommand(m, "lead").execute();
@@ -163,7 +164,7 @@ public class PersonCommandsTest {
 
     @Test
     public void removeRole_undo_restoresAtOriginalIndex() {
-        EditorMembership m = new EditorMembership("team");
+        DocumentMembership m = new DocumentMembership("team");
         m.roles.add("lead");
         m.roles.add("infra");
         m.roles.add("devops");

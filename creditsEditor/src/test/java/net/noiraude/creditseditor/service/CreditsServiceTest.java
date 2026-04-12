@@ -1,204 +1,149 @@
 package net.noiraude.creditseditor.service;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 
-import net.noiraude.creditseditor.model.EditorCategory;
-import net.noiraude.creditseditor.model.EditorMembership;
-import net.noiraude.creditseditor.model.EditorModel;
-import net.noiraude.creditseditor.model.EditorPerson;
-import net.noiraude.libcredits.model.CreditsCategory;
-import net.noiraude.libcredits.model.CreditsData;
-import net.noiraude.libcredits.model.CreditsPerson;
+import net.noiraude.libcredits.model.CreditsDocument;
+import net.noiraude.libcredits.model.DocumentCategory;
+import net.noiraude.libcredits.model.DocumentMembership;
+import net.noiraude.libcredits.model.DocumentPerson;
 
 import org.junit.Test;
 
+@SuppressWarnings("unused")
 public class CreditsServiceTest {
 
     // -----------------------------------------------------------------------
-    // toEditorModel
+    // empty() factory
     // -----------------------------------------------------------------------
 
     @Test
-    public void toEditorModel_categoriesPreserved() {
-        CreditsData data = new CreditsData(
-            Arrays.asList(
-                new CreditsCategory("team", new LinkedHashSet<>(Arrays.asList("person", "role"))),
-                new CreditsCategory("contrib", new LinkedHashSet<>(Collections.singletonList("person")))),
-            Collections.emptyList());
-
-        EditorModel model = CreditsService.toEditorModel(data);
-
-        assertEquals(2, model.categories.size());
-        assertEquals("team", model.categories.getFirst().id);
-        assertTrue(model.categories.getFirst().classes.contains("person"));
-        assertTrue(model.categories.getFirst().classes.contains("role"));
-        assertEquals("contrib", model.categories.get(1).id);
+    public void empty_listsAreEmpty() {
+        CreditsDocument doc = CreditsDocument.empty();
+        assertTrue(doc.categories.isEmpty());
+        assertTrue(doc.persons.isEmpty());
     }
 
     @Test
-    public void toEditorModel_categoryOrderPreserved() {
-        CreditsData data = new CreditsData(
-            Arrays.asList(
-                new CreditsCategory("z", Collections.emptySet()),
-                new CreditsCategory("a", Collections.emptySet()),
-                new CreditsCategory("m", Collections.emptySet())),
-            Collections.emptyList());
-
-        EditorModel model = CreditsService.toEditorModel(data);
-
-        assertEquals("z", model.categories.getFirst().id);
-        assertEquals("a", model.categories.get(1).id);
-        assertEquals("m", model.categories.get(2).id);
-    }
-
-    @Test
-    public void toEditorModel_personsWithMemberships() {
-        Map<String, List<String>> cr = new LinkedHashMap<>();
-        cr.put("team", Collections.singletonList("lead"));
-        cr.put("dev", Arrays.asList("backend", "infra"));
-
-        CreditsData data = new CreditsData(
-            Arrays.asList(
-                new CreditsCategory("team", Collections.emptySet()),
-                new CreditsCategory("dev", Collections.emptySet())),
-            Collections.singletonList(new CreditsPerson("Alice", cr)));
-
-        EditorModel model = CreditsService.toEditorModel(data);
-
-        assertEquals(1, model.persons.size());
-        EditorPerson ep = model.persons.getFirst();
-        assertEquals("Alice", ep.name);
-        assertEquals(2, ep.memberships.size());
-        assertEquals("team", ep.memberships.getFirst().categoryId);
-        assertEquals(Collections.singletonList("lead"), ep.memberships.getFirst().roles);
-        assertEquals("dev", ep.memberships.get(1).categoryId);
-        assertEquals(Arrays.asList("backend", "infra"), ep.memberships.get(1).roles);
-    }
-
-    @Test
-    public void toEditorModel_emptyModel() {
-        CreditsData data = new CreditsData(Collections.emptyList(), Collections.emptyList());
-        EditorModel model = CreditsService.toEditorModel(data);
-        assertTrue(model.categories.isEmpty());
-        assertTrue(model.persons.isEmpty());
-    }
-
-    @Test
-    public void toEditorModel_langFieldsAreEmpty() {
-        CreditsData data = new CreditsData(
-            Collections.singletonList(new CreditsCategory("team", Collections.emptySet())),
-            Collections.emptyList());
-        EditorModel model = CreditsService.toEditorModel(data);
-        assertEquals("", model.categories.getFirst().displayName);
-        assertEquals("", model.categories.getFirst().description);
+    public void empty_isNotDirty() {
+        assertFalse(
+            CreditsDocument.empty()
+                .isDirty());
     }
 
     // -----------------------------------------------------------------------
-    // toCreditsData
+    // isDirty / markClean
     // -----------------------------------------------------------------------
 
     @Test
-    public void toCreditsData_categoriesPreserved() {
-        EditorModel model = new EditorModel();
-        EditorCategory ec = new EditorCategory("team");
-        ec.classes = new LinkedHashSet<>(Arrays.asList("person", "detail"));
-        model.categories.add(ec);
-
-        CreditsData data = CreditsService.toCreditsData(model);
-
-        assertEquals(1, data.categories.size());
-        assertEquals("team", data.categories.getFirst().id);
-        assertTrue(data.categories.getFirst().classes.contains("person"));
-        assertTrue(data.categories.getFirst().classes.contains("detail"));
+    public void isDirty_afterAddingCategory_returnsTrue() {
+        CreditsDocument doc = CreditsDocument.empty();
+        doc.categories.add(new DocumentCategory("team"));
+        assertTrue(doc.isDirty());
     }
 
     @Test
-    public void toCreditsData_personsWithMemberships() {
-        EditorModel model = new EditorModel();
-        EditorCategory ec = new EditorCategory("dev");
-        model.categories.add(ec);
-
-        EditorPerson ep = new EditorPerson("Bob");
-        ep.memberships.add(new EditorMembership("dev", Arrays.asList("lead", "infra")));
-        model.persons.add(ep);
-
-        CreditsData data = CreditsService.toCreditsData(model);
-
-        assertEquals(1, data.persons.size());
-        assertEquals("Bob", data.persons.getFirst().name);
-        assertEquals(Arrays.asList("lead", "infra"), data.persons.getFirst().categoryRoles.get("dev"));
+    public void isDirty_afterMarkClean_returnsFalse() {
+        CreditsDocument doc = CreditsDocument.empty();
+        doc.categories.add(new DocumentCategory("team"));
+        doc.markClean();
+        assertFalse(doc.isDirty());
     }
 
     @Test
-    public void toCreditsData_emptyRolesPreserved() {
-        EditorModel model = new EditorModel();
-        model.categories.add(new EditorCategory("contrib"));
+    public void isDirty_afterRevertingToOriginalState_returnsFalse() {
+        CreditsDocument doc = CreditsDocument.empty();
+        doc.categories.add(new DocumentCategory("team"));
+        doc.markClean();
+        DocumentCategory added = new DocumentCategory("extra");
+        doc.categories.add(added);
+        assertTrue(doc.isDirty());
+        doc.categories.remove(added);
+        assertFalse(doc.isDirty());
+    }
 
-        EditorPerson ep = new EditorPerson("Carol");
-        ep.memberships.add(new EditorMembership("contrib"));
-        model.persons.add(ep);
+    @Test
+    public void isDirty_afterModifyingCategoryId_returnsTrue() {
+        CreditsDocument doc = CreditsDocument.empty();
+        DocumentCategory cat = new DocumentCategory("team");
+        doc.categories.add(cat);
+        doc.markClean();
+        cat.id = "modified";
+        assertTrue(doc.isDirty());
+    }
 
-        CreditsData data = CreditsService.toCreditsData(model);
-        assertTrue(
-            data.persons.getFirst().categoryRoles.get("contrib")
-                .isEmpty());
+    @Test
+    public void isDirty_afterModifyingClasses_returnsTrue() {
+        CreditsDocument doc = CreditsDocument.empty();
+        DocumentCategory cat = new DocumentCategory("team");
+        doc.categories.add(cat);
+        doc.markClean();
+        cat.classes.add("person");
+        assertTrue(doc.isDirty());
+    }
+
+    @Test
+    public void isDirty_afterAddingPerson_returnsTrue() {
+        CreditsDocument doc = CreditsDocument.empty();
+        doc.categories.add(new DocumentCategory("team"));
+        doc.markClean();
+        doc.persons.add(new DocumentPerson("Alice"));
+        assertTrue(doc.isDirty());
+    }
+
+    @Test
+    public void markClean_afterMultipleEdits_clearsAllDirty() {
+        CreditsDocument doc = CreditsDocument.empty();
+        DocumentCategory cat = new DocumentCategory("team");
+        cat.classes = new LinkedHashSet<>(Arrays.asList("person", "role"));
+        doc.categories.add(cat);
+        DocumentPerson p = new DocumentPerson("Alice");
+        p.memberships.add(new DocumentMembership("team", List.of("lead")));
+        doc.persons.add(p);
+        doc.markClean();
+        assertFalse(doc.isDirty());
     }
 
     // -----------------------------------------------------------------------
-    // Round-trip: EditorModel -> CreditsData -> EditorModel
+    // markClean isolates baseline from live mutations
     // -----------------------------------------------------------------------
 
     @Test
-    public void roundTrip_noDataLost() {
-        EditorModel original = new EditorModel();
-        EditorCategory ec1 = new EditorCategory("team");
-        ec1.classes = new LinkedHashSet<>(Arrays.asList("person", "role"));
-        EditorCategory ec2 = new EditorCategory("contrib");
-        ec2.classes = new LinkedHashSet<>(Collections.singletonList("person"));
-        original.categories.add(ec1);
-        original.categories.add(ec2);
+    public void markClean_baselineIsDeepCopy_mutatingLiveDoesNotAffectClean() {
+        CreditsDocument doc = CreditsDocument.empty();
+        DocumentCategory cat = new DocumentCategory("team");
+        doc.categories.add(cat);
+        doc.markClean();
 
-        EditorPerson ep = new EditorPerson("§cDev§r");
-        ep.memberships.add(new EditorMembership("team", Collections.singletonList("lead")));
-        ep.memberships.add(new EditorMembership("contrib"));
-        original.persons.add(ep);
-
-        EditorModel restored = CreditsService.toEditorModel(CreditsService.toCreditsData(original));
-
-        assertEquals(2, restored.categories.size());
-        assertEquals("team", restored.categories.getFirst().id);
-        assertEquals("contrib", restored.categories.get(1).id);
-
-        assertEquals(1, restored.persons.size());
-        assertEquals("§cDev§r", restored.persons.getFirst().name);
-        assertEquals(2, restored.persons.getFirst().memberships.size());
-        assertEquals("team", restored.persons.getFirst().memberships.getFirst().categoryId);
-        assertEquals(Collections.singletonList("lead"), restored.persons.getFirst().memberships.getFirst().roles);
+        // Mutate the live category
+        cat.id = "mutated";
+        assertTrue("mutation after markClean should be detected as dirty", doc.isDirty());
     }
 
     // -----------------------------------------------------------------------
-    // Mutability: EditorModel is independent of CreditsData
+    // Structure
     // -----------------------------------------------------------------------
 
     @Test
-    public void toEditorModel_mutatingEditorModelDoesNotAffectOriginal() {
-        CreditsData data = new CreditsData(
-            Collections.singletonList(new CreditsCategory("team", Collections.emptySet())),
-            Collections.emptyList());
+    public void categories_preserveInsertionOrder() {
+        CreditsDocument doc = CreditsDocument.empty();
+        doc.categories.add(new DocumentCategory("z"));
+        doc.categories.add(new DocumentCategory("a"));
+        doc.categories.add(new DocumentCategory("m"));
+        assertEquals("z", doc.categories.getFirst().id);
+        assertEquals("a", doc.categories.get(1).id);
+        assertEquals("m", doc.categories.get(2).id);
+    }
 
-        EditorModel model = CreditsService.toEditorModel(data);
-        model.categories.getFirst().id = "mutated";
-        model.categories.add(new EditorCategory("extra"));
-
-        assertEquals("team", data.categories.getFirst().id);
-        assertEquals(1, data.categories.size());
+    @Test
+    public void memberships_preserveRoleOrder() {
+        DocumentPerson p = new DocumentPerson("Alice");
+        p.memberships.add(new DocumentMembership("team", Arrays.asList("lead", "dev", "infra")));
+        assertEquals(Arrays.asList("lead", "dev", "infra"), p.memberships.getFirst().roles);
     }
 }

@@ -12,6 +12,7 @@ import java.util.Objects;
 
 import org.junit.Test;
 
+@SuppressWarnings({ "unused", "SpellCheckingInspection" })
 public class McFormatCodeTest {
 
     // -----------------------------------------------------------------------
@@ -34,19 +35,19 @@ public class McFormatCodeTest {
 
     @Test
     public void parse_plainText_oneSingleSegmentNoColor() {
-        List<McFormatCode.Segment> segs = McFormatCode.parse("hello");
-        assertEquals(1, segs.size());
-        assertEquals("hello", segs.getFirst().text);
-        assertNull(McFormatCode.activeColor(segs.getFirst().codes));
-        assertFalse(segs.getFirst().codes.contains(McFormatCode.BOLD));
+        List<McFormatCode.Segment> segments = McFormatCode.parse("hello");
+        assertEquals(1, segments.size());
+        assertEquals("hello", segments.getFirst().text);
+        assertNull(McFormatCode.activeColor(segments.getFirst().codes));
+        assertFalse(segments.getFirst().codes.contains(McFormatCode.BOLD));
     }
 
     @Test
     public void parse_sectionSignAtEndOfString_emittedLiterally() {
         // A lone § at the very end (no following character) must be emitted as text
-        List<McFormatCode.Segment> segs = McFormatCode.parse("hello§");
-        assertEquals(1, segs.size());
-        assertEquals("hello§", segs.getFirst().text);
+        List<McFormatCode.Segment> segments = McFormatCode.parse("hello§");
+        assertEquals(1, segments.size());
+        assertEquals("hello§", segments.getFirst().text);
     }
 
     @Test
@@ -60,11 +61,11 @@ public class McFormatCodeTest {
     @Test
     public void parse_adjacentCodes_noEmptySegment() {
         // §l§o should yield no empty segment between them
-        List<McFormatCode.Segment> segs = McFormatCode.parse("§l§otext");
-        assertEquals(1, segs.size());
-        assertEquals("text", segs.getFirst().text);
-        assertTrue(segs.getFirst().codes.contains(McFormatCode.BOLD));
-        assertTrue(segs.getFirst().codes.contains(McFormatCode.ITALIC));
+        List<McFormatCode.Segment> segments = McFormatCode.parse("§l§otext");
+        assertEquals(1, segments.size());
+        assertEquals("text", segments.getFirst().text);
+        assertTrue(segments.getFirst().codes.contains(McFormatCode.BOLD));
+        assertTrue(segments.getFirst().codes.contains(McFormatCode.ITALIC));
     }
 
     // -----------------------------------------------------------------------

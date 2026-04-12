@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 
+@SuppressWarnings({ "unused", "SpellCheckingInspection" })
 public class KeySanitizerTest {
 
     @Test
