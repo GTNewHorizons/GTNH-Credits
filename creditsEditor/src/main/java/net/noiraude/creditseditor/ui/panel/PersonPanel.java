@@ -10,6 +10,7 @@ import javax.swing.*;
 
 import net.noiraude.creditseditor.command.CommandExecutor;
 import net.noiraude.creditseditor.command.impl.AddPersonCommand;
+import net.noiraude.creditseditor.command.impl.CompoundCommand;
 import net.noiraude.creditseditor.command.impl.RemovePersonCommand;
 import net.noiraude.creditseditor.ui.component.AnyChangeListener;
 import net.noiraude.creditseditor.ui.component.McText;
@@ -21,23 +22,26 @@ import net.noiraude.libcredits.model.DocumentPerson;
  * Middle panel showing the list of persons, optionally filtered by category.
  *
  * <p>
- * Call {@link #refresh(CreditsDocument)} after any document change. Call
- * {@link #setFilter(DocumentCategory)} to restrict the visible set to members of a specific
- * category; pass {@code null} to show all persons.
+ * Supports multi-selection. The selection callback receives the full list of selected
+ * persons (empty list when nothing is selected). Call {@link #refresh(CreditsDocument)}
+ * after any document change. Call {@link #setFilter(DocumentCategory)} to restrict the
+ * visible set to members of a specific category; pass {@code null} to show all persons.
  */
-public final class PersonPanel extends ListPanel<DocumentPerson, DocumentPerson> {
+public final class PersonPanel extends ListPanel<DocumentPerson, List<DocumentPerson>> {
 
     private DocumentCategory filter;
+    private final Consumer<List<DocumentPerson>> selectionCallback;
 
     private final JTextField searchField = new JTextField();
 
     /**
      * @param onCommand          receives each structural command to execute
-     * @param onSelectionChanged called with the selected {@link DocumentPerson}, or
-     *                           {@code null} when the selection is cleared
+     * @param onSelectionChanged called with the selected persons (empty list when cleared)
      */
-    public PersonPanel(CommandExecutor onCommand, Consumer<DocumentPerson> onSelectionChanged) {
+    public PersonPanel(CommandExecutor onCommand, Consumer<List<DocumentPerson>> onSelectionChanged) {
         super("Persons", onCommand, onSelectionChanged);
+        this.selectionCallback = onSelectionChanged;
+        list.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
         list.setCellRenderer(new PersonCellRenderer());
 
         // Search bar
@@ -88,8 +92,8 @@ public final class PersonPanel extends ListPanel<DocumentPerson, DocumentPerson>
     }
 
     @Override
-    protected DocumentPerson getSelection() {
-        return list.getSelectedValue();
+    protected List<DocumentPerson> getSelection() {
+        return list.getSelectedValuesList();
     }
 
     // -----------------------------------------------------------------------
@@ -104,16 +108,27 @@ public final class PersonPanel extends ListPanel<DocumentPerson, DocumentPerson>
     }
 
     private void onRemove() {
-        DocumentPerson person = list.getSelectedValue();
-        if (person == null || creditsDoc == null) return;
+        List<DocumentPerson> selected = list.getSelectedValuesList();
+        if (selected.isEmpty() || creditsDoc == null) return;
+
+        String message = selected.size() == 1 ? "Remove '" + McText.strip(selected.getFirst().name) + "'?"
+            : "Remove " + selected.size() + " person(s)?";
         int confirm = JOptionPane.showConfirmDialog(
             this,
-            "Remove '" + McText.strip(person.name) + "'?",
+            message,
             "Confirm remove",
             JOptionPane.OK_CANCEL_OPTION,
             JOptionPane.WARNING_MESSAGE);
-        if (confirm == JOptionPane.OK_OPTION) {
-            onCommand.execute(new RemovePersonCommand(creditsDoc, person));
+        if (confirm != JOptionPane.OK_OPTION) return;
+
+        if (selected.size() == 1) {
+            onCommand.execute(new RemovePersonCommand(creditsDoc, selected.getFirst()));
+        } else {
+            CompoundCommand.Builder builder = new CompoundCommand.Builder("Remove " + selected.size() + " person(s)");
+            for (DocumentPerson person : selected) {
+                builder.add(new RemovePersonCommand(creditsDoc, person));
+            }
+            onCommand.execute(builder.build());
         }
     }
 
@@ -171,7 +186,9 @@ public final class PersonPanel extends ListPanel<DocumentPerson, DocumentPerson>
 
     @Override
     protected void updateButtons() {
-        removeButton.setEnabled(list.getSelectedValue() != null && creditsDoc != null);
+        removeButton.setEnabled(
+            !list.getSelectedValuesList()
+                .isEmpty() && creditsDoc != null);
     }
 
     // -----------------------------------------------------------------------

@@ -1,0 +1,277 @@
+package net.noiraude.creditseditor.ui.detail;
+
+import static net.noiraude.creditseditor.ui.UiScale.scaled;
+
+import java.awt.*;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+
+import javax.swing.*;
+
+import net.noiraude.creditseditor.command.CommandExecutor;
+import net.noiraude.creditseditor.command.impl.AddMembershipCommand;
+import net.noiraude.creditseditor.command.impl.AddPersonRoleCommand;
+import net.noiraude.creditseditor.command.impl.CompoundCommand;
+import net.noiraude.creditseditor.command.impl.RemoveMembershipCommand;
+import net.noiraude.creditseditor.command.impl.RemovePersonCommand;
+import net.noiraude.creditseditor.service.KeySanitizer;
+import net.noiraude.creditseditor.ui.component.McText;
+import net.noiraude.libcredits.lang.LangDocument;
+import net.noiraude.libcredits.model.CreditsDocument;
+import net.noiraude.libcredits.model.DocumentCategory;
+import net.noiraude.libcredits.model.DocumentMembership;
+import net.noiraude.libcredits.model.DocumentPerson;
+
+/**
+ * Detail panel card shown when multiple persons are selected.
+ *
+ * <p>
+ * Displays the selection count and provides bulk operation buttons:
+ * assign to category, add role in category, remove from category, and delete all.
+ * Each operation dispatches a single {@link CompoundCommand} through the executor.
+ */
+public final class BulkPersonView extends JPanel {
+
+    private final CommandExecutor onCommand;
+    private CreditsDocument creditsDoc;
+    private LangDocument langDoc;
+    private List<DocumentPerson> persons = List.of();
+
+    private final JLabel countLabel = new JLabel();
+
+    public BulkPersonView(CommandExecutor onCommand) {
+        this.onCommand = onCommand;
+        setLayout(new BorderLayout());
+
+        countLabel.setFont(
+            countLabel.getFont()
+                .deriveFont(
+                    Font.BOLD,
+                    countLabel.getFont()
+                        .getSize() + 2f));
+        countLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        countLabel.setBorder(BorderFactory.createEmptyBorder(scaled(12), 0, scaled(16), 0));
+        add(countLabel, BorderLayout.NORTH);
+
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.Y_AXIS));
+        buttonPanel.setBorder(BorderFactory.createEmptyBorder(0, scaled(16), scaled(16), scaled(16)));
+
+        JLabel bulkLabel = new JLabel("Bulk operations:");
+        bulkLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        bulkLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, scaled(8), 0));
+        buttonPanel.add(bulkLabel);
+
+        addActionButton(buttonPanel, "Assign to category...", this::onAssignToCategory);
+        buttonPanel.add(Box.createVerticalStrut(scaled(4)));
+        addActionButton(buttonPanel, "Add role in category...", this::onAddRoleInCategory);
+        buttonPanel.add(Box.createVerticalStrut(scaled(4)));
+        addActionButton(buttonPanel, "Remove from category...", this::onRemoveFromCategory);
+        buttonPanel.add(Box.createVerticalStrut(scaled(12)));
+        addActionButton(buttonPanel, "Delete all", this::onDeleteAll);
+
+        buttonPanel.add(Box.createVerticalGlue());
+        add(buttonPanel, BorderLayout.CENTER);
+    }
+
+    /**
+     * Sets the document context used for category lookups and lang display.
+     * Call once after a session is loaded.
+     */
+    public void setContext(CreditsDocument creditsDoc, LangDocument langDoc) {
+        this.creditsDoc = creditsDoc;
+        this.langDoc = langDoc;
+    }
+
+    /** Loads the given selection into the view. */
+    public void load(List<DocumentPerson> persons) {
+        this.persons = persons;
+        countLabel.setText(persons.size() + " persons selected");
+    }
+
+    // -----------------------------------------------------------------------
+    // Bulk operations
+    // -----------------------------------------------------------------------
+
+    private void onAssignToCategory() {
+        if (persons.isEmpty() || creditsDoc == null) return;
+
+        DocumentCategory target = pickCategory("Assign to category");
+        if (target == null) return;
+
+        CompoundCommand.Builder builder = new CompoundCommand.Builder(
+            "Assign " + persons.size() + " person(s) to " + target.id);
+
+        int added = 0;
+        for (DocumentPerson person : persons) {
+            boolean alreadyMember = person.memberships.stream()
+                .anyMatch(m -> m.categoryId.equals(target.id));
+            if (!alreadyMember) {
+                builder.add(new AddMembershipCommand(person, new DocumentMembership(target.id)));
+                added++;
+            }
+        }
+
+        if (builder.isEmpty()) {
+            JOptionPane.showMessageDialog(
+                this,
+                "All selected persons are already in category '" + target.id + "'.",
+                "No changes",
+                JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
+        onCommand.execute(builder.build());
+        JOptionPane.showMessageDialog(
+            this,
+            added + " person(s) added to '" + target.id + "'.",
+            "Assign complete",
+            JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    private void onAddRoleInCategory() {
+        if (persons.isEmpty() || creditsDoc == null) return;
+
+        DocumentCategory target = pickCategory("Add role in category");
+        if (target == null) return;
+
+        String role = JOptionPane.showInputDialog(this, "Role to add in '" + target.id + "':");
+        if (role == null || role.isBlank()) return;
+        role = role.strip();
+
+        CompoundCommand.Builder builder = new CompoundCommand.Builder("Add role '" + role + "' in " + target.id);
+
+        int added = 0;
+        int skipped = 0;
+        for (DocumentPerson person : persons) {
+            DocumentMembership membership = person.memberships.stream()
+                .filter(m -> m.categoryId.equals(target.id))
+                .findFirst()
+                .orElse(null);
+            if (membership == null) {
+                skipped++;
+                continue;
+            }
+            if (membership.roles.contains(role)) {
+                continue;
+            }
+            builder.add(new AddPersonRoleCommand(membership, role));
+            added++;
+        }
+
+        if (builder.isEmpty()) {
+            JOptionPane.showMessageDialog(
+                this,
+                "No changes: all eligible persons already have this role.",
+                "No changes",
+                JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
+        onCommand.execute(builder.build());
+        String message = added + " person(s) received the role.";
+        if (skipped > 0) {
+            message += "\n" + skipped + " person(s) skipped (not in category '" + target.id + "').";
+        }
+        JOptionPane.showMessageDialog(this, message, "Role added", JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    private void onRemoveFromCategory() {
+        if (persons.isEmpty() || creditsDoc == null) return;
+
+        // Collect categories where at least one selected person appears
+        Set<String> presentIds = new LinkedHashSet<>();
+        for (DocumentPerson person : persons) {
+            for (DocumentMembership m : person.memberships) {
+                presentIds.add(m.categoryId);
+            }
+        }
+        if (presentIds.isEmpty()) {
+            JOptionPane.showMessageDialog(
+                this,
+                "Selected persons have no category memberships.",
+                "Nothing to remove",
+                JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
+        List<DocumentCategory> available = creditsDoc.categories.stream()
+            .filter(c -> presentIds.contains(c.id))
+            .toList();
+        DocumentCategory target = pickFromList(available, "Remove from category");
+        if (target == null) return;
+
+        CompoundCommand.Builder builder = new CompoundCommand.Builder(
+            "Remove " + persons.size() + " person(s) from " + target.id);
+
+        for (DocumentPerson person : persons) {
+            DocumentMembership membership = person.memberships.stream()
+                .filter(m -> m.categoryId.equals(target.id))
+                .findFirst()
+                .orElse(null);
+            if (membership != null) {
+                builder.add(new RemoveMembershipCommand(person, membership));
+            }
+        }
+
+        if (builder.isEmpty()) return;
+        onCommand.execute(builder.build());
+    }
+
+    private void onDeleteAll() {
+        if (persons.isEmpty() || creditsDoc == null) return;
+
+        int confirm = JOptionPane.showConfirmDialog(
+            this,
+            "Delete " + persons.size() + " selected person(s)?\nThis cannot be undone without Ctrl+Z.",
+            "Confirm delete",
+            JOptionPane.OK_CANCEL_OPTION,
+            JOptionPane.WARNING_MESSAGE);
+        if (confirm != JOptionPane.OK_OPTION) return;
+
+        CompoundCommand.Builder builder = new CompoundCommand.Builder("Delete " + persons.size() + " person(s)");
+        for (DocumentPerson person : persons) {
+            builder.add(new RemovePersonCommand(creditsDoc, person));
+        }
+        onCommand.execute(builder.build());
+    }
+
+    // -----------------------------------------------------------------------
+    // Helpers
+    // -----------------------------------------------------------------------
+
+    private DocumentCategory pickCategory(String title) {
+        return pickFromList(creditsDoc.categories, title);
+    }
+
+    private DocumentCategory pickFromList(List<DocumentCategory> categories, String title) {
+        if (categories.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "No categories available.", title, JOptionPane.INFORMATION_MESSAGE);
+            return null;
+        }
+
+        String[] labels = categories.stream()
+            .map(this::categoryLabel)
+            .toArray(String[]::new);
+        JComboBox<String> combo = new JComboBox<>(labels);
+        int result = JOptionPane
+            .showConfirmDialog(this, combo, title, JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+        if (result != JOptionPane.OK_OPTION) return null;
+        return categories.get(combo.getSelectedIndex());
+    }
+
+    private String categoryLabel(DocumentCategory cat) {
+        String displayName = langDoc != null ? langDoc.get("credits.category." + KeySanitizer.sanitize(cat.id)) : null;
+        if (displayName == null || displayName.isEmpty()) return cat.id;
+        return cat.id + " (" + McText.strip(displayName) + ")";
+    }
+
+    private static void addActionButton(JPanel panel, String text, Runnable action) {
+        JButton button = new JButton(text);
+        button.setAlignmentX(Component.LEFT_ALIGNMENT);
+        button.setMaximumSize(new Dimension(Integer.MAX_VALUE, button.getPreferredSize().height));
+        button.addActionListener(e -> action.run());
+        panel.add(button);
+    }
+}

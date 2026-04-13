@@ -3,6 +3,7 @@ package net.noiraude.creditseditor.ui;
 import static net.noiraude.creditseditor.ui.UiScale.scaled;
 
 import java.awt.*;
+import java.util.List;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -31,7 +32,7 @@ final class EditorView extends JPanel {
 
     private EditorSession session;
     private DocumentCategory selectedCategory;
-    private DocumentPerson selectedPerson;
+    private List<DocumentPerson> selectedPersons = List.of();
 
     /**
      * Constructs the view and wires inter-panel selection callbacks.
@@ -41,10 +42,12 @@ final class EditorView extends JPanel {
     EditorView(CommandExecutor onCommand) {
         detailPanel = new DetailPanel(onCommand);
 
-        personPanel = new PersonPanel(onCommand, person -> {
-            selectedPerson = person;
-            if (person != null) {
-                detailPanel.showPerson(person);
+        personPanel = new PersonPanel(onCommand, persons -> {
+            selectedPersons = persons;
+            if (persons.size() > 1) {
+                detailPanel.showBulkPersons(persons);
+            } else if (persons.size() == 1) {
+                detailPanel.showPerson(persons.getFirst());
             } else if (selectedCategory != null) {
                 detailPanel.showCategory(selectedCategory);
             } else {
@@ -56,12 +59,12 @@ final class EditorView extends JPanel {
             selectedCategory = cat;
             if (cat != null) {
                 personPanel.setFilter(cat);
-                if (selectedPerson == null) {
+                if (selectedPersons.isEmpty()) {
                     detailPanel.showCategory(cat);
                 }
             } else {
                 personPanel.setFilter(null);
-                if (selectedPerson == null) {
+                if (selectedPersons.isEmpty()) {
                     detailPanel.showEmpty();
                 }
             }
@@ -91,7 +94,7 @@ final class EditorView extends JPanel {
     void loadSession(EditorSession newSession) {
         this.session = newSession;
         selectedCategory = null;
-        selectedPerson = null;
+        selectedPersons = List.of();
         detailPanel.setContext(session.creditsDoc(), session.langDoc());
         categoryPanel.refresh(session.creditsDoc(), session.langDoc());
         personPanel.refresh(session.creditsDoc());
@@ -124,17 +127,18 @@ final class EditorView extends JPanel {
                 .findFirst()
                 .orElse(null);
         }
-        if (selectedPerson != null) {
-            String name = selectedPerson.name;
-            selectedPerson = creditsDoc.persons.stream()
-                .filter(p -> p.name.equals(name))
-                .findFirst()
-                .orElse(null);
+        if (!selectedPersons.isEmpty()) {
+            List<String> names = selectedPersons.stream()
+                .map(p -> p.name)
+                .toList();
+            selectedPersons = creditsDoc.persons.stream()
+                .filter(p -> names.contains(p.name))
+                .toList();
         }
 
         categoryPanel.refresh(creditsDoc, langDoc);
         personPanel.refresh(creditsDoc);
-        detailPanel.refresh(selectedCategory, selectedPerson);
+        detailPanel.refresh(selectedCategory, selectedPersons.isEmpty() ? null : selectedPersons);
     }
 
     /**
