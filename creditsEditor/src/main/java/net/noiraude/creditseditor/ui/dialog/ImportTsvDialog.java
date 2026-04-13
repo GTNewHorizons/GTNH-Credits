@@ -47,7 +47,11 @@ public final class ImportTsvDialog extends JDialog {
     private List<ImportLine> importLines = List.of();
     private File selectedFile;
 
-    public ImportTsvDialog(Frame owner, CommandExecutor onCommand, CreditsDocument creditsDoc) {
+    /**
+     * @param defaultCategoryId category to pre-select, or {@code null} for the first entry
+     */
+    public ImportTsvDialog(Frame owner, CommandExecutor onCommand, CreditsDocument creditsDoc,
+        String defaultCategoryId) {
         super(owner, "Import TSV", true);
         this.onCommand = onCommand;
         this.creditsDoc = creditsDoc;
@@ -60,6 +64,7 @@ public final class ImportTsvDialog extends JDialog {
         add(buildBottomPanel(), BorderLayout.SOUTH);
 
         populateCategoryCombo();
+        preselectCategory(defaultCategoryId);
         updateImportButton();
 
         setSize(scaled(600), scaled(450));
@@ -245,6 +250,16 @@ public final class ImportTsvDialog extends JDialog {
         categoryCombo.removeAllItems();
         for (DocumentCategory cat : creditsDoc.categories) {
             categoryCombo.addItem(cat.id);
+        }
+    }
+
+    private void preselectCategory(String categoryId) {
+        if (categoryId == null) return;
+        for (int i = 0; i < creditsDoc.categories.size(); i++) {
+            if (creditsDoc.categories.get(i).id.equals(categoryId)) {
+                categoryCombo.setSelectedIndex(i);
+                return;
+            }
         }
     }
 

@@ -141,7 +141,8 @@ public final class PersonPanel extends ListPanel<DocumentPerson, List<DocumentPe
     private void onImportTsv() {
         if (creditsDoc == null) return;
         Frame owner = (Frame) SwingUtilities.getWindowAncestor(this);
-        ImportTsvDialog dialog = new ImportTsvDialog(owner, onCommand, creditsDoc);
+        String defaultCategoryId = filter != null ? filter.id : null;
+        ImportTsvDialog dialog = new ImportTsvDialog(owner, onCommand, creditsDoc, defaultCategoryId);
         dialog.setVisible(true);
     }
 

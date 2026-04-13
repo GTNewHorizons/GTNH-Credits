@@ -36,6 +36,7 @@ public final class BulkPersonView extends JPanel {
     private final CommandExecutor onCommand;
     private CreditsDocument creditsDoc;
     private LangDocument langDoc;
+    private DocumentCategory selectedCategory;
     private List<DocumentPerson> persons = List.of();
 
     private final JLabel countLabel = new JLabel();
@@ -82,6 +83,11 @@ public final class BulkPersonView extends JPanel {
     public void setContext(CreditsDocument creditsDoc, LangDocument langDoc) {
         this.creditsDoc = creditsDoc;
         this.langDoc = langDoc;
+    }
+
+    /** Sets the currently selected category so picker dialogs can default to it. */
+    public void setSelectedCategory(DocumentCategory category) {
+        this.selectedCategory = category;
     }
 
     /** Loads the given selection into the view. */
@@ -255,6 +261,14 @@ public final class BulkPersonView extends JPanel {
             .map(this::categoryLabel)
             .toArray(String[]::new);
         JComboBox<String> combo = new JComboBox<>(labels);
+        if (selectedCategory != null) {
+            for (int i = 0; i < categories.size(); i++) {
+                if (categories.get(i).id.equals(selectedCategory.id)) {
+                    combo.setSelectedIndex(i);
+                    break;
+                }
+            }
+        }
         int result = JOptionPane
             .showConfirmDialog(this, combo, title, JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
         if (result != JOptionPane.OK_OPTION) return null;

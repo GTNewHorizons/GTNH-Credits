@@ -57,6 +57,7 @@ final class EditorView extends JPanel {
 
         categoryPanel = new CategoryPanel(onCommand, cat -> {
             selectedCategory = cat;
+            detailPanel.setSelectedCategory(cat);
             if (cat != null) {
                 personPanel.setFilter(cat);
                 if (selectedPersons.isEmpty()) {

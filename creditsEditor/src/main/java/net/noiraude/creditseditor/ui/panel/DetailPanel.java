@@ -109,6 +109,11 @@ public final class DetailPanel extends JPanel {
         cards.show(cardPanel, CARD_PERSON);
     }
 
+    /** Updates the selected category so bulk-operation pickers can default to it. */
+    public void setSelectedCategory(DocumentCategory category) {
+        bulkPersonView.setSelectedCategory(category);
+    }
+
     /** Loads the bulk-operation view for the given multi-selection. */
     public void showBulkPersons(List<DocumentPerson> persons) {
         activeCard = CARD_BULK;
