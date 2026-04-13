@@ -206,7 +206,7 @@ public final class ImportTsvDialog extends JDialog {
                 builder.add(new AddPersonCommand(creditsDoc, person));
                 DocumentMembership membership = new DocumentMembership(categoryId);
                 builder.add(new AddMembershipCommand(person, membership));
-                for (String role : line.roles) {
+                for (String role : line.newRoles) {
                     builder.add(new AddPersonRoleCommand(membership, role));
                 }
             }
@@ -217,7 +217,7 @@ public final class ImportTsvDialog extends JDialog {
                     .orElseThrow();
                 DocumentMembership membership = new DocumentMembership(categoryId);
                 builder.add(new AddMembershipCommand(person, membership));
-                for (String role : line.roles) {
+                for (String role : line.newRoles) {
                     builder.add(new AddPersonRoleCommand(membership, role));
                 }
             }
@@ -230,10 +230,8 @@ public final class ImportTsvDialog extends JDialog {
                     .filter(m -> m.categoryId.equals(categoryId))
                     .findFirst()
                     .orElseThrow();
-                for (String role : line.roles) {
-                    if (!membership.roles.contains(role)) {
-                        builder.add(new AddPersonRoleCommand(membership, role));
-                    }
+                for (String role : line.newRoles) {
+                    builder.add(new AddPersonRoleCommand(membership, role));
                 }
             }
             case NO_CHANGE -> {

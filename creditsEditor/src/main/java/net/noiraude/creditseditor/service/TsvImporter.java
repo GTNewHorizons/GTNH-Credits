@@ -5,7 +5,9 @@ import java.io.IOException;
 import java.io.Reader;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import net.noiraude.libcredits.model.CreditsDocument;
 import net.noiraude.libcredits.model.DocumentMembership;
@@ -33,16 +35,20 @@ public final class TsvImporter {
         NO_CHANGE
     }
 
-    /** One parsed TSV line with its computed import action. */
+    /** One parsed TSV entry with its computed import action. */
     public static final class ImportLine {
 
         public final String name;
+        /** All roles the person will have after import (existing + new, deduplicated). */
         public final List<String> roles;
+        /** Roles that will actually be added by the import (subset of {@link #roles}). */
+        public final List<String> newRoles;
         public final Action action;
 
-        ImportLine(String name, List<String> roles, Action action) {
+        ImportLine(String name, List<String> roles, List<String> newRoles, Action action) {
             this.name = name;
             this.roles = roles;
+            this.newRoles = newRoles;
             this.action = action;
         }
     }
@@ -59,7 +65,8 @@ public final class TsvImporter {
      * @throws IOException on read failure
      */
     public static List<ImportLine> parse(Reader reader, CreditsDocument doc, String categoryId) throws IOException {
-        List<ImportLine> lines = new ArrayList<>();
+        // Merge duplicate names: later lines add their roles to the first occurrence.
+        Map<String, List<String>> merged = new LinkedHashMap<>();
         try (BufferedReader br = new BufferedReader(reader)) {
             String line;
             while ((line = br.readLine()) != null) {
@@ -70,38 +77,68 @@ public final class TsvImporter {
                 String name = parts[0].strip();
                 if (name.isEmpty()) continue;
 
-                List<String> roles = new ArrayList<>();
+                List<String> roles = merged.computeIfAbsent(name, k -> new ArrayList<>());
                 for (int i = 1; i < parts.length; i++) {
                     String role = parts[i].strip();
-                    if (!role.isEmpty()) {
+                    if (!role.isEmpty() && !roles.contains(role)) {
                         roles.add(role);
                     }
                 }
-
-                Action action = computeAction(doc, categoryId, name, roles);
-                lines.add(new ImportLine(name, Collections.unmodifiableList(roles), action));
             }
+        }
+
+        List<ImportLine> lines = new ArrayList<>();
+        for (Map.Entry<String, List<String>> entry : merged.entrySet()) {
+            String name = entry.getKey();
+            List<String> tsvRoles = entry.getValue();
+            lines.add(buildImportLine(doc, categoryId, name, tsvRoles));
         }
         return Collections.unmodifiableList(lines);
     }
 
-    private static Action computeAction(CreditsDocument doc, String categoryId, String name, List<String> roles) {
+    private static ImportLine buildImportLine(CreditsDocument doc, String categoryId, String name,
+        List<String> tsvRoles) {
         DocumentPerson person = doc.persons.stream()
             .filter(p -> p.name.equals(name))
             .findFirst()
             .orElse(null);
 
-        if (person == null) return Action.CREATE;
+        if (person == null) {
+            return new ImportLine(
+                name,
+                Collections.unmodifiableList(tsvRoles),
+                Collections.unmodifiableList(tsvRoles),
+                Action.CREATE);
+        }
 
         DocumentMembership membership = person.memberships.stream()
             .filter(m -> m.categoryId.equals(categoryId))
             .findFirst()
             .orElse(null);
 
-        if (membership == null) return Action.ADD;
+        if (membership == null) {
+            return new ImportLine(
+                name,
+                Collections.unmodifiableList(tsvRoles),
+                Collections.unmodifiableList(tsvRoles),
+                Action.ADD);
+        }
 
-        boolean hasNewRoles = roles.stream()
-            .anyMatch(r -> !membership.roles.contains(r));
-        return hasNewRoles ? Action.COMPLETE : Action.NO_CHANGE;
+        // Merge: existing roles first, then any new roles from the TSV
+        List<String> allRoles = new ArrayList<>(membership.roles);
+        List<String> newRoles = new ArrayList<>();
+        for (String role : tsvRoles) {
+            if (!allRoles.contains(role)) {
+                allRoles.add(role);
+                newRoles.add(role);
+            }
+        }
+
+        Action action = newRoles.isEmpty() ? Action.NO_CHANGE : Action.COMPLETE;
+        return new ImportLine(
+            name,
+            Collections.unmodifiableList(allRoles),
+            Collections.unmodifiableList(newRoles),
+            action);
     }
 }

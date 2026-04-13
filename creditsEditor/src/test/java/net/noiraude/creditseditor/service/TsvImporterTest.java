@@ -107,6 +107,9 @@ public class TsvImporterTest {
         List<ImportLine> lines = TsvImporter.parse(new StringReader("Alice\tlead\n"), doc, "dev");
 
         assertEquals(Action.COMPLETE, lines.getFirst().action);
+        // roles = merged existing + new; newRoles = only the additions
+        assertEquals(List.of("coder", "lead"), lines.getFirst().roles);
+        assertEquals(List.of("lead"), lines.getFirst().newRoles);
     }
 
     @Test
@@ -119,6 +122,8 @@ public class TsvImporterTest {
         List<ImportLine> lines = TsvImporter.parse(new StringReader("Alice\tlead\tcoder\n"), doc, "dev");
 
         assertEquals(Action.NO_CHANGE, lines.getFirst().action);
+        assertEquals(List.of("lead", "coder"), lines.getFirst().roles);
+        assertTrue(lines.getFirst().newRoles.isEmpty());
     }
 
     @Test
@@ -147,9 +152,68 @@ public class TsvImporterTest {
         String tsv = "Alice\tlead\nBob\tcoder\nBob\tnewrole\n";
         List<ImportLine> lines = TsvImporter.parse(new StringReader(tsv), doc, "dev");
 
-        assertEquals(3, lines.size());
+        assertEquals(2, lines.size());
+        assertEquals("Alice", lines.get(0).name);
         assertEquals(Action.CREATE, lines.get(0).action);
-        assertEquals(Action.NO_CHANGE, lines.get(1).action);
-        assertEquals(Action.COMPLETE, lines.get(2).action);
+        // Bob's two lines are merged: roles = [coder, newrole], and "newrole" is missing
+        assertEquals("Bob", lines.get(1).name);
+        assertEquals(List.of("coder", "newrole"), lines.get(1).roles);
+        assertEquals(Action.COMPLETE, lines.get(1).action);
+    }
+
+    @Test
+    public void parse_duplicateNames_mergedIntoSingleEntry() throws IOException {
+        CreditsDocument doc = docWithCategory("dev");
+        String tsv = "Greg Ewing\tlead\nGreg Ewing\tcoder\n";
+        List<ImportLine> lines = TsvImporter.parse(new StringReader(tsv), doc, "dev");
+
+        assertEquals(1, lines.size());
+        assertEquals("Greg Ewing", lines.getFirst().name);
+        assertEquals(List.of("lead", "coder"), lines.getFirst().roles);
+        assertEquals(Action.CREATE, lines.getFirst().action);
+    }
+
+    @Test
+    public void parse_duplicateNames_duplicateRolesDeduped() throws IOException {
+        CreditsDocument doc = docWithCategory("dev");
+        String tsv = "Alice\tlead\nAlice\tlead\tcoder\n";
+        List<ImportLine> lines = TsvImporter.parse(new StringReader(tsv), doc, "dev");
+
+        assertEquals(1, lines.size());
+        assertEquals(List.of("lead", "coder"), lines.getFirst().roles);
+    }
+
+    @Test
+    public void parse_existingPersonWithRoles_mergesWithTsvRoles() throws IOException {
+        CreditsDocument doc = docWithCategory("dev");
+        DocumentPerson greg = new DocumentPerson("Greg Ewing");
+        greg.memberships.add(new DocumentMembership("dev", List.of("lead")));
+        doc.persons.add(greg);
+
+        String tsv = "Greg Ewing\tcoder\nGreg Ewing\ttester\n";
+        List<ImportLine> lines = TsvImporter.parse(new StringReader(tsv), doc, "dev");
+
+        assertEquals(1, lines.size());
+        assertEquals("Greg Ewing", lines.getFirst().name);
+        assertEquals(Action.COMPLETE, lines.getFirst().action);
+        // Full role set: existing "lead" + new "coder" and "tester"
+        assertEquals(List.of("lead", "coder", "tester"), lines.getFirst().roles);
+        assertEquals(List.of("coder", "tester"), lines.getFirst().newRoles);
+    }
+
+    @Test
+    public void parse_existingPersonWithRoles_noNewRoles_noChange() throws IOException {
+        CreditsDocument doc = docWithCategory("dev");
+        DocumentPerson greg = new DocumentPerson("Greg Ewing");
+        greg.memberships.add(new DocumentMembership("dev", List.of("lead", "coder")));
+        doc.persons.add(greg);
+
+        String tsv = "Greg Ewing\tlead\tcoder\n";
+        List<ImportLine> lines = TsvImporter.parse(new StringReader(tsv), doc, "dev");
+
+        assertEquals(1, lines.size());
+        assertEquals(Action.NO_CHANGE, lines.getFirst().action);
+        assertEquals(List.of("lead", "coder"), lines.getFirst().roles);
+        assertTrue(lines.getFirst().newRoles.isEmpty());
     }
 }
