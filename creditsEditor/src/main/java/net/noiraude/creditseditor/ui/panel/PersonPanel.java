@@ -14,6 +14,7 @@ import net.noiraude.creditseditor.command.impl.CompoundCommand;
 import net.noiraude.creditseditor.command.impl.RemovePersonCommand;
 import net.noiraude.creditseditor.ui.component.AnyChangeListener;
 import net.noiraude.creditseditor.ui.component.McText;
+import net.noiraude.creditseditor.ui.dialog.ImportTsvDialog;
 import net.noiraude.libcredits.model.CreditsDocument;
 import net.noiraude.libcredits.model.DocumentCategory;
 import net.noiraude.libcredits.model.DocumentPerson;
@@ -60,9 +61,14 @@ public final class PersonPanel extends ListPanel<DocumentPerson, List<DocumentPe
         addButton.addActionListener(e -> onAdd());
         removeButton.addActionListener(e -> onRemove());
 
+        JButton importButton = new JButton("Import TSV");
+        importButton.setToolTipText("Import persons from a TSV file");
+        importButton.addActionListener(e -> onImportTsv());
+
         JPanel toolbar = new JPanel(new FlowLayout(FlowLayout.LEFT, scaled(4), scaled(2)));
         toolbar.add(addButton);
         toolbar.add(removeButton);
+        toolbar.add(importButton);
         add(toolbar, BorderLayout.SOUTH);
 
         updateButtons();
@@ -130,6 +136,13 @@ public final class PersonPanel extends ListPanel<DocumentPerson, List<DocumentPe
             }
             onCommand.execute(builder.build());
         }
+    }
+
+    private void onImportTsv() {
+        if (creditsDoc == null) return;
+        Frame owner = (Frame) SwingUtilities.getWindowAncestor(this);
+        ImportTsvDialog dialog = new ImportTsvDialog(owner, onCommand, creditsDoc);
+        dialog.setVisible(true);
     }
 
     // -----------------------------------------------------------------------
