@@ -5,12 +5,14 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 import net.noiraude.libcredits.model.CreditsDocument;
 import net.noiraude.libcredits.model.DocumentCategory;
 import net.noiraude.libcredits.model.DocumentMembership;
 import net.noiraude.libcredits.model.DocumentPerson;
+import net.noiraude.libcredits.util.PersonSortKey;
 
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
@@ -76,8 +78,10 @@ public final class CreditsSerializer {
     }
 
     private static JsonArray serializePersons(List<DocumentPerson> persons) {
+        List<DocumentPerson> sorted = new ArrayList<>(persons);
+        sorted.sort(Comparator.comparing(p -> PersonSortKey.of(p.name)));
         JsonArray arr = new JsonArray();
-        for (DocumentPerson person : persons) {
+        for (DocumentPerson person : sorted) {
             arr.add(serializePerson(person));
         }
         return arr;
