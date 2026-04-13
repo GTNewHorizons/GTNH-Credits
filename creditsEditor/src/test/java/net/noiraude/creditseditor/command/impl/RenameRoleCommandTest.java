@@ -41,9 +41,9 @@ public class RenameRoleCommandTest {
         doc.categories.add(cat);
 
         DocumentPerson alice = new DocumentPerson("Alice");
-        alice.memberships.add(new DocumentMembership("dev", Arrays.asList("lead", "coder")));
+        alice.memberships.add(new DocumentMembership("dev", List.of("lead", "coder")));
         DocumentPerson bob = new DocumentPerson("Bob");
-        bob.memberships.add(new DocumentMembership("dev", Arrays.asList("lead")));
+        bob.memberships.add(new DocumentMembership("dev", List.of("lead")));
         doc.persons.add(alice);
         doc.persons.add(bob);
 
