@@ -3,6 +3,7 @@ package net.noiraude.creditseditor.ui.panel;
 import static net.noiraude.creditseditor.ui.UiScale.scaled;
 
 import java.awt.*;
+import java.util.Comparator;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -18,6 +19,7 @@ import net.noiraude.creditseditor.ui.dialog.ImportTsvDialog;
 import net.noiraude.libcredits.model.CreditsDocument;
 import net.noiraude.libcredits.model.DocumentCategory;
 import net.noiraude.libcredits.model.DocumentPerson;
+import net.noiraude.libcredits.util.PersonSortKey;
 
 /**
  * Middle panel showing the list of persons, optionally filtered by category.
@@ -31,7 +33,6 @@ import net.noiraude.libcredits.model.DocumentPerson;
 public final class PersonPanel extends ListPanel<DocumentPerson, List<DocumentPerson>> {
 
     private DocumentCategory filter;
-    private final Consumer<List<DocumentPerson>> selectionCallback;
 
     private final JTextField searchField = new JTextField();
 
@@ -41,7 +42,6 @@ public final class PersonPanel extends ListPanel<DocumentPerson, List<DocumentPe
      */
     public PersonPanel(CommandExecutor onCommand, Consumer<List<DocumentPerson>> onSelectionChanged) {
         super("Persons", onCommand, onSelectionChanged);
-        this.selectionCallback = onSelectionChanged;
         list.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
         list.setCellRenderer(new PersonCellRenderer());
 
@@ -61,14 +61,19 @@ public final class PersonPanel extends ListPanel<DocumentPerson, List<DocumentPe
         addButton.addActionListener(e -> onAdd());
         removeButton.addActionListener(e -> onRemove());
 
-        JButton importButton = new JButton("Import TSV");
+        JButton importButton = new JButton("Import");
         importButton.setToolTipText("Import persons from a TSV file");
+        importButton.setMinimumSize(importButton.getPreferredSize());
         importButton.addActionListener(e -> onImportTsv());
 
-        JPanel toolbar = new JPanel(new FlowLayout(FlowLayout.LEFT, scaled(4), scaled(2)));
-        toolbar.add(addButton);
-        toolbar.add(removeButton);
-        toolbar.add(importButton);
+        JPanel leftButtons = new JPanel(new GridLayout(1, 0, scaled(4), 0));
+        leftButtons.add(addButton);
+        leftButtons.add(removeButton);
+
+        JPanel toolbar = new JPanel(new BorderLayout(scaled(4), 0));
+        toolbar.setBorder(BorderFactory.createEmptyBorder(scaled(2), scaled(2), scaled(2), scaled(2)));
+        toolbar.add(leftButtons, BorderLayout.WEST);
+        toolbar.add(importButton, BorderLayout.EAST);
         add(toolbar, BorderLayout.SOUTH);
 
         updateButtons();
@@ -159,6 +164,7 @@ public final class PersonPanel extends ListPanel<DocumentPerson, List<DocumentPe
 
         List<DocumentPerson> visible = creditsDoc.persons.stream()
             .filter(p -> passesFilter(p, search))
+            .sorted(Comparator.comparing(p -> PersonSortKey.of(p.name)))
             .toList();
 
         listModel.clear();
