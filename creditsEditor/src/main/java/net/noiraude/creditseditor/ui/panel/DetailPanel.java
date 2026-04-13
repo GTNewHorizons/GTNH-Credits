@@ -11,6 +11,7 @@ import net.noiraude.creditseditor.ui.component.McText;
 import net.noiraude.creditseditor.ui.detail.BulkPersonView;
 import net.noiraude.creditseditor.ui.detail.CategoryDetailView;
 import net.noiraude.creditseditor.ui.detail.PersonDetailView;
+import net.noiraude.creditseditor.ui.roleeditor.RoleEditorPanel;
 import net.noiraude.libcredits.lang.LangDocument;
 import net.noiraude.libcredits.model.CreditsDocument;
 import net.noiraude.libcredits.model.DocumentCategory;
@@ -33,6 +34,7 @@ public final class DetailPanel extends JPanel {
     private static final String CARD_CATEGORY = "category";
     private static final String CARD_PERSON = "person";
     private static final String CARD_BULK = "bulk";
+    private static final String CARD_ROLES = "roles";
 
     private final TitledBorder detailBorder = BorderFactory.createTitledBorder("Details");
     private final CardLayout cards = new CardLayout();
@@ -40,6 +42,10 @@ public final class DetailPanel extends JPanel {
     private final CategoryDetailView categoryView;
     private final PersonDetailView personView;
     private final BulkPersonView bulkPersonView;
+    private final RoleEditorPanel roleEditorPanel;
+
+    /** Tracks what card was showing before the role editor was opened. */
+    private String activeCard = CARD_EMPTY;
 
     public DetailPanel(CommandExecutor onCommand) {
         setLayout(new BorderLayout());
@@ -47,6 +53,8 @@ public final class DetailPanel extends JPanel {
         categoryView = new CategoryDetailView(onCommand);
         personView = new PersonDetailView(onCommand);
         bulkPersonView = new BulkPersonView(onCommand);
+        roleEditorPanel = new RoleEditorPanel(onCommand);
+        roleEditorPanel.setOnClose(this::hideRoleEditor);
 
         cardPanel = new JPanel(cards);
 
@@ -61,6 +69,7 @@ public final class DetailPanel extends JPanel {
         cardPanel.add(categoryView, CARD_CATEGORY);
         cardPanel.add(personView, CARD_PERSON);
         cardPanel.add(bulkPersonView, CARD_BULK);
+        cardPanel.add(roleEditorPanel, CARD_ROLES);
 
         add(cardPanel, BorderLayout.CENTER);
         cards.show(cardPanel, CARD_EMPTY);
@@ -74,16 +83,19 @@ public final class DetailPanel extends JPanel {
         categoryView.setContext(langDoc);
         personView.setContext(creditsDoc, langDoc);
         bulkPersonView.setContext(creditsDoc, langDoc);
+        roleEditorPanel.setContext(creditsDoc, langDoc);
     }
 
     /** Shows the empty hint card. */
     public void showEmpty() {
+        activeCard = CARD_EMPTY;
         setDetailTitle("Details");
         cards.show(cardPanel, CARD_EMPTY);
     }
 
     /** Loads {@code category} into the category detail view and shows it. */
     public void showCategory(DocumentCategory category) {
+        activeCard = CARD_CATEGORY;
         setDetailTitle("Category: " + category.id);
         categoryView.load(category);
         cards.show(cardPanel, CARD_CATEGORY);
@@ -91,6 +103,7 @@ public final class DetailPanel extends JPanel {
 
     /** Loads {@code person} into the person detail view and shows it. */
     public void showPerson(DocumentPerson person) {
+        activeCard = CARD_PERSON;
         setDetailTitle("Person: " + McText.strip(person.name));
         personView.load(person);
         cards.show(cardPanel, CARD_PERSON);
@@ -98,9 +111,24 @@ public final class DetailPanel extends JPanel {
 
     /** Loads the bulk-operation view for the given multi-selection. */
     public void showBulkPersons(List<DocumentPerson> persons) {
+        activeCard = CARD_BULK;
         setDetailTitle(persons.size() + " persons selected");
         bulkPersonView.load(persons);
         cards.show(cardPanel, CARD_BULK);
+    }
+
+    /** Shows the role editor, replacing the current detail view. */
+    public void showRoleEditor() {
+        setDetailTitle("Role Editor");
+        roleEditorPanel.refresh();
+        cards.show(cardPanel, CARD_ROLES);
+    }
+
+    /** Hides the role editor and returns to the previously active card. */
+    private void hideRoleEditor() {
+        cards.show(cardPanel, activeCard);
+        // Restore the title based on the active card
+        repaint();
     }
 
     /**

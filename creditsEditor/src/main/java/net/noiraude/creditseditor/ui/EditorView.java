@@ -68,7 +68,7 @@ final class EditorView extends JPanel {
                     detailPanel.showEmpty();
                 }
             }
-        });
+        }, this::showRoleEditor);
 
         JSplitPane rightSplit = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, personPanel, detailPanel);
         rightSplit.setDividerLocation(scaled(250));
@@ -150,5 +150,14 @@ final class EditorView extends JPanel {
             .repaint();
         personPanel.getList()
             .repaint();
+    }
+
+    // -----------------------------------------------------------------------
+    // Role editor
+    // -----------------------------------------------------------------------
+
+    /** Opens the role editor in the detail panel area. */
+    void showRoleEditor() {
+        detailPanel.showRoleEditor();
     }
 }

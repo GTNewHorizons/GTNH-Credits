@@ -50,7 +50,7 @@ public final class MainWindow extends JFrame {
                 () -> handleOpen(true),
                 this::handleSave,
                 this::handleQuit),
-            new EditorMenuBar.EditActions(this::handleUndo, this::handleRedo));
+            new EditorMenuBar.EditActions(this::handleUndo, this::handleRedo, editorView::showRoleEditor));
         setJMenuBar(menuBar);
 
         setSize(UiScale.scaled(1100), UiScale.scaled(700));

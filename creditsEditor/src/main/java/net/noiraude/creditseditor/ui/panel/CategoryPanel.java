@@ -37,13 +37,21 @@ public final class CategoryPanel extends ListPanel<Object, DocumentCategory> {
 
     private final JButton upButton = new JButton("▲");
     private final JButton downButton = new JButton("▼");
+    private final JButton rolesButton = new JButton("Roles...");
 
     /**
      * @param onCommand          receives each structural command to execute
      * @param onSelectionChanged called with the selected {@link DocumentCategory}, or
      *                           {@code null} when the "All persons" sentinel is selected
      */
-    public CategoryPanel(CommandExecutor onCommand, Consumer<DocumentCategory> onSelectionChanged) {
+    /**
+     * @param onCommand          receives each structural command to execute
+     * @param onSelectionChanged called with the selected {@link DocumentCategory}, or
+     *                           {@code null} when the "All persons" sentinel is selected
+     * @param onRolesRequested   called when the user clicks the "Roles..." button
+     */
+    public CategoryPanel(CommandExecutor onCommand, Consumer<DocumentCategory> onSelectionChanged,
+        Runnable onRolesRequested) {
         super("Categories", onCommand, onSelectionChanged);
 
         list.setCellRenderer(new CategoryCellRenderer());
@@ -53,17 +61,20 @@ public final class CategoryPanel extends ListPanel<Object, DocumentCategory> {
         removeButton.setToolTipText("Remove category");
         upButton.setToolTipText("Move up");
         downButton.setToolTipText("Move down");
+        rolesButton.setToolTipText("Open role editor");
 
         addButton.addActionListener(e -> onAdd());
         removeButton.addActionListener(e -> onRemove());
         upButton.addActionListener(e -> onMove(-1));
         downButton.addActionListener(e -> onMove(+1));
+        rolesButton.addActionListener(e -> onRolesRequested.run());
 
         JPanel toolbar = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 2));
         toolbar.add(addButton);
         toolbar.add(removeButton);
         toolbar.add(upButton);
         toolbar.add(downButton);
+        toolbar.add(rolesButton);
         add(toolbar, BorderLayout.SOUTH);
 
         updateButtons();

@@ -22,15 +22,17 @@ final class EditorMenuBar extends JMenuBar {
 
     }
 
-    /** Edit-menu callbacks: undo and redo. */
+    /** Edit-menu callbacks: undo, redo, and roles editor. */
     static final class EditActions {
 
         final Runnable onUndo;
         final Runnable onRedo;
+        final Runnable onRoles;
 
-        EditActions(Runnable onUndo, Runnable onRedo) {
+        EditActions(Runnable onUndo, Runnable onRedo, Runnable onRoles) {
             this.onUndo = onUndo;
             this.onRedo = onRedo;
+            this.onRoles = onRoles;
         }
     }
 
@@ -45,6 +47,7 @@ final class EditorMenuBar extends JMenuBar {
         Runnable onQuit = fileActions.onQuit;
         Runnable onUndo = editActions.onUndo;
         Runnable onRedo = editActions.onRedo;
+        Runnable onRoles = editActions.onRoles;
         JMenu fileMenu = new JMenu("File");
         JMenuItem menuOpen = new JMenuItem("Open Resources…");
         JMenuItem menuNew = new JMenuItem("New Resources…");
@@ -67,6 +70,11 @@ final class EditorMenuBar extends JMenuBar {
         fileMenu.add(menuQuit);
 
         JMenu editMenu = new JMenu("Edit");
+        JMenuItem menuRoles = new JMenuItem("Roles...");
+        menuRoles.addActionListener(e -> onRoles.run());
+        editMenu.add(menuRoles);
+        editMenu.addSeparator();
+
         menuUndo = new JMenuItem("Undo");
         menuRedo = new JMenuItem("Redo");
 
