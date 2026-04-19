@@ -13,9 +13,9 @@ import javax.swing.event.UndoableEditEvent;
 
 import net.noiraude.creditseditor.command.CommandExecutor;
 import net.noiraude.creditseditor.command.impl.*;
+import net.noiraude.creditseditor.mc.McText;
 import net.noiraude.creditseditor.service.KeySanitizer;
 import net.noiraude.creditseditor.service.RoleIndex;
-import net.noiraude.creditseditor.ui.component.McText;
 import net.noiraude.creditseditor.ui.component.MinecraftTextEditor;
 import net.noiraude.libcredits.lang.LangDocument;
 import net.noiraude.libcredits.model.CreditsDocument;

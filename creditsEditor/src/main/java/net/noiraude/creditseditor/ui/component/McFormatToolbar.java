@@ -11,6 +11,9 @@ import java.util.Map;
 
 import javax.swing.*;
 
+import net.noiraude.creditseditor.mc.McFormatCode;
+import net.noiraude.creditseditor.mc.McSelectionPresence;
+
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -72,16 +75,14 @@ public final class McFormatToolbar extends JPanel {
 
     private @NotNull JButton buildColorSwatches(int iconSize) {
         for (int i = 0; i < 16; i++) {
-            final McFormatCode.PaletteColor pc = McFormatCode.COLORS.get(i);
-            McColorButton btn = new McColorButton(pc.color(), iconSize);
-            btn.setToolTipText(
-                pc.code()
-                    .displayName());
+            final McFormatCode code = McFormatCode.PALETTE[i];
+            McColorButton btn = new McColorButton(McPalette.colorOf(code), iconSize);
+            btn.setToolTipText(code.displayName());
             colorGroup.add(btn);
             colorButtons[i] = btn;
             add(btn);
             if (i == 7) add(Box.createHorizontalStrut(scaled(3)));
-            btn.addActionListener(e -> apply(pc.code(), true));
+            btn.addActionListener(e -> apply(code, true));
         }
 
         colorGroup.add(noColorBtn);
@@ -132,7 +133,7 @@ public final class McFormatToolbar extends JPanel {
             if (target.hasSelection()) {
                 applyPresence(target.computeSelectionPresence());
             } else {
-                applyActive(McFormatCode.fromAttributes(target.getCaretAttributes()));
+                applyActive(target.getCaretStyle());
             }
         } finally {
             updatingState = false;
@@ -140,20 +141,19 @@ public final class McFormatToolbar extends JPanel {
     }
 
     /** Updates button states to reflect per-code mixed/all/none presence across a selection. */
-    private void applyPresence(@NotNull McFormatCode.SelectionPresence presence) {
+    private void applyPresence(@NotNull McSelectionPresence presence) {
         boolean colorMatched = applyColorSwatchesPresence(presence);
         colorMatched |= applyNoColorButtonPresence(presence);
         if (!colorMatched) colorGroup.clearSelection();
         applyModifierPresence(presence);
     }
 
-    private boolean applyColorSwatchesPresence(@NotNull McFormatCode.SelectionPresence presence) {
+    private boolean applyColorSwatchesPresence(@NotNull McSelectionPresence presence) {
         boolean colorMatched = false;
         for (int i = 0; i < 16; i++) {
-            McFormatCode code = McFormatCode.COLORS.get(i)
-                .code();
-            boolean inAll = presence.all.contains(code);
-            boolean inAny = presence.any.contains(code);
+            McFormatCode code = McFormatCode.PALETTE[i];
+            boolean inAll = presence.all().contains(code);
+            boolean inAny = presence.any().contains(code);
             colorButtons[i].setSelected(inAll);
             colorButtons[i].setMixed(inAny && !inAll);
             if (inAll) colorMatched = true;
@@ -161,29 +161,27 @@ public final class McFormatToolbar extends JPanel {
         return colorMatched;
     }
 
-    private boolean applyNoColorButtonPresence(@NotNull McFormatCode.SelectionPresence presence) {
-        boolean anyColorInAny = McFormatCode.activeColor(presence.any) != null;
-        boolean noColorAll = presence.anyLacksColor && !anyColorInAny;
+    private boolean applyNoColorButtonPresence(@NotNull McSelectionPresence presence) {
+        boolean anyColorInAny = McFormatCode.activeColor(presence.any()) != null;
+        boolean noColorAll = presence.anyLacksColor() && !anyColorInAny;
         noColorBtn.setSelected(noColorAll);
-        noColorBtn.setMixed(presence.anyLacksColor && anyColorInAny);
+        noColorBtn.setMixed(presence.anyLacksColor() && anyColorInAny);
         return noColorAll;
     }
 
-    private void applyModifierPresence(@NotNull McFormatCode.SelectionPresence presence) {
+    private void applyModifierPresence(@NotNull McSelectionPresence presence) {
         for (Map.Entry<McFormatCode, MixedStateToggleButton> entry : modifierButtons.entrySet()) {
             McFormatCode mc = entry.getKey();
             entry.getValue()
-                .setPresence(presence.all.contains(mc), presence.any.contains(mc));
+                .setPresence(presence.all().contains(mc), presence.any().contains(mc));
         }
     }
 
-    /** Updates button states to reflect a uniform (no-selection) attribute set. */
+    /** Updates button states to reflect a uniform (no-selection) set of active codes. */
     private void applyActive(@NotNull EnumSet<@NotNull McFormatCode> active) {
         boolean colorMatched = false;
         for (int i = 0; i < 16; i++) {
-            boolean sel = active.contains(
-                McFormatCode.COLORS.get(i)
-                    .code());
+            boolean sel = active.contains(McFormatCode.PALETTE[i]);
             colorButtons[i].setSelected(sel);
             colorButtons[i].setMixed(false);
             if (sel) colorMatched = true;
@@ -256,7 +254,7 @@ public final class McFormatToolbar extends JPanel {
     // ------------------------------------------------------------------
 
     /**
-     * Toggle button for a single palette color swatch. Owns its four {@link ColorIcon} variants
+     * Toggle the button for a single palette color swatch. Owns its four {@link ColorIcon} variants
      * covering the {@code {unselected, selected} x {plain, mixed}} product and swaps the icon
      * pair shown by the button according to the current mixed state.
      */
@@ -285,7 +283,7 @@ public final class McFormatToolbar extends JPanel {
     }
 
     /**
-     * Toggle button for the "default color / no color" choice. Owns its four {@link NoColorIcon}
+     * Toggle the button for the "default color / no color" choice. Owns its four {@link NoColorIcon}
      * variants and mirrors the {@link McColorButton} API.
      */
     private static final class McNoColorButton extends JToggleButton {

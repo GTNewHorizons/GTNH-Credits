@@ -7,7 +7,7 @@ import javax.swing.*;
 import javax.swing.border.TitledBorder;
 
 import net.noiraude.creditseditor.command.CommandExecutor;
-import net.noiraude.creditseditor.ui.component.McText;
+import net.noiraude.creditseditor.mc.McText;
 import net.noiraude.creditseditor.ui.detail.BulkPersonView;
 import net.noiraude.creditseditor.ui.detail.CategoryDetailView;
 import net.noiraude.creditseditor.ui.detail.PersonDetailView;

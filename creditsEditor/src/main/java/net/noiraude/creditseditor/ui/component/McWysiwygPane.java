@@ -14,6 +14,10 @@ import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledDocument;
 
+import net.noiraude.creditseditor.mc.McFormatCode;
+import net.noiraude.creditseditor.mc.McSelectionPresence;
+import net.noiraude.creditseditor.mc.McText;
+
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -64,28 +68,22 @@ public final class McWysiwygPane extends JScrollPane implements McFormatTarget {
     private boolean rawMode;
 
     /**
-     * Carry that accumulates the active {@link McFormatCode}s for the next character to be typed.
+     * Carry accumulating the active {@link McFormatCode}s for the next character to be typed.
      *
      * <p>
-     * This is intentionally kept as an {@link EnumSet}{@code <McFormatCode>} rather than
-     * delegating to Swing's built-in {@link JTextPane#getInputAttributes()} map for two reasons:
+     * Kept as an {@link EnumSet}{@code <McFormatCode>} rather than delegating to Swing's built-in
+     * {@link JTextPane#getInputAttributes()} map for two reasons:
      *
      * <ol>
      * <li><b>Domain match.</b> The toolbar API operates entirely in {@link McFormatCode} values.
-     * Using the Swing map would require a {@link McFormatCode#fromAttributes} round-trip on every
-     * toolbar read and an {@link McFormatCode#applyTo} translation on every toolbar writing.
-     * Keeping the carry in the same domain removes all conversion overhead and makes the data flow
-     * direct and explicit.</li>
-     * <li><b>Custom attribute.</b> {@link McFormatCode#ATTR_OBFUSCATED} has no
-     * {@link javax.swing.text.StyleConstants} equivalent. Swing's input-attributes map can store it
-     * as an opaque key, but nothing in Swing understands what it means. Representing it as an enum
-     * constant in the carry makes its semantics first-class.</li>
+     * Using the Swing map would require a {@code McSwingStyle.fromAttributes} round-trip on every
+     * toolbar read and a {@code McSwingStyle.applyTo} translation on every toolbar writing. Keeping
+     * the carry in the same domain removes all conversion overhead.</li>
+     * <li><b>Custom attribute.</b> The obfuscated flag has no
+     * {@link javax.swing.text.StyleConstants} equivalent; the Swing map stores it as an opaque
+     * key that nothing in Swing understands. Representing it as an enum constant in the carry
+     * makes its semantics first-class.</li>
      * </ol>
-     *
-     * <p>
-     * Initialized from the element at {@code caretPos - 1} when the caret moves; modified directly
-     * by toolbar actions; flushed to the Swing input-attributes map so that typed characters
-     * inherit the carry automatically.
      */
     private @NotNull EnumSet<McFormatCode> pendingCodes = EnumSet.noneOf(McFormatCode.class);
 
@@ -187,30 +185,30 @@ public final class McWysiwygPane extends JScrollPane implements McFormatTarget {
     }
 
     /**
-     * Returns the character attributes at the effective caret position for toolbar state
-     * reflection.
+     * Returns the formatting codes at the effective caret position for toolbar state reflection.
      *
      * <p>
-     * When there is no selection, returns attributes derived from the pending-codes carry, which
-     * tracks the style of the character preceding the caret and accumulates any toolbar toggles
-     * performed since the last caret movement.
+     * When there is no selection, returns the pending-codes carry, which tracks the style of the
+     * character preceding the caret and accumulates toolbar toggles performed since the last
+     * caret movement.
      *
      * <p>
-     * When there is a selection (e.g., from double-click or triple-click), returns the attributes
-     * at the start of the selection. This is necessary because the caret dot sits at the end of
-     * the selection after a word or line is selected, while the formatting codes that apply to the
-     * selected content are set on the characters at and before the selection starts.
+     * When there is a selection (e.g., from double-click or triple-click), returns the codes at
+     * the start of the selection: the caret dot sits at the end of the selection after a word or
+     * line is selected, while the formatting codes that apply to the selected content are set on
+     * the characters at and before the selection starts.
      */
     @Override
-    public @NotNull AttributeSet getCaretAttributes() {
-        if (rawMode) return new SimpleAttributeSet();
+    public @NotNull EnumSet<McFormatCode> getCaretStyle() {
+        if (rawMode) return EnumSet.noneOf(McFormatCode.class);
         int start = pane.getSelectionStart();
         if (start != pane.getSelectionEnd()) {
-            return pane.getStyledDocument()
-                .getCharacterElement(start)
-                .getAttributes();
+            return McSwingStyle.fromAttributes(
+                pane.getStyledDocument()
+                    .getCharacterElement(start)
+                    .getAttributes());
         }
-        return pendingCodesToAttributeSet();
+        return EnumSet.copyOf(pendingCodes);
     }
 
     @Override
@@ -220,8 +218,8 @@ public final class McWysiwygPane extends JScrollPane implements McFormatTarget {
 
     @Contract(" -> new")
     @Override
-    public McFormatCode.@NotNull SelectionPresence computeSelectionPresence() {
-        return McFormatCode.computePresence(pane.getStyledDocument(), pane.getSelectionStart(), pane.getSelectionEnd());
+    public @NotNull McSelectionPresence computeSelectionPresence() {
+        return McSwingStyle.computePresence(pane.getStyledDocument(), pane.getSelectionStart(), pane.getSelectionEnd());
     }
 
     /**
@@ -271,8 +269,8 @@ public final class McWysiwygPane extends JScrollPane implements McFormatTarget {
         if (rawMode) return;
         if (pane.getSelectionStart() != pane.getSelectionEnd()) {
             SimpleAttributeSet attrs = new SimpleAttributeSet();
-            if (active) mc.applyTo(attrs);
-            else mc.removeFrom(attrs);
+            if (active) McSwingStyle.applyTo(attrs, mc);
+            else McSwingStyle.removeFrom(attrs, mc);
             applyAttrsToSelectionRange(attrs, false);
         } else {
             if (active) pendingCodes.add(mc);
@@ -309,7 +307,7 @@ public final class McWysiwygPane extends JScrollPane implements McFormatTarget {
                 try {
                     String text = doc.getText(offset, runEnd - offset);
                     AttributeSet elemAttrs = elem.getAttributes();
-                    if (McFormatCode.containsNonNewline(text) && elemAttrs.isDefined(StyleConstants.Foreground)) {
+                    if (McText.containsNonNewline(text) && elemAttrs.isDefined(StyleConstants.Foreground)) {
                         SimpleAttributeSet attrs = new SimpleAttributeSet(elemAttrs);
                         attrs.removeAttribute(StyleConstants.Foreground);
                         doc.setCharacterAttributes(offset, runEnd - offset, attrs, true);
@@ -329,8 +327,8 @@ public final class McWysiwygPane extends JScrollPane implements McFormatTarget {
     // ------------------------------------------------------------------
 
     /**
-     * Re-initializes the carry from the document element immediately before the caret.
-     * Called by the caret listener whenever the caret moves with no active selection.
+     * Re-initializes the carry from the document element immediately before the caret. Called by
+     * the caret listener whenever the caret moves with no active selection.
      *
      * <p>
      * Reading from {@code caretPos - 1} rather than {@code caretPos} mirrors Swing's own
@@ -341,7 +339,7 @@ public final class McWysiwygPane extends JScrollPane implements McFormatTarget {
     private void syncPendingFromCaret() {
         int caret = pane.getCaretPosition();
         int pos = Math.max(0, caret - 1);
-        pendingCodes = McFormatCode.fromAttributes(
+        pendingCodes = McSwingStyle.fromAttributes(
             pane.getStyledDocument()
                 .getCharacterElement(pos)
                 .getAttributes());
@@ -355,15 +353,7 @@ public final class McWysiwygPane extends JScrollPane implements McFormatTarget {
     private void flushPendingToInputAttributes() {
         MutableAttributeSet input = pane.getInputAttributes();
         input.removeAttributes(input);
-        SimpleAttributeSet attrs = pendingCodesToAttributeSet();
-        input.addAttributes(attrs);
-    }
-
-    /** Returns a fresh {@link SimpleAttributeSet} populated from the current carry. */
-    private @NotNull SimpleAttributeSet pendingCodesToAttributeSet() {
-        SimpleAttributeSet attrs = new SimpleAttributeSet();
-        for (McFormatCode mc : pendingCodes) mc.applyTo(attrs);
-        return attrs;
+        input.addAttributes(McSwingStyle.toAttributes(pendingCodes));
     }
 
     // ------------------------------------------------------------------
@@ -380,7 +370,7 @@ public final class McWysiwygPane extends JScrollPane implements McFormatTarget {
             int runEnd = Math.min(elem.getEndOffset(), end);
             try {
                 String text = doc.getText(offset, runEnd - offset);
-                if (McFormatCode.containsNonNewline(text)) {
+                if (McText.containsNonNewline(text)) {
                     doc.setCharacterAttributes(offset, runEnd - offset, attrs, replace);
                 }
             } catch (BadLocationException ignored) {}
@@ -389,14 +379,12 @@ public final class McWysiwygPane extends JScrollPane implements McFormatTarget {
     }
 
     // ------------------------------------------------------------------
-    // § ↔ StyledDocument conversion
+    // § <-> StyledDocument conversion
     // ------------------------------------------------------------------
 
     private static void insertParagraph(@NotNull StyledDocument doc, @NotNull String raw) throws BadLocationException {
-        for (McFormatCode.Segment seg : McFormatCode.parse(raw)) {
-            SimpleAttributeSet attrs = new SimpleAttributeSet();
-            for (McFormatCode mc : seg.codes) mc.applyTo(attrs);
-            doc.insertString(doc.getLength(), seg.text, attrs);
+        for (McText.Segment seg : McText.parse(raw)) {
+            doc.insertString(doc.getLength(), seg.text, McSwingStyle.toAttributes(seg.codes));
         }
     }
 
@@ -404,14 +392,11 @@ public final class McWysiwygPane extends JScrollPane implements McFormatTarget {
      * Converts the styled document to a minimal raw {@code §x} string.
      *
      * <p>
-     * Emits the fewest § codes required:
-     * <ul>
-     * <li>When a modifier is turned off or the color changes: emit a color code (or {@code §r}),
-     * then re-emit all currently active modifiers.
-     * <li>When only new modifiers are added: emit only those modifier codes.
-     * </ul>
-     * Paragraph separator ({@code '\n'}) characters carry no formatting codes of their own; the
-     * implicit trailing {@code '\n'} that JTextPane always maintains is stripped from the result.
+     * Emits the fewest § codes required: when a modifier is turned off or the color changes,
+     * emit a color code (or {@code §r}) then re-emit all currently active modifiers; when only
+     * new modifiers are added, emit only those modifier codes. Paragraph separator ({@code '\n'})
+     * characters carry no formatting codes of their own; the implicit trailing {@code '\n'} that
+     * JTextPane always maintains is stripped from the result.
      */
     private @NotNull String styledDocToRaw() {
         StyledDocument doc = pane.getStyledDocument();
@@ -419,7 +404,7 @@ public final class McWysiwygPane extends JScrollPane implements McFormatTarget {
         if (len == 0) return "";
 
         StringBuilder sb = new StringBuilder(len + 16);
-        RunStyle prev = RunStyle.DEFAULT;
+        EnumSet<McFormatCode> prev = EnumSet.noneOf(McFormatCode.class);
         int offset = 0;
         while (offset < len) {
             Element elem = doc.getCharacterElement(offset);
@@ -435,8 +420,8 @@ public final class McWysiwygPane extends JScrollPane implements McFormatTarget {
                 // Paragraph separators carry no style: append without changing state
                 sb.append('\n');
             } else {
-                RunStyle curr = RunStyle.of(elem.getAttributes());
-                appendTransitionCodes(sb, prev, curr);
+                EnumSet<McFormatCode> curr = McSwingStyle.fromAttributes(elem.getAttributes());
+                McText.appendTransitionCodes(sb, prev, curr);
                 sb.append(text);
                 prev = curr;
             }
@@ -447,46 +432,5 @@ public final class McWysiwygPane extends JScrollPane implements McFormatTarget {
         String result = sb.toString();
         if (result.endsWith("\n")) result = result.substring(0, result.length() - 1);
         return result;
-    }
-
-    /**
-     * Emits the minimal set of § codes to transition from {@code prev} to {@code curr} style.
-     *
-     * <p>
-     * When a modifier is turned off or the color changes, a reset point (color code or
-     * {@code §r}) is emitted followed by all currently active modifier codes. When only new
-     * modifiers are added, only those new codes are emitted.
-     */
-    private static void appendTransitionCodes(@NotNull StringBuilder sb, @NotNull RunStyle prev,
-        @NotNull RunStyle curr) {
-        if (McFormatCode.needsResetBefore(prev.codes, curr.codes)) {
-            McFormatCode color = McFormatCode.activeColor(curr.codes);
-            if (color != null) color.appendTo(sb);
-            else sb.append("§r");
-            for (McFormatCode mc : curr.codes) {
-                if (mc.isModifier()) mc.appendTo(sb);
-            }
-        } else {
-            for (McFormatCode mc : curr.codes) {
-                if (mc.isModifier() && !prev.codes.contains(mc)) mc.appendTo(sb);
-            }
-        }
-    }
-
-    // ------------------------------------------------------------------
-    // RunStyle value type
-    // ------------------------------------------------------------------
-
-    /**
-     * Immutable snapshot of the formatting codes active at one styled run.
-     */
-    private record RunStyle(@NotNull EnumSet<McFormatCode> codes) {
-
-        static final @NotNull RunStyle DEFAULT = new RunStyle(EnumSet.noneOf(McFormatCode.class));
-
-        @Contract("_ -> new")
-        static @NotNull RunStyle of(@NotNull AttributeSet attrs) {
-            return new RunStyle(McFormatCode.fromAttributes(attrs));
-        }
     }
 }

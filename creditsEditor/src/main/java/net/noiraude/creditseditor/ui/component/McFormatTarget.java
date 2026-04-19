@@ -1,7 +1,11 @@
 package net.noiraude.creditseditor.ui.component;
 
+import java.util.EnumSet;
+
 import javax.swing.event.CaretListener;
-import javax.swing.text.AttributeSet;
+
+import net.noiraude.creditseditor.mc.McFormatCode;
+import net.noiraude.creditseditor.mc.McSelectionPresence;
 
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
@@ -11,7 +15,9 @@ import org.jetbrains.annotations.NotNull;
  *
  * <p>
  * Provides the toolbar with the information it needs to reflect the current formatting state
- * and routes toolbar actions back to the pane.
+ * and routes toolbar actions back to the pane. All formatting states are exchanged in pure-domain
+ * types ({@link McFormatCode} / {@link McSelectionPresence}); Swing attribute sets are a concern
+ * of the implementing class.
  */
 interface McFormatTarget {
 
@@ -23,14 +29,15 @@ interface McFormatTarget {
      * Computes which codes are active across the current selection. Call only when
      * {@link #hasSelection()} is {@code true}.
      */
-    McFormatCode.@NotNull SelectionPresence computeSelectionPresence();
+    @NotNull
+    McSelectionPresence computeSelectionPresence();
 
     /**
-     * Returns the character attributes to reflect in the toolbar when there is no selection
-     * (or as a fallback).
+     * Returns the formatting codes to reflect in the toolbar when there is no selection (or as a
+     * fallback).
      */
     @NotNull
-    AttributeSet getCaretAttributes();
+    EnumSet<McFormatCode> getCaretStyle();
 
     /** Applies or removes a formatting code on the current selection or input style. */
     void applyCode(@NotNull McFormatCode mc, boolean active);
