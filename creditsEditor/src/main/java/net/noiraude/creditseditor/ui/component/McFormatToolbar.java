@@ -152,8 +152,10 @@ public final class McFormatToolbar extends JPanel {
         boolean colorMatched = false;
         for (int i = 0; i < 16; i++) {
             McFormatCode code = McFormatCode.PALETTE[i];
-            boolean inAll = presence.all().contains(code);
-            boolean inAny = presence.any().contains(code);
+            boolean inAll = presence.all()
+                .contains(code);
+            boolean inAny = presence.any()
+                .contains(code);
             colorButtons[i].setSelected(inAll);
             colorButtons[i].setMixed(inAny && !inAll);
             if (inAll) colorMatched = true;
@@ -173,7 +175,11 @@ public final class McFormatToolbar extends JPanel {
         for (Map.Entry<McFormatCode, MixedStateToggleButton> entry : modifierButtons.entrySet()) {
             McFormatCode mc = entry.getKey();
             entry.getValue()
-                .setPresence(presence.all().contains(mc), presence.any().contains(mc));
+                .setPresence(
+                    presence.all()
+                        .contains(mc),
+                    presence.any()
+                        .contains(mc));
         }
     }
 

@@ -34,7 +34,7 @@ final class EditorView extends JPanel {
     private final @NotNull DetailPanel detailPanel;
 
     private @Nullable EditorSession session;
-    private @Nullable DocumentCategory selectedCategory;
+    private @NotNull List<DocumentCategory> selectedCategories = List.of();
     private @NotNull List<DocumentPerson> selectedPersons = List.of();
 
     /**
@@ -47,21 +47,16 @@ final class EditorView extends JPanel {
 
         personPanel = new PersonPanel(onCommand, this::accept);
 
-        categoryPanel = new CategoryPanel(onCommand, cat -> {
-            boolean reClick = cat != null && cat == selectedCategory && !selectedPersons.isEmpty();
-            selectedCategory = cat;
-            detailPanel.setSelectedCategory(cat);
-            if (cat != null) {
-                personPanel.setFilter(cat);
-                if (selectedPersons.isEmpty() || reClick) {
-                    selectedPersons = List.of();
-                    detailPanel.showCategory(cat);
-                }
-            } else {
-                personPanel.setFilter(null);
-                if (selectedPersons.isEmpty()) {
-                    detailPanel.showEmpty();
-                }
+        categoryPanel = new CategoryPanel(onCommand, cats -> {
+            DocumentCategory sole = cats.size() == 1 ? cats.getFirst() : null;
+            DocumentCategory prevSole = selectedCategories.size() == 1 ? selectedCategories.getFirst() : null;
+            boolean reClick = sole != null && sole == prevSole && !selectedPersons.isEmpty();
+            selectedCategories = cats;
+            detailPanel.setSelectedCategory(sole);
+            personPanel.setFilter(cats);
+            if (selectedPersons.isEmpty() || reClick) {
+                selectedPersons = List.of();
+                showSoleCategoryOrEmpty();
             }
         });
 
@@ -88,7 +83,7 @@ final class EditorView extends JPanel {
      */
     void loadSession(@NotNull EditorSession newSession) {
         this.session = newSession;
-        selectedCategory = null;
+        selectedCategories = List.of();
         selectedPersons = List.of();
         detailPanel.setContext(session.creditsDoc(), session.langDoc());
         categoryPanel.refresh(session.creditsDoc(), session.langDoc());
@@ -116,12 +111,13 @@ final class EditorView extends JPanel {
         var creditsDoc = session.creditsDoc();
         var langDoc = session.langDoc();
 
-        if (selectedCategory != null) {
-            String id = selectedCategory.id;
-            selectedCategory = creditsDoc.categories.stream()
-                .filter(c -> c.id.equals(id))
-                .findFirst()
-                .orElse(null);
+        if (!selectedCategories.isEmpty()) {
+            List<String> ids = selectedCategories.stream()
+                .map(c -> c.id)
+                .toList();
+            selectedCategories = creditsDoc.categories.stream()
+                .filter(c -> ids.contains(c.id))
+                .toList();
         }
         if (!selectedPersons.isEmpty()) {
             List<String> names = selectedPersons.stream()
@@ -134,7 +130,8 @@ final class EditorView extends JPanel {
 
         categoryPanel.refresh(creditsDoc, langDoc);
         personPanel.refresh(creditsDoc);
-        detailPanel.refresh(selectedCategory, selectedPersons.isEmpty() ? null : selectedPersons);
+        DocumentCategory soleCategory = selectedCategories.size() == 1 ? selectedCategories.getFirst() : null;
+        detailPanel.refresh(soleCategory, selectedPersons.isEmpty() ? null : selectedPersons);
     }
 
     /**
@@ -152,12 +149,17 @@ final class EditorView extends JPanel {
         selectedPersons = persons;
         if (persons.size() > 1) {
             detailPanel.showBulkPersons(persons);
-        } else if (persons.size() == 1) {
-            detailPanel.showPerson(persons.getFirst());
-        } else if (selectedCategory != null) {
-            detailPanel.showCategory(selectedCategory);
-        } else {
-            detailPanel.showEmpty();
+            return;
         }
+        if (persons.size() == 1) {
+            detailPanel.showPerson(persons.getFirst());
+            return;
+        }
+        showSoleCategoryOrEmpty();
+    }
+
+    private void showSoleCategoryOrEmpty() {
+        if (selectedCategories.size() == 1) detailPanel.showCategory(selectedCategories.getFirst());
+        else detailPanel.showEmpty();
     }
 }

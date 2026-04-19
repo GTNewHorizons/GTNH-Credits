@@ -30,12 +30,13 @@ import org.jetbrains.annotations.Nullable;
  * <p>
  * Supports multi-selection. The selection callback receives the full list of selected
  * persons (empty list when nothing is selected). Call {@link #refresh(CreditsDocument)}
- * after any document change. Call {@link #setFilter(DocumentCategory)} to restrict the
- * visible set to members of a specific category; pass {@code null} to show all persons.
+ * after any document change. Call {@link #setFilter(List)} to restrict the visible set
+ * to the union of memberships across the supplied categories; pass an empty list to
+ * show all persons.
  */
 public final class PersonPanel extends ListPanel<DocumentPerson, List<DocumentPerson>> {
 
-    private @Nullable DocumentCategory filter;
+    private @NotNull List<DocumentCategory> filters = List.of();
 
     private final @NotNull JTextField searchField = new JTextField();
 
@@ -83,11 +84,12 @@ public final class PersonPanel extends ListPanel<DocumentPerson, List<DocumentPe
     }
 
     /**
-     * Changes the active category filter and repopulates the list.
-     * Pass {@code null} to show all persons.
+     * Changes the active category filter and repopulates the list. The visible set becomes
+     * the union of persons who are members of the supplied categories. Pass an empty
+     * list to show all persons.
      */
-    public void setFilter(@Nullable DocumentCategory category) {
-        filter = category;
+    public void setFilter(@NotNull List<DocumentCategory> categories) {
+        filters = List.copyOf(categories);
         applyFilter();
     }
 
@@ -149,7 +151,7 @@ public final class PersonPanel extends ListPanel<DocumentPerson, List<DocumentPe
     private void onImportTsv() {
         if (creditsDoc == null) return;
         Frame owner = (Frame) SwingUtilities.getWindowAncestor(this);
-        String defaultCategoryId = filter != null ? filter.id : null;
+        String defaultCategoryId = filters.size() == 1 ? filters.getFirst().id : null;
         ImportTsvDialog dialog = new ImportTsvDialog(owner, onCommand, creditsDoc, defaultCategoryId);
         dialog.setVisible(true);
     }
@@ -194,9 +196,11 @@ public final class PersonPanel extends ListPanel<DocumentPerson, List<DocumentPe
     }
 
     private boolean passesFilter(@NotNull DocumentPerson person, @NotNull String search) {
-        if (filter != null) {
+        if (!filters.isEmpty()) {
             boolean member = person.memberships.stream()
-                .anyMatch(m -> m.categoryId.equals(filter.id));
+                .anyMatch(
+                    m -> filters.stream()
+                        .anyMatch(f -> f.id.equals(m.categoryId)));
             if (!member) return false;
         }
         if (!search.isEmpty()) {

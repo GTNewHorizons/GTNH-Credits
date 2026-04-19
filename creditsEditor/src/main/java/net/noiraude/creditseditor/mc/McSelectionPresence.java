@@ -24,9 +24,8 @@ import org.jetbrains.annotations.NotNull;
  * @param anyLacksColor {@code true} when at least one selected character has no color attribute (default color).
  */
 public record McSelectionPresence(@NotNull EnumSet<McFormatCode> all, @NotNull EnumSet<McFormatCode> any,
-                                  boolean anyLacksColor) {
+    boolean anyLacksColor) {
 
     @Contract(pure = true)
-    public McSelectionPresence {
-    }
+    public McSelectionPresence {}
 }

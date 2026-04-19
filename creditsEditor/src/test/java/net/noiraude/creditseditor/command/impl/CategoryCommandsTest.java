@@ -120,30 +120,30 @@ public class CategoryCommandsTest {
     }
 
     // -----------------------------------------------------------------------
-    // MoveCategoryOrderCommand
+    // MoveCategoriesOrderCommand
     // -----------------------------------------------------------------------
 
     @Test
-    public void moveCategory_forward_endsAtTargetIndex() {
-        // Move team (index 0) to index 2 → [dev, contrib, team]
-        new MoveCategoryOrderCommand(creditsDoc, team, 2).execute();
+    public void moveCategories_singleForward_endsAtDropIndex() {
+        // Move team (index 0) past contrib: dropIndex=3 → [dev, contrib, team]
+        new MoveCategoriesOrderCommand(creditsDoc, new int[] { 0 }, 3).execute();
         assertEquals("dev", creditsDoc.categories.getFirst().id);
         assertEquals("contrib", creditsDoc.categories.get(1).id);
         assertEquals("team", creditsDoc.categories.get(2).id);
     }
 
     @Test
-    public void moveCategory_backward_endsAtTargetIndex() {
-        // Move contrib (index 2) to index 0 → [contrib, team, dev]
-        new MoveCategoryOrderCommand(creditsDoc, contrib, 0).execute();
+    public void moveCategories_singleBackward_endsAtDropIndex() {
+        // Move contrib (index 2) before team: dropIndex=0 → [contrib, team, dev]
+        new MoveCategoriesOrderCommand(creditsDoc, new int[] { 2 }, 0).execute();
         assertEquals("contrib", creditsDoc.categories.getFirst().id);
         assertEquals("team", creditsDoc.categories.get(1).id);
         assertEquals("dev", creditsDoc.categories.get(2).id);
     }
 
     @Test
-    public void moveCategory_undo_restoresOriginalOrder() {
-        MoveCategoryOrderCommand cmd = new MoveCategoryOrderCommand(creditsDoc, team, 2);
+    public void moveCategories_undo_restoresOriginalOrder() {
+        MoveCategoriesOrderCommand cmd = new MoveCategoriesOrderCommand(creditsDoc, new int[] { 0 }, 3);
         cmd.execute();
         cmd.undo();
         assertEquals("team", creditsDoc.categories.getFirst().id);
@@ -152,18 +152,57 @@ public class CategoryCommandsTest {
     }
 
     @Test
-    public void moveCategory_adjacentDown_swapsWithNext() {
-        // Move team (0) to index 1 → [dev, team, contrib]
-        new MoveCategoryOrderCommand(creditsDoc, team, 1).execute();
+    public void moveCategories_adjacentDown_swapsWithNext() {
+        // Move team (0) to dropIndex=2 (between dev and contrib) → [dev, team, contrib]
+        new MoveCategoriesOrderCommand(creditsDoc, new int[] { 0 }, 2).execute();
         assertEquals("dev", creditsDoc.categories.getFirst().id);
         assertEquals("team", creditsDoc.categories.get(1).id);
     }
 
     @Test
-    public void moveCategory_adjacentUp_swapsWithPrevious() {
-        // Move dev (1) to index 0 → [dev, team, contrib]
-        new MoveCategoryOrderCommand(creditsDoc, dev, 0).execute();
+    public void moveCategories_adjacentUp_swapsWithPrevious() {
+        // Move dev (1) to dropIndex=0 → [dev, team, contrib]
+        new MoveCategoriesOrderCommand(creditsDoc, new int[] { 1 }, 0).execute();
         assertEquals("dev", creditsDoc.categories.getFirst().id);
         assertEquals("team", creditsDoc.categories.get(1).id);
+    }
+
+    @Test
+    public void moveCategories_discontinuousSelection_preservesRelativeOrder() {
+        // Given [team, dev, contrib], move {team(0), contrib(2)} to dropIndex=1 (between team and dev)
+        // extracted = [team, contrib] (relative order preserved)
+        // remaining = [dev], insertAt = 1 - 1 = 0 → [team, contrib, dev]
+        new MoveCategoriesOrderCommand(creditsDoc, new int[] { 0, 2 }, 1).execute();
+        assertEquals("team", creditsDoc.categories.getFirst().id);
+        assertEquals("contrib", creditsDoc.categories.get(1).id);
+        assertEquals("dev", creditsDoc.categories.get(2).id);
+    }
+
+    @Test
+    public void moveCategories_contiguousBlock_movesTogether() {
+        // Move {team(0), dev(1)} past contrib: dropIndex=3 → [contrib, team, dev]
+        new MoveCategoriesOrderCommand(creditsDoc, new int[] { 0, 1 }, 3).execute();
+        assertEquals("contrib", creditsDoc.categories.getFirst().id);
+        assertEquals("team", creditsDoc.categories.get(1).id);
+        assertEquals("dev", creditsDoc.categories.get(2).id);
+    }
+
+    @Test
+    public void moveCategories_unsortedInput_isSorted() {
+        // Same as discontinuous test, but pass indices in reverse order
+        new MoveCategoriesOrderCommand(creditsDoc, new int[] { 2, 0 }, 1).execute();
+        assertEquals("team", creditsDoc.categories.getFirst().id);
+        assertEquals("contrib", creditsDoc.categories.get(1).id);
+        assertEquals("dev", creditsDoc.categories.get(2).id);
+    }
+
+    @Test
+    public void moveCategories_undo_afterDiscontinuousMove_restoresOriginalOrder() {
+        MoveCategoriesOrderCommand cmd = new MoveCategoriesOrderCommand(creditsDoc, new int[] { 0, 2 }, 1);
+        cmd.execute();
+        cmd.undo();
+        assertEquals("team", creditsDoc.categories.getFirst().id);
+        assertEquals("dev", creditsDoc.categories.get(1).id);
+        assertEquals("contrib", creditsDoc.categories.get(2).id);
     }
 }

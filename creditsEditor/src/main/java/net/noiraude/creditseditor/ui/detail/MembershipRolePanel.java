@@ -3,7 +3,6 @@ package net.noiraude.creditseditor.ui.detail;
 import static net.noiraude.creditseditor.ui.UiScale.scaled;
 
 import java.awt.*;
-import java.awt.datatransfer.*;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -17,6 +16,7 @@ import net.noiraude.creditseditor.mc.McText;
 import net.noiraude.creditseditor.service.KeySanitizer;
 import net.noiraude.creditseditor.service.RoleIndex;
 import net.noiraude.creditseditor.ui.component.MinecraftTextEditor;
+import net.noiraude.creditseditor.ui.component.dnd.ListReorderTransferHandler;
 import net.noiraude.libcredits.lang.LangDocument;
 import net.noiraude.libcredits.model.CreditsDocument;
 import net.noiraude.libcredits.model.DocumentMembership;
@@ -116,7 +116,14 @@ public final class MembershipRolePanel extends JPanel {
         roleList.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
         roleList.setDragEnabled(true);
         roleList.setDropMode(DropMode.INSERT);
-        roleList.setTransferHandler(new RoleReorderTransferHandler());
+        roleList.setTransferHandler(
+            new ListReorderTransferHandler<>(
+                roleList,
+                onCommand,
+                (fromIndices, dropIndex) -> currentMembership == null ? null
+                    : new MoveRolesOrderCommand(currentMembership, fromIndices, dropIndex),
+                i -> true,
+                i -> currentMembership != null));
         roleList.setVisibleRowCount(5);
         roleList.setCellRenderer(new RoleListCellRenderer());
     }
@@ -311,49 +318,6 @@ public final class MembershipRolePanel extends JPanel {
                 label.setText((display == null || display.isEmpty()) ? raw : McText.strip(display));
             }
             return label;
-        }
-    }
-
-    // -----------------------------------------------------------------------
-    // Drag-and-drop: reorder within list
-    // -----------------------------------------------------------------------
-
-    private final class RoleReorderTransferHandler extends TransferHandler {
-
-        private int dragFromIndex = -1;
-
-        @Contract(pure = true)
-        @Override
-        public int getSourceActions(@NotNull JComponent c) {
-            return MOVE;
-        }
-
-        @Override
-        protected @Nullable Transferable createTransferable(@NotNull JComponent c) {
-            int[] indices = roleList.getSelectedIndices();
-            if (indices.length != 1) return null;
-            dragFromIndex = indices[0];
-            return new StringSelection(roleListModel.get(dragFromIndex));
-        }
-
-        @Override
-        public boolean canImport(@NotNull TransferSupport support) {
-            return support.isDrop() && support.isDataFlavorSupported(DataFlavor.stringFlavor)
-                && currentMembership != null;
-        }
-
-        @Override
-        public boolean importData(@NotNull TransferSupport support) {
-            if (!canImport(support) || dragFromIndex < 0 || currentMembership == null) return false;
-            int dropIndex = ((JList.DropLocation) support.getDropLocation()).getIndex();
-            if (dropIndex == dragFromIndex || dropIndex == dragFromIndex + 1) return false;
-            onCommand.execute(new MoveRoleOrderCommand(currentMembership, dragFromIndex, dropIndex));
-            return true;
-        }
-
-        @Override
-        protected void exportDone(@NotNull JComponent source, @Nullable Transferable data, int action) {
-            dragFromIndex = -1;
         }
     }
 
