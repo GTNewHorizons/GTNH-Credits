@@ -13,6 +13,11 @@ import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledDocument;
 
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.UnmodifiableView;
+
 /**
  * Minecraft {@code §x} formatting codes.
  *
@@ -69,18 +74,24 @@ public enum McFormatCode {
      * Stored as {@link Boolean#TRUE} when active. {@link StyleConstants} has no built-in support
      * for this effect.
      */
-    public static final Object ATTR_OBFUSCATED = "mc-obfuscated";
+    public static final @NotNull Object ATTR_OBFUSCATED = "mc-obfuscated";
 
-    /** The 16 color codes in palette order ({@code §0}-{@code §f}). */
-    public static final List<McFormatCode> COLORS;
+    /**
+     * The 16 palette entries in order ({@code §0}-{@code §f}), each pairing a
+     * {@link McFormatCode} with its guaranteed non-null {@link Color}.
+     */
+    public static final @NotNull @UnmodifiableView List<PaletteColor> COLORS;
 
     static {
-        List<McFormatCode> colors = new ArrayList<>(16);
+        List<PaletteColor> colors = new ArrayList<>(16);
         for (McFormatCode c : values()) {
-            if (c.color != null) colors.add(c);
+            if (c.color != null) colors.add(new PaletteColor(c, c.color));
         }
         COLORS = Collections.unmodifiableList(colors);
     }
+
+    /** Pairs a palette color {@link McFormatCode} with its non-null {@link Color}. */
+    public record PaletteColor(@NotNull McFormatCode code, @NotNull Color color) {}
 
     /** The § code character (the char after {@code §}). */
     public final char code;
@@ -88,18 +99,21 @@ public enum McFormatCode {
     /**
      * The foreground color for color codes, or {@code null} for modifier/reset codes.
      */
-    public final Color color;
+    public final @Nullable Color color;
 
+    @Contract(pure = true)
     McFormatCode(char code) {
         this(code, null);
     }
 
-    McFormatCode(char code, Color color) {
+    @Contract(pure = true)
+    McFormatCode(char code, @Nullable Color color) {
         this.code = code;
         this.color = color;
     }
 
     /** Returns {@code true} if this is one of the 16 color codes ({@code §0}-{@code §f}). */
+    @Contract(pure = true)
     public boolean isColor() {
         return color != null;
     }
@@ -107,6 +121,7 @@ public enum McFormatCode {
     /**
      * Returns {@code true} if this is one of the 5 modifier codes ({@code §l §o §n §m §k}).
      */
+    @Contract(pure = true)
     public boolean isModifier() {
         return color == null && this != RESET;
     }
@@ -115,7 +130,7 @@ public enum McFormatCode {
      * Returns a human-readable display name derived from the enum constant name, e.g.
      * {@code DARK_BLUE} → {@code "Dark Blue (§1)"}, {@code BOLD} → {@code "Bold (§l)"}.
      */
-    public String displayName() {
+    public @NotNull String displayName() {
         String[] parts = name().split("_");
         StringBuilder sb = new StringBuilder();
         for (String part : parts) {
@@ -132,7 +147,7 @@ public enum McFormatCode {
     }
 
     /** Appends the {@code §x} escape sequence for this code to {@code sb}. */
-    public void appendTo(StringBuilder sb) {
+    public void appendTo(@NotNull StringBuilder sb) {
         sb.append('§')
             .append(code);
     }
@@ -145,7 +160,7 @@ public enum McFormatCode {
      * {@link StyleConstants} attribute to {@code true} (or {@link #ATTR_OBFUSCATED} for
      * {@link #OBFUSCATED}). Has no effect for {@link #RESET}.
      */
-    public void applyTo(SimpleAttributeSet attrs) {
+    public void applyTo(@NotNull SimpleAttributeSet attrs) {
         switch (this) {
             case BOLD -> StyleConstants.setBold(attrs, true);
             case ITALIC -> StyleConstants.setItalic(attrs, true);
@@ -164,7 +179,7 @@ public enum McFormatCode {
      * <p>
      * Has no effect for color codes or {@link #RESET}.
      */
-    public void removeFrom(SimpleAttributeSet attrs) {
+    public void removeFrom(@NotNull SimpleAttributeSet attrs) {
         switch (this) {
             case BOLD -> StyleConstants.setBold(attrs, false);
             case ITALIC -> StyleConstants.setItalic(attrs, false);
@@ -181,7 +196,7 @@ public enum McFormatCode {
      * <p>
      * Always returns {@code false} for {@link #RESET}.
      */
-    public boolean isActive(AttributeSet attrs) {
+    public boolean isActive(@NotNull AttributeSet attrs) {
         return switch (this) {
             case BOLD -> StyleConstants.isBold(attrs);
             case ITALIC -> StyleConstants.isItalic(attrs);
@@ -197,7 +212,7 @@ public enum McFormatCode {
      * Builds an {@link EnumSet} of all codes active in {@code attrs}: at most one color plus any
      * modifier codes currently set.
      */
-    public static EnumSet<McFormatCode> fromAttributes(AttributeSet attrs) {
+    public static @NotNull EnumSet<McFormatCode> fromAttributes(@NotNull AttributeSet attrs) {
         EnumSet<McFormatCode> result = EnumSet.noneOf(McFormatCode.class);
         for (McFormatCode c : values()) {
             if (c != RESET && c.isActive(attrs)) result.add(c);
@@ -212,7 +227,8 @@ public enum McFormatCode {
      * @return a {@link SelectionPresence} whose {@code all} set contains codes active on every
      *         character and whose {@code any} set contains codes active on at least one character
      */
-    public static SelectionPresence computePresence(StyledDocument doc, int start, int end) {
+    @Contract("_, _, _ -> new")
+    public static @NotNull SelectionPresence computePresence(@NotNull StyledDocument doc, int start, int end) {
         EnumSet<McFormatCode> all = null; // null until the first non-newline run is seen
         EnumSet<McFormatCode> any = EnumSet.noneOf(McFormatCode.class);
         boolean anyLacksColor = false;
@@ -242,7 +258,8 @@ public enum McFormatCode {
         return new SelectionPresence(all != null ? all : EnumSet.noneOf(McFormatCode.class), any, anyLacksColor);
     }
 
-    static boolean containsNonNewline(String text) {
+    @Contract(pure = true)
+    static boolean containsNonNewline(@NotNull String text) {
         for (int i = 0; i < text.length(); i++) {
             if (text.charAt(i) != '\n') return true;
         }
@@ -265,10 +282,10 @@ public enum McFormatCode {
     public static final class SelectionPresence {
 
         /** Codes active on every character in the selection. */
-        public final EnumSet<McFormatCode> all;
+        public final @NotNull EnumSet<McFormatCode> all;
 
         /** Codes active on at least one character in the selection. */
-        public final EnumSet<McFormatCode> any;
+        public final @NotNull EnumSet<McFormatCode> any;
 
         /**
          * {@code true} when at least one selected character has no color attribute (default
@@ -276,7 +293,8 @@ public enum McFormatCode {
          */
         public final boolean anyLacksColor;
 
-        SelectionPresence(EnumSet<McFormatCode> all, EnumSet<McFormatCode> any, boolean anyLacksColor) {
+        SelectionPresence(@NotNull EnumSet<McFormatCode> all, @NotNull EnumSet<McFormatCode> any,
+            boolean anyLacksColor) {
             this.all = all;
             this.any = any;
             this.anyLacksColor = anyLacksColor;
@@ -286,7 +304,8 @@ public enum McFormatCode {
     /**
      * Returns the active color code from {@code codes}, or {@code null} if none is present.
      */
-    public static McFormatCode activeColor(EnumSet<McFormatCode> codes) {
+    @Contract(pure = true)
+    public static @Nullable McFormatCode activeColor(@NotNull EnumSet<McFormatCode> codes) {
         for (McFormatCode c : codes) {
             if (c.isColor()) return c;
         }
@@ -297,7 +316,8 @@ public enum McFormatCode {
      * Returns {@code true} if transitioning from {@code prev} to {@code next} requires a reset
      * point (a color code or {@code §r}): either the color changed or a modifier was turned off.
      */
-    public static boolean needsResetBefore(EnumSet<McFormatCode> prev, EnumSet<McFormatCode> next) {
+    @Contract(pure = true)
+    public static boolean needsResetBefore(@NotNull EnumSet<McFormatCode> prev, @NotNull EnumSet<McFormatCode> next) {
         if (activeColor(prev) != activeColor(next)) return true;
         for (McFormatCode c : prev) {
             if (c.isModifier() && !next.contains(c)) return true;
@@ -309,7 +329,8 @@ public enum McFormatCode {
      * Returns the {@link McFormatCode} for the given code character, or {@code null} if not
      * recognized.
      */
-    public static McFormatCode fromChar(char c) {
+    @Contract(pure = true)
+    public static @Nullable McFormatCode fromChar(char c) {
         for (McFormatCode mc : values()) {
             if (mc.code == c) return mc;
         }
@@ -330,15 +351,15 @@ public enum McFormatCode {
     public static final class Segment {
 
         /** Plain text content, with all {@code §x} sequences removed. */
-        public final String text;
+        public final @NotNull String text;
 
         /**
          * Active formatting codes: at most one color plus any subset of modifiers. Never contains
          * {@link McFormatCode#RESET}.
          */
-        public final EnumSet<McFormatCode> codes;
+        public final @NotNull EnumSet<McFormatCode> codes;
 
-        Segment(String text, EnumSet<McFormatCode> codes) {
+        Segment(@NotNull String text, @NotNull EnumSet<McFormatCode> codes) {
             this.text = text;
             this.codes = codes.isEmpty() ? EnumSet.noneOf(McFormatCode.class) : EnumSet.copyOf(codes);
         }
@@ -357,7 +378,7 @@ public enum McFormatCode {
      * @param raw the string to parse; {@code null} and empty are both accepted
      * @return ordered list of segments; never {@code null}
      */
-    public static List<Segment> parse(String raw) {
+    public static @NotNull @UnmodifiableView List<Segment> parse(@Nullable String raw) {
         if (raw == null || raw.isEmpty()) return Collections.emptyList();
 
         List<Segment> result = new ArrayList<>();
@@ -387,14 +408,15 @@ public enum McFormatCode {
         return Collections.unmodifiableList(result);
     }
 
-    private static void flushSegment(StringBuilder text, EnumSet<McFormatCode> state, List<Segment> result) {
+    private static void flushSegment(@NotNull StringBuilder text, @NotNull EnumSet<McFormatCode> state,
+        @NotNull List<Segment> result) {
         if (!text.isEmpty()) {
             result.add(new Segment(text.toString(), state));
             text.setLength(0);
         }
     }
 
-    private static void applyStateChange(McFormatCode mc, EnumSet<McFormatCode> state) {
+    private static void applyStateChange(@NotNull McFormatCode mc, @NotNull EnumSet<McFormatCode> state) {
         if (mc == RESET || mc.isColor()) state.clear();
         if (mc != RESET) state.add(mc);
     }
@@ -405,7 +427,8 @@ public enum McFormatCode {
      * @param raw the string to strip; {@code null} is returned as-is
      * @see McText#strip(String)
      */
-    public static String strip(String raw) {
-        return McText.strip(raw);
+    @Contract(value = "null -> null; !null -> !null", pure = true)
+    public static @Nullable String strip(@Nullable String raw) {
+        return raw == null ? null : McText.strip(raw);
     }
 }

@@ -3,6 +3,8 @@ package net.noiraude.creditseditor.command.impl;
 import net.noiraude.libcredits.model.CreditsDocument;
 import net.noiraude.libcredits.model.DocumentCategory;
 
+import org.jetbrains.annotations.NotNull;
+
 /**
  * Moves a category to a new position in the ordered category list.
  *
@@ -12,12 +14,13 @@ import net.noiraude.libcredits.model.DocumentCategory;
  */
 public final class MoveCategoryOrderCommand extends AbstractStructuralCommand {
 
-    private final CreditsDocument creditsDoc;
-    private final DocumentCategory category;
+    private final @NotNull CreditsDocument creditsDoc;
+    private final @NotNull DocumentCategory category;
     private final int targetIndex;
     private int originalIndex;
 
-    public MoveCategoryOrderCommand(CreditsDocument creditsDoc, DocumentCategory category, int targetIndex) {
+    public MoveCategoryOrderCommand(@NotNull CreditsDocument creditsDoc, @NotNull DocumentCategory category,
+        int targetIndex) {
         this.creditsDoc = creditsDoc;
         this.category = category;
         this.targetIndex = targetIndex;
@@ -37,7 +40,7 @@ public final class MoveCategoryOrderCommand extends AbstractStructuralCommand {
     }
 
     @Override
-    public String getDisplayName() {
+    public @NotNull String getDisplayName() {
         return "Move category " + category.id;
     }
 }

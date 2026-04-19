@@ -2,6 +2,8 @@ package net.noiraude.creditseditor.command.impl;
 
 import net.noiraude.libcredits.model.DocumentMembership;
 
+import org.jetbrains.annotations.NotNull;
+
 /**
  * Removes a role string from a category membership's role list.
  *
@@ -10,11 +12,11 @@ import net.noiraude.libcredits.model.DocumentMembership;
  */
 public final class RemovePersonRoleCommand extends AbstractStructuralCommand {
 
-    private final DocumentMembership membership;
-    private final String role;
+    private final @NotNull DocumentMembership membership;
+    private final @NotNull String role;
     private int savedIndex;
 
-    public RemovePersonRoleCommand(DocumentMembership membership, String role) {
+    public RemovePersonRoleCommand(@NotNull DocumentMembership membership, @NotNull String role) {
         this.membership = membership;
         this.role = role;
     }
@@ -31,7 +33,7 @@ public final class RemovePersonRoleCommand extends AbstractStructuralCommand {
     }
 
     @Override
-    public String getDisplayName() {
+    public @NotNull String getDisplayName() {
         return "Remove role " + role + " from " + membership.categoryId;
     }
 }

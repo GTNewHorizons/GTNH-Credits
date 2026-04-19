@@ -11,11 +11,13 @@ import net.noiraude.creditseditor.ui.component.McText;
 import net.noiraude.creditseditor.ui.detail.BulkPersonView;
 import net.noiraude.creditseditor.ui.detail.CategoryDetailView;
 import net.noiraude.creditseditor.ui.detail.PersonDetailView;
-import net.noiraude.creditseditor.ui.roleeditor.RoleEditorPanel;
 import net.noiraude.libcredits.lang.LangDocument;
 import net.noiraude.libcredits.model.CreditsDocument;
 import net.noiraude.libcredits.model.DocumentCategory;
 import net.noiraude.libcredits.model.DocumentPerson;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Right-side panel that displays the appropriate detail form depending on what is selected
@@ -30,35 +32,27 @@ import net.noiraude.libcredits.model.DocumentPerson;
  */
 public final class DetailPanel extends JPanel {
 
-    private static final String CARD_EMPTY = "empty";
-    private static final String CARD_CATEGORY = "category";
-    private static final String CARD_PERSON = "person";
-    private static final String CARD_BULK = "bulk";
-    private static final String CARD_ROLES = "roles";
+    private static final @NotNull String CARD_EMPTY = "empty";
+    private static final @NotNull String CARD_CATEGORY = "category";
+    private static final @NotNull String CARD_PERSON = "person";
+    private static final @NotNull String CARD_BULK = "bulk";
 
-    private final TitledBorder detailBorder = BorderFactory.createTitledBorder("Details");
-    private final CardLayout cards = new CardLayout();
-    private final JPanel cardPanel;
-    private final CategoryDetailView categoryView;
-    private final PersonDetailView personView;
-    private final BulkPersonView bulkPersonView;
-    private final RoleEditorPanel roleEditorPanel;
+    private final @NotNull TitledBorder detailBorder = BorderFactory.createTitledBorder("Details");
+    private final @NotNull CardLayout cards = new CardLayout();
+    private final @NotNull JPanel cardPanel;
+    private final @NotNull CategoryDetailView categoryView;
+    private final @NotNull PersonDetailView personView;
+    private final @NotNull BulkPersonView bulkPersonView;
 
-    /** Tracks what card was showing before the role editor was opened. */
-    private String activeCard = CARD_EMPTY;
-
-    public DetailPanel(CommandExecutor onCommand) {
+    public DetailPanel(@NotNull CommandExecutor onCommand) {
         setLayout(new BorderLayout());
         setBorder(detailBorder);
         categoryView = new CategoryDetailView(onCommand);
         personView = new PersonDetailView(onCommand);
         bulkPersonView = new BulkPersonView(onCommand);
-        roleEditorPanel = new RoleEditorPanel(onCommand);
-        roleEditorPanel.setOnClose(this::hideRoleEditor);
 
         cardPanel = new JPanel(cards);
 
-        // Empty card
         JLabel hint = new JLabel("Select a category or person", SwingConstants.CENTER);
         hint.setFont(
             hint.getFont()
@@ -69,7 +63,6 @@ public final class DetailPanel extends JPanel {
         cardPanel.add(categoryView, CARD_CATEGORY);
         cardPanel.add(personView, CARD_PERSON);
         cardPanel.add(bulkPersonView, CARD_BULK);
-        cardPanel.add(roleEditorPanel, CARD_ROLES);
 
         add(cardPanel, BorderLayout.CENTER);
         cards.show(cardPanel, CARD_EMPTY);
@@ -79,68 +72,49 @@ public final class DetailPanel extends JPanel {
      * Sets the document context used by the detail views for lang reads/writes and
      * category lookups. Call once after a session is loaded.
      */
-    public void setContext(CreditsDocument creditsDoc, LangDocument langDoc) {
+    public void setContext(@NotNull CreditsDocument creditsDoc, @NotNull LangDocument langDoc) {
         categoryView.setContext(langDoc);
         personView.setContext(creditsDoc, langDoc);
         bulkPersonView.setContext(creditsDoc, langDoc);
-        roleEditorPanel.setContext(creditsDoc, langDoc);
     }
 
     /** Shows the empty hint card. */
     public void showEmpty() {
-        activeCard = CARD_EMPTY;
         setDetailTitle("Details");
         cards.show(cardPanel, CARD_EMPTY);
     }
 
     /** Loads {@code category} into the category detail view and shows it. */
-    public void showCategory(DocumentCategory category) {
-        activeCard = CARD_CATEGORY;
+    public void showCategory(@NotNull DocumentCategory category) {
         setDetailTitle("Category: " + category.id);
         categoryView.load(category);
         cards.show(cardPanel, CARD_CATEGORY);
     }
 
     /** Loads {@code person} into the person detail view and shows it. */
-    public void showPerson(DocumentPerson person) {
-        activeCard = CARD_PERSON;
+    public void showPerson(@NotNull DocumentPerson person) {
         setDetailTitle("Person: " + McText.strip(person.name));
         personView.load(person);
         cards.show(cardPanel, CARD_PERSON);
     }
 
     /** Updates the selected category so bulk-operation pickers can default to it. */
-    public void setSelectedCategory(DocumentCategory category) {
+    public void setSelectedCategory(@Nullable DocumentCategory category) {
         bulkPersonView.setSelectedCategory(category);
     }
 
     /** Loads the bulk-operation view for the given multi-selection. */
-    public void showBulkPersons(List<DocumentPerson> persons) {
-        activeCard = CARD_BULK;
+    public void showBulkPersons(@NotNull List<DocumentPerson> persons) {
         setDetailTitle(persons.size() + " persons selected");
         bulkPersonView.load(persons);
         cards.show(cardPanel, CARD_BULK);
-    }
-
-    /** Shows the role editor, replacing the current detail view. */
-    public void showRoleEditor() {
-        setDetailTitle("Role Editor");
-        roleEditorPanel.refresh();
-        cards.show(cardPanel, CARD_ROLES);
-    }
-
-    /** Hides the role editor and returns to the previously active card. */
-    private void hideRoleEditor() {
-        cards.show(cardPanel, activeCard);
-        // Restore the title based on the active card
-        repaint();
     }
 
     /**
      * Refreshes the currently visible detail view from the document, preserving the displayed
      * item. Call after any external document change (undo, redo).
      */
-    public void refresh(DocumentCategory selectedCategory, List<DocumentPerson> selectedPersons) {
+    public void refresh(@Nullable DocumentCategory selectedCategory, @Nullable List<DocumentPerson> selectedPersons) {
         if (selectedPersons != null && selectedPersons.size() > 1) {
             showBulkPersons(selectedPersons);
         } else if (selectedPersons != null && selectedPersons.size() == 1) {
@@ -152,7 +126,7 @@ public final class DetailPanel extends JPanel {
         }
     }
 
-    private void setDetailTitle(String title) {
+    private void setDetailTitle(@NotNull String title) {
         detailBorder.setTitle(title);
         repaint();
     }

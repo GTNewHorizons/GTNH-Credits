@@ -15,6 +15,9 @@ import net.noiraude.creditseditor.ui.panel.PersonPanel;
 import net.noiraude.libcredits.model.DocumentCategory;
 import net.noiraude.libcredits.model.DocumentPerson;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 /**
  * Composes the three content panels (category list, person list, detail form) and owns the
  * inter-panel selection state.
@@ -26,41 +29,32 @@ import net.noiraude.libcredits.model.DocumentPerson;
  */
 final class EditorView extends JPanel {
 
-    private final CategoryPanel categoryPanel;
-    private final PersonPanel personPanel;
-    private final DetailPanel detailPanel;
+    private final @NotNull CategoryPanel categoryPanel;
+    private final @NotNull PersonPanel personPanel;
+    private final @NotNull DetailPanel detailPanel;
 
-    private EditorSession session;
-    private DocumentCategory selectedCategory;
-    private List<DocumentPerson> selectedPersons = List.of();
+    private @Nullable EditorSession session;
+    private @Nullable DocumentCategory selectedCategory;
+    private @NotNull List<DocumentPerson> selectedPersons = List.of();
 
     /**
      * Constructs the view and wires inter-panel selection callbacks.
      *
      * @param onCommand executor for all structural and field-level commands
      */
-    EditorView(CommandExecutor onCommand) {
+    EditorView(@NotNull CommandExecutor onCommand) {
         detailPanel = new DetailPanel(onCommand);
 
-        personPanel = new PersonPanel(onCommand, persons -> {
-            selectedPersons = persons;
-            if (persons.size() > 1) {
-                detailPanel.showBulkPersons(persons);
-            } else if (persons.size() == 1) {
-                detailPanel.showPerson(persons.getFirst());
-            } else if (selectedCategory != null) {
-                detailPanel.showCategory(selectedCategory);
-            } else {
-                detailPanel.showEmpty();
-            }
-        });
+        personPanel = new PersonPanel(onCommand, this::accept);
 
         categoryPanel = new CategoryPanel(onCommand, cat -> {
+            boolean reClick = cat != null && cat == selectedCategory && !selectedPersons.isEmpty();
             selectedCategory = cat;
             detailPanel.setSelectedCategory(cat);
             if (cat != null) {
                 personPanel.setFilter(cat);
-                if (selectedPersons.isEmpty()) {
+                if (selectedPersons.isEmpty() || reClick) {
+                    selectedPersons = List.of();
                     detailPanel.showCategory(cat);
                 }
             } else {
@@ -69,7 +63,7 @@ final class EditorView extends JPanel {
                     detailPanel.showEmpty();
                 }
             }
-        }, this::showRoleEditor);
+        });
 
         JSplitPane rightSplit = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, personPanel, detailPanel);
         rightSplit.setDividerLocation(scaled(250));
@@ -92,7 +86,7 @@ final class EditorView extends JPanel {
      * Populates all panels from the session's documents and resets the selection state.
      * Call once immediately after a new session is loaded.
      */
-    void loadSession(EditorSession newSession) {
+    void loadSession(@NotNull EditorSession newSession) {
         this.session = newSession;
         selectedCategory = null;
         selectedPersons = List.of();
@@ -118,6 +112,7 @@ final class EditorView extends JPanel {
      * Call after any structural command execute, undo, or redo.
      */
     void refreshAll() {
+        if (session == null) return;
         var creditsDoc = session.creditsDoc();
         var langDoc = session.langDoc();
 
@@ -153,12 +148,16 @@ final class EditorView extends JPanel {
             .repaint();
     }
 
-    // -----------------------------------------------------------------------
-    // Role editor
-    // -----------------------------------------------------------------------
-
-    /** Opens the role editor in the detail panel area. */
-    void showRoleEditor() {
-        detailPanel.showRoleEditor();
+    private void accept(@NotNull List<DocumentPerson> persons) {
+        selectedPersons = persons;
+        if (persons.size() > 1) {
+            detailPanel.showBulkPersons(persons);
+        } else if (persons.size() == 1) {
+            detailPanel.showPerson(persons.getFirst());
+        } else if (selectedCategory != null) {
+            detailPanel.showCategory(selectedCategory);
+        } else {
+            detailPanel.showEmpty();
+        }
     }
 }

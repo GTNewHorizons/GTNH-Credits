@@ -17,34 +17,38 @@ import net.noiraude.creditseditor.ui.component.MinecraftTextEditor;
 import net.noiraude.libcredits.lang.LangDocument;
 import net.noiraude.libcredits.model.DocumentCategory;
 
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 /**
  * Form panel that displays and edits the fields of a single {@link DocumentCategory}.
  *
  * <p>
  * Lang-derived fields (display name, description) are read from and written to the
- * {@link LangDocument} directly via {@link #setContext(LangDocument)}, so no synchronisation
+ * {@link LangDocument} directly via {@link #setContext(LangDocument)}, so no synchronization
  * step is needed. Call {@link #load(DocumentCategory)} whenever the active category changes
  * or the document has been refreshed by an undo/redo.
  */
 public final class CategoryDetailView extends DetailView<DocumentCategory> {
 
-    private static final String CLASS_PERSON = "person";
-    private static final String CLASS_ROLE = "role";
-    private static final String CLASS_DETAIL = "detail";
+    private static final @NotNull String CLASS_PERSON = "person";
+    private static final @NotNull String CLASS_ROLE = "role";
+    private static final @NotNull String CLASS_DETAIL = "detail";
 
-    private LangDocument langDoc;
+    private @Nullable LangDocument langDoc;
 
-    private final JTextField idField = new JTextField();
-    private final JLabel langKeyLabel = new JLabel();
-    private final MinecraftTextEditor displayNameEditor = new MinecraftTextEditor();
-    private final JCheckBox classPerson = new JCheckBox("person");
-    private final JCheckBox classRole = new JCheckBox("role");
-    private final JCheckBox classDetail = new JCheckBox("detail");
-    private final JLabel descriptionLabel = new JLabel("Details:");
-    private final MinecraftTextAreaEditor descriptionEditor = new MinecraftTextAreaEditor();
-    private final java.awt.Component spacer = Box.createVerticalGlue();
+    private final @NotNull JTextField idField = new JTextField();
+    private final @NotNull JLabel langKeyLabel = new JLabel();
+    private final @NotNull MinecraftTextEditor displayNameEditor = new MinecraftTextEditor();
+    private final @NotNull JCheckBox classPerson = new JCheckBox("person");
+    private final @NotNull JCheckBox classRole = new JCheckBox("role");
+    private final @NotNull JCheckBox classDetail = new JCheckBox("detail");
+    private final @NotNull JLabel descriptionLabel = new JLabel("Details:");
+    private final @NotNull MinecraftTextAreaEditor descriptionEditor = new MinecraftTextAreaEditor();
+    private final java.awt.@NotNull Component spacer = Box.createVerticalGlue();
 
-    public CategoryDetailView(CommandExecutor onCommand) {
+    public CategoryDetailView(@NotNull CommandExecutor onCommand) {
         super(onCommand);
         idField.setEditable(false);
         idField.setBackground(UIManager.getColor("Panel.background"));
@@ -92,7 +96,7 @@ public final class CategoryDetailView extends DetailView<DocumentCategory> {
         field.weighty = 0;
         add(descriptionEditor, field);
 
-        // Row 5: Spacer always present; absorbs extra vertical space when description is
+        // Row 5: Spacer always presents; absorbs extra vertical space when description is
         // hidden so rows stay top-aligned. Weight is swapped to the description editor when
         // the description row is visible, so the editor expands to fill the panel instead.
         GridBagConstraints spacerGbc = new GridBagConstraints();
@@ -104,7 +108,7 @@ public final class CategoryDetailView extends DetailView<DocumentCategory> {
         add(spacer, spacerGbc);
     }
 
-    private JPanel buildClassRow() {
+    private @NotNull JPanel buildClassRow() {
         JPanel classRow = new JPanel();
         classRow.setLayout(new BoxLayout(classRow, BoxLayout.X_AXIS));
         classRow.setOpaque(false);
@@ -168,7 +172,8 @@ public final class CategoryDetailView extends DetailView<DocumentCategory> {
      * Sets the lang document used for reading and writing display name and description.
      * Call once after a session is loaded.
      */
-    public void setContext(LangDocument langDoc) {
+    @Contract(mutates = "this")
+    public void setContext(@NotNull LangDocument langDoc) {
         this.langDoc = langDoc;
     }
 
@@ -176,7 +181,7 @@ public final class CategoryDetailView extends DetailView<DocumentCategory> {
      * Populates all fields from {@code cat} without firing any commands.
      * Call after any external model change: initial load, undo, or redo.
      */
-    public void load(DocumentCategory cat) {
+    public void load(@NotNull DocumentCategory cat) {
         current = cat;
         loading = true;
         try {
@@ -196,7 +201,7 @@ public final class CategoryDetailView extends DetailView<DocumentCategory> {
         updateDescriptionVisibility();
     }
 
-    private void onClassToggle(String cls, boolean selected) {
+    private void onClassToggle(@NotNull String cls, boolean selected) {
         if (loading || current == null) return;
         Set<String> newSet = new LinkedHashSet<>(current.classes);
         if (selected) {

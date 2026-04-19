@@ -14,6 +14,10 @@ import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledDocument;
 
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 /**
  * Editable {@link JTextPane} that renders and edits Minecraft {@code §x} formatting codes in
  * WYSIWYG style, wrapped in a {@link JScrollPane}.
@@ -45,10 +49,11 @@ import javax.swing.text.StyledDocument;
 public final class McWysiwygPane extends JScrollPane implements McFormatTarget {
 
     /** Property name fired when the text value changes due to user input. */
-    public static final String PROP_TEXT = "text";
+    public static final @NotNull String PROP_TEXT = "text";
 
-    private final JTextPane pane = new JTextPane() {
+    private final @NotNull JTextPane pane = new JTextPane() {
 
+        @Contract(pure = true)
         @Override
         public boolean getScrollableTracksViewportWidth() {
             return true; // always fill viewport width so word-wrap matches JTextArea behavior
@@ -56,6 +61,7 @@ public final class McWysiwygPane extends JScrollPane implements McFormatTarget {
     };
     private final boolean multiLine;
     private boolean settingText;
+    private boolean rawMode;
 
     /**
      * Carry that accumulates the active {@link McFormatCode}s for the next character to be typed.
@@ -81,7 +87,7 @@ public final class McWysiwygPane extends JScrollPane implements McFormatTarget {
      * by toolbar actions; flushed to the Swing input-attributes map so that typed characters
      * inherit the carry automatically.
      */
-    private EnumSet<McFormatCode> pendingCodes = EnumSet.noneOf(McFormatCode.class);
+    private @NotNull EnumSet<McFormatCode> pendingCodes = EnumSet.noneOf(McFormatCode.class);
 
     public McWysiwygPane(boolean multiLine) {
         this.multiLine = multiLine;
@@ -89,7 +95,7 @@ public final class McWysiwygPane extends JScrollPane implements McFormatTarget {
         pane.setBackground(UIManager.getColor("TextArea.background"));
         setViewportView(pane);
         setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-        removeLafUndoManager(pane);
+        AbstractMcEditor.removeLafUndoManager(pane);
 
         if (!multiLine) {
             pane.getInputMap()
@@ -105,24 +111,12 @@ public final class McWysiwygPane extends JScrollPane implements McFormatTarget {
         pane.getStyledDocument()
             .addDocumentListener(new AnyChangeListener(this::onChanged));
 
-        // Reinitialize the carry whenever the caret moves with no selection.
+        // Reinitialize the carry whenever the caret moves with no selection (rendered mode only).
         pane.addCaretListener(e -> {
-            if (!settingText && pane.getSelectionStart() == pane.getSelectionEnd()) {
+            if (!settingText && !rawMode && pane.getSelectionStart() == pane.getSelectionEnd()) {
                 syncPendingFromCaret();
             }
         });
-    }
-
-    /**
-     * Removes the L&F-installed {@code UndoManager} from the document of {@code c} so it does
-     * not maintain a parallel undo history that conflicts with the application command stack.
-     */
-    private static void removeLafUndoManager(javax.swing.text.JTextComponent c) {
-        Object mgr = c.getClientProperty("JTextField.undoManager");
-        if (mgr instanceof UndoableEditListener) {
-            c.getDocument()
-                .removeUndoableEditListener((UndoableEditListener) mgr);
-        }
     }
 
     private void onChanged() {
@@ -136,21 +130,28 @@ public final class McWysiwygPane extends JScrollPane implements McFormatTarget {
     // ------------------------------------------------------------------
 
     /**
-     * Sets the displayed text from a {@code §x} string in display format.
+     * Switches between rendered (WYSIWYG) and raw (literal {@code §x} codes) display mode.
      *
      * <p>
-     * In multi-line mode, paragraphs are separated by actual {@code '\n'} characters.
-     * Backslash characters are literal. Does not fire a {@code "text"} property change event.
-     *
-     * @param displayText the value in display format; {@code null} is treated as empty
+     * The current text is preserved across the switch. Does not fire a {@code "text"} event.
      */
-    public void setText(String displayText) {
+    public void setRawMode(boolean raw) {
+        if (this.rawMode == raw) return;
+        String text = getText();
+        this.rawMode = raw;
+        pendingCodes.clear();
+        setText(text);
+    }
+
+    public void setText(@Nullable String displayText) {
         settingText = true;
         try {
             StyledDocument doc = pane.getStyledDocument();
             doc.remove(0, doc.getLength());
             String content = displayText != null ? displayText : "";
-            if (multiLine) {
+            if (rawMode) {
+                doc.insertString(0, content, null);
+            } else if (multiLine) {
                 String[] paras = content.split("\n", -1);
                 for (int i = 0; i < paras.length; i++) {
                     if (i > 0) doc.insertString(doc.getLength(), "\n", null);
@@ -172,7 +173,16 @@ public final class McWysiwygPane extends JScrollPane implements McFormatTarget {
      * In multi-line mode, paragraphs are separated by actual {@code '\n'} characters.
      * Backslash characters are literal.
      */
-    public String getText() {
+    public @NotNull String getText() {
+        if (rawMode) {
+            StyledDocument doc = pane.getStyledDocument();
+            try {
+                String text = doc.getText(0, doc.getLength());
+                return text.endsWith("\n") ? text.substring(0, text.length() - 1) : text;
+            } catch (BadLocationException ignored) {
+                return "";
+            }
+        }
         return styledDocToRaw();
     }
 
@@ -192,7 +202,8 @@ public final class McWysiwygPane extends JScrollPane implements McFormatTarget {
      * selected content are set on the characters at and before the selection starts.
      */
     @Override
-    public AttributeSet getCaretAttributes() {
+    public @NotNull AttributeSet getCaretAttributes() {
+        if (rawMode) return new SimpleAttributeSet();
         int start = pane.getSelectionStart();
         if (start != pane.getSelectionEnd()) {
             return pane.getStyledDocument()
@@ -207,8 +218,9 @@ public final class McWysiwygPane extends JScrollPane implements McFormatTarget {
         return pane.getSelectionStart() != pane.getSelectionEnd();
     }
 
+    @Contract(" -> new")
     @Override
-    public McFormatCode.SelectionPresence computeSelectionPresence() {
+    public McFormatCode.@NotNull SelectionPresence computeSelectionPresence() {
         return McFormatCode.computePresence(pane.getStyledDocument(), pane.getSelectionStart(), pane.getSelectionEnd());
     }
 
@@ -217,7 +229,7 @@ public final class McWysiwygPane extends JScrollPane implements McFormatTarget {
      * {@link McFormatToolbar} to detect caret and selection changes.
      */
     @Override
-    public void addCaretListener(CaretListener l) {
+    public void addCaretListener(@NotNull CaretListener l) {
         pane.addCaretListener(l);
     }
 
@@ -225,7 +237,7 @@ public final class McWysiwygPane extends JScrollPane implements McFormatTarget {
      * Registers an {@link UndoableEditListener} that is notified of document edits caused by user
      * input. Events generated by programmatic {@link #setText} calls are suppressed.
      */
-    public void addUndoableEditListener(UndoableEditListener l) {
+    public void addUndoableEditListener(@NotNull UndoableEditListener l) {
         pane.getDocument()
             .addUndoableEditListener(e -> { if (!settingText) l.undoableEditHappened(e); });
     }
@@ -234,7 +246,7 @@ public final class McWysiwygPane extends JScrollPane implements McFormatTarget {
      * Connects a {@link McFormatToolbar} so its state tracks the caret and its buttons apply
      * formatting to this pane.
      */
-    public void connectToolbar(McFormatToolbar toolbar) {
+    public void connectToolbar(@NotNull McFormatToolbar toolbar) {
         toolbar.connectTo(this);
     }
 
@@ -255,7 +267,8 @@ public final class McWysiwygPane extends JScrollPane implements McFormatTarget {
      * @param active {@code true} to activate, {@code false} to deactivate
      */
     @Override
-    public void applyCode(McFormatCode mc, boolean active) {
+    public void applyCode(@NotNull McFormatCode mc, boolean active) {
+        if (rawMode) return;
         if (pane.getSelectionStart() != pane.getSelectionEnd()) {
             SimpleAttributeSet attrs = new SimpleAttributeSet();
             if (active) mc.applyTo(attrs);
@@ -272,6 +285,7 @@ public final class McWysiwygPane extends JScrollPane implements McFormatTarget {
     /** Removes all formatting from the selection (or clears the pending carry). */
     @Override
     public void applyReset() {
+        if (rawMode) return;
         if (pane.getSelectionStart() != pane.getSelectionEnd()) {
             applyAttrsToSelectionRange(new SimpleAttributeSet(), true);
         } else {
@@ -283,6 +297,7 @@ public final class McWysiwygPane extends JScrollPane implements McFormatTarget {
 
     @Override
     public void applyColorReset() {
+        if (rawMode) return;
         int start = pane.getSelectionStart();
         int end = pane.getSelectionEnd();
         if (start != end) {
@@ -345,7 +360,7 @@ public final class McWysiwygPane extends JScrollPane implements McFormatTarget {
     }
 
     /** Returns a fresh {@link SimpleAttributeSet} populated from the current carry. */
-    private SimpleAttributeSet pendingCodesToAttributeSet() {
+    private @NotNull SimpleAttributeSet pendingCodesToAttributeSet() {
         SimpleAttributeSet attrs = new SimpleAttributeSet();
         for (McFormatCode mc : pendingCodes) mc.applyTo(attrs);
         return attrs;
@@ -355,7 +370,7 @@ public final class McWysiwygPane extends JScrollPane implements McFormatTarget {
     // Selection-range attribute application
     // ------------------------------------------------------------------
 
-    private void applyAttrsToSelectionRange(SimpleAttributeSet attrs, boolean replace) {
+    private void applyAttrsToSelectionRange(@NotNull SimpleAttributeSet attrs, boolean replace) {
         StyledDocument doc = pane.getStyledDocument();
         int start = pane.getSelectionStart();
         int end = pane.getSelectionEnd();
@@ -377,7 +392,7 @@ public final class McWysiwygPane extends JScrollPane implements McFormatTarget {
     // § ↔ StyledDocument conversion
     // ------------------------------------------------------------------
 
-    private static void insertParagraph(StyledDocument doc, String raw) throws BadLocationException {
+    private static void insertParagraph(@NotNull StyledDocument doc, @NotNull String raw) throws BadLocationException {
         for (McFormatCode.Segment seg : McFormatCode.parse(raw)) {
             SimpleAttributeSet attrs = new SimpleAttributeSet();
             for (McFormatCode mc : seg.codes) mc.applyTo(attrs);
@@ -398,7 +413,7 @@ public final class McWysiwygPane extends JScrollPane implements McFormatTarget {
      * Paragraph separator ({@code '\n'}) characters carry no formatting codes of their own; the
      * implicit trailing {@code '\n'} that JTextPane always maintains is stripped from the result.
      */
-    private String styledDocToRaw() {
+    private @NotNull String styledDocToRaw() {
         StyledDocument doc = pane.getStyledDocument();
         int len = doc.getLength();
         if (len == 0) return "";
@@ -442,7 +457,8 @@ public final class McWysiwygPane extends JScrollPane implements McFormatTarget {
      * {@code §r}) is emitted followed by all currently active modifier codes. When only new
      * modifiers are added, only those new codes are emitted.
      */
-    private static void appendTransitionCodes(StringBuilder sb, RunStyle prev, RunStyle curr) {
+    private static void appendTransitionCodes(@NotNull StringBuilder sb, @NotNull RunStyle prev,
+        @NotNull RunStyle curr) {
         if (McFormatCode.needsResetBefore(prev.codes, curr.codes)) {
             McFormatCode color = McFormatCode.activeColor(curr.codes);
             if (color != null) color.appendTo(sb);
@@ -464,11 +480,12 @@ public final class McWysiwygPane extends JScrollPane implements McFormatTarget {
     /**
      * Immutable snapshot of the formatting codes active at one styled run.
      */
-    private record RunStyle(EnumSet<McFormatCode> codes) {
+    private record RunStyle(@NotNull EnumSet<McFormatCode> codes) {
 
-        static final RunStyle DEFAULT = new RunStyle(EnumSet.noneOf(McFormatCode.class));
+        static final @NotNull RunStyle DEFAULT = new RunStyle(EnumSet.noneOf(McFormatCode.class));
 
-        static RunStyle of(AttributeSet attrs) {
+        @Contract("_ -> new")
+        static @NotNull RunStyle of(@NotNull AttributeSet attrs) {
             return new RunStyle(McFormatCode.fromAttributes(attrs));
         }
     }

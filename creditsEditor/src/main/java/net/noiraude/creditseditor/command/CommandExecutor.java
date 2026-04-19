@@ -1,5 +1,7 @@
 package net.noiraude.creditseditor.command;
 
+import org.jetbrains.annotations.NotNull;
+
 /**
  * Callback that receives and executes a {@link Command}.
  *
@@ -11,5 +13,5 @@ package net.noiraude.creditseditor.command;
 public interface CommandExecutor {
 
     /** Executes {@code cmd} through the editor's command stack. */
-    void execute(Command cmd);
+    void execute(@NotNull Command cmd);
 }

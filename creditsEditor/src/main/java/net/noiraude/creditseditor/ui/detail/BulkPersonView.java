@@ -23,25 +23,28 @@ import net.noiraude.libcredits.model.DocumentCategory;
 import net.noiraude.libcredits.model.DocumentMembership;
 import net.noiraude.libcredits.model.DocumentPerson;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 /**
  * Detail panel card shown when multiple persons are selected.
  *
  * <p>
  * Displays the selection count and provides bulk operation buttons:
- * assign to category, add role in category, remove from category, and delete all.
+ * assign to a category, add a role in the category, remove from the category, and delete all.
  * Each operation dispatches a single {@link CompoundCommand} through the executor.
  */
 public final class BulkPersonView extends JPanel {
 
-    private final CommandExecutor onCommand;
-    private CreditsDocument creditsDoc;
-    private LangDocument langDoc;
-    private DocumentCategory selectedCategory;
-    private List<DocumentPerson> persons = List.of();
+    private final @NotNull CommandExecutor onCommand;
+    private @Nullable CreditsDocument creditsDoc;
+    private @Nullable LangDocument langDoc;
+    private @Nullable DocumentCategory selectedCategory;
+    private @NotNull List<DocumentPerson> persons = List.of();
 
-    private final JLabel countLabel = new JLabel();
+    private final @NotNull JLabel countLabel = new JLabel();
 
-    public BulkPersonView(CommandExecutor onCommand) {
+    public BulkPersonView(@NotNull CommandExecutor onCommand) {
         this.onCommand = onCommand;
         setLayout(new BorderLayout());
 
@@ -80,18 +83,18 @@ public final class BulkPersonView extends JPanel {
      * Sets the document context used for category lookups and lang display.
      * Call once after a session is loaded.
      */
-    public void setContext(CreditsDocument creditsDoc, LangDocument langDoc) {
+    public void setContext(@NotNull CreditsDocument creditsDoc, @NotNull LangDocument langDoc) {
         this.creditsDoc = creditsDoc;
         this.langDoc = langDoc;
     }
 
     /** Sets the currently selected category so picker dialogs can default to it. */
-    public void setSelectedCategory(DocumentCategory category) {
+    public void setSelectedCategory(@Nullable DocumentCategory category) {
         this.selectedCategory = category;
     }
 
     /** Loads the given selection into the view. */
-    public void load(List<DocumentPerson> persons) {
+    public void load(@NotNull List<DocumentPerson> persons) {
         this.persons = persons;
         countLabel.setText(persons.size() + " persons selected");
     }
@@ -142,29 +145,11 @@ public final class BulkPersonView extends JPanel {
         DocumentCategory target = pickCategory("Add role in category");
         if (target == null) return;
 
-        String role = JOptionPane.showInputDialog(this, "Role to add in '" + target.id + "':");
-        if (role == null || role.isBlank()) return;
-        role = role.strip();
+        String role = promptForRole(target);
+        if (role == null) return;
 
         CompoundCommand.Builder builder = new CompoundCommand.Builder("Add role '" + role + "' in " + target.id);
-
-        int added = 0;
-        int skipped = 0;
-        for (DocumentPerson person : persons) {
-            DocumentMembership membership = person.memberships.stream()
-                .filter(m -> m.categoryId.equals(target.id))
-                .findFirst()
-                .orElse(null);
-            if (membership == null) {
-                skipped++;
-                continue;
-            }
-            if (membership.roles.contains(role)) {
-                continue;
-            }
-            builder.add(new AddPersonRoleCommand(membership, role));
-            added++;
-        }
+        RoleAddCounts counts = collectRoleAddCommands(builder, target, role);
 
         if (builder.isEmpty()) {
             JOptionPane.showMessageDialog(
@@ -176,12 +161,45 @@ public final class BulkPersonView extends JPanel {
         }
 
         onCommand.execute(builder.build());
-        String message = added + " person(s) received the role.";
-        if (skipped > 0) {
-            message += "\n" + skipped + " person(s) skipped (not in category '" + target.id + "').";
+        showRoleAddSummary(counts, target);
+    }
+
+    private @Nullable String promptForRole(@NotNull DocumentCategory target) {
+        String role = JOptionPane.showInputDialog(this, "Role to add in '" + target.id + "':");
+        if (role == null) return null;
+        String stripped = role.strip();
+        return stripped.isEmpty() ? null : stripped;
+    }
+
+    private @NotNull RoleAddCounts collectRoleAddCommands(@NotNull CompoundCommand.Builder builder,
+        @NotNull DocumentCategory target, @NotNull String role) {
+        int added = 0;
+        int skipped = 0;
+        for (DocumentPerson person : persons) {
+            DocumentMembership membership = person.memberships.stream()
+                .filter(m -> m.categoryId.equals(target.id))
+                .findFirst()
+                .orElse(null);
+            if (membership == null) {
+                skipped++;
+                continue;
+            }
+            if (membership.roles.contains(role)) continue;
+            builder.add(new AddPersonRoleCommand(membership, role));
+            added++;
+        }
+        return new RoleAddCounts(added, skipped);
+    }
+
+    private void showRoleAddSummary(@NotNull RoleAddCounts counts, @NotNull DocumentCategory target) {
+        String message = counts.added() + " person(s) received the role.";
+        if (counts.skipped() > 0) {
+            message += "\n" + counts.skipped() + " person(s) skipped (not in category '" + target.id + "').";
         }
         JOptionPane.showMessageDialog(this, message, "Role added", JOptionPane.INFORMATION_MESSAGE);
     }
+
+    private record RoleAddCounts(int added, int skipped) {}
 
     private void onRemoveFromCategory() {
         if (persons.isEmpty() || creditsDoc == null) return;
@@ -212,13 +230,10 @@ public final class BulkPersonView extends JPanel {
             "Remove " + persons.size() + " person(s) from " + target.id);
 
         for (DocumentPerson person : persons) {
-            DocumentMembership membership = person.memberships.stream()
+            person.memberships.stream()
                 .filter(m -> m.categoryId.equals(target.id))
                 .findFirst()
-                .orElse(null);
-            if (membership != null) {
-                builder.add(new RemoveMembershipCommand(person, membership));
-            }
+                .ifPresent(membership -> builder.add(new RemoveMembershipCommand(person, membership)));
         }
 
         if (builder.isEmpty()) return;
@@ -247,11 +262,12 @@ public final class BulkPersonView extends JPanel {
     // Helpers
     // -----------------------------------------------------------------------
 
-    private DocumentCategory pickCategory(String title) {
+    private @Nullable DocumentCategory pickCategory(@NotNull String title) {
+        if (creditsDoc == null) return null;
         return pickFromList(creditsDoc.categories, title);
     }
 
-    private DocumentCategory pickFromList(List<DocumentCategory> categories, String title) {
+    private @Nullable DocumentCategory pickFromList(@NotNull List<DocumentCategory> categories, @NotNull String title) {
         if (categories.isEmpty()) {
             JOptionPane.showMessageDialog(this, "No categories available.", title, JOptionPane.INFORMATION_MESSAGE);
             return null;
@@ -275,13 +291,13 @@ public final class BulkPersonView extends JPanel {
         return categories.get(combo.getSelectedIndex());
     }
 
-    private String categoryLabel(DocumentCategory cat) {
+    private @NotNull String categoryLabel(@NotNull DocumentCategory cat) {
         String displayName = langDoc != null ? langDoc.get("credits.category." + KeySanitizer.sanitize(cat.id)) : null;
         if (displayName == null || displayName.isEmpty()) return cat.id;
         return cat.id + " (" + McText.strip(displayName) + ")";
     }
 
-    private static void addActionButton(JPanel panel, String text, Runnable action) {
+    private static void addActionButton(@NotNull JPanel panel, @NotNull String text, @NotNull Runnable action) {
         JButton button = new JButton(text);
         button.setAlignmentX(Component.LEFT_ALIGNMENT);
         button.setMaximumSize(new Dimension(Integer.MAX_VALUE, button.getPreferredSize().height));

@@ -16,6 +16,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 import net.noiraude.libcredits.lang.LangDocument;
 import net.noiraude.libcredits.lang.LangParser;
@@ -24,6 +25,10 @@ import net.noiraude.libcredits.model.CreditsDocument;
 import net.noiraude.libcredits.parser.CreditsParseException;
 import net.noiraude.libcredits.parser.CreditsParser;
 import net.noiraude.libcredits.serializer.CreditsSerializer;
+
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
@@ -40,21 +45,21 @@ import com.google.gson.JsonObject;
 public final class ResourceManager implements Closeable {
 
     /** Relative path of the credits JSON inside the resource root. */
-    public static final String CREDITS_PATH = "assets/gtnhcredits/credits.json";
+    public static final @NotNull String CREDITS_PATH = "assets/gtnhcredits/credits.json";
 
     /** Relative path of the English lang file inside the resource root. */
-    public static final String LANG_PATH = "assets/gtnhcredits/lang/en_US.lang";
+    public static final @NotNull String LANG_PATH = "assets/gtnhcredits/lang/en_US.lang";
 
-    private final Path diskPath;
-    private final FileSystem zipFs; // null for directory-mode instances
+    private final @NotNull Path diskPath;
+    private final @Nullable FileSystem zipFs; // null for directory-mode instances
 
     /** Root path inside the active filesystem (directory path or zip root). */
-    private final Path resourceRoot;
+    private final @NotNull Path resourceRoot;
 
-    private CreditsDocument creditsDoc;
-    private LangDocument langDoc;
+    private @Nullable CreditsDocument creditsDoc;
+    private @Nullable LangDocument langDoc;
 
-    private ResourceManager(Path diskPath, FileSystem zipFs) {
+    private ResourceManager(@NotNull Path diskPath, @Nullable FileSystem zipFs) {
         this.diskPath = diskPath;
         this.zipFs = zipFs;
         this.resourceRoot = (zipFs != null) ? zipFs.getPath("/") : diskPath;
@@ -77,7 +82,8 @@ public final class ResourceManager implements Closeable {
      * @throws IOException if the path exists but is neither a directory nor a {@code .zip} file,
      *                     or if any I/O error occurs during creation
      */
-    public static ResourceManager open(String pathArg) throws IOException {
+    @Contract("_ -> new")
+    public static @NotNull ResourceManager open(@NotNull String pathArg) throws IOException {
         Path path = Paths.get(pathArg);
         boolean isZipSuffix = pathArg.endsWith(".zip");
 
@@ -126,31 +132,36 @@ public final class ResourceManager implements Closeable {
     }
 
     /** Returns the mutable credits document loaded by {@link #loadDocuments()}. */
-    public CreditsDocument getCreditsDoc() {
-        return creditsDoc;
+    @Contract(pure = true)
+    public @NotNull CreditsDocument getCreditsDoc() {
+        return Objects.requireNonNull(creditsDoc, "call loadDocuments() first");
     }
 
     /** Returns the mutable lang document loaded by {@link #loadDocuments()}. */
-    public LangDocument getLangDoc() {
-        return langDoc;
+    @Contract(pure = true)
+    public @NotNull LangDocument getLangDoc() {
+        return Objects.requireNonNull(langDoc, "call loadDocuments() first");
     }
 
     /**
      * Returns {@code true} if any loaded document has unsaved changes.
      * Returns {@code false} if {@link #loadDocuments()} has not been called yet.
      */
+    @Contract(pure = true)
     public boolean isDirty() {
         if (creditsDoc == null || langDoc == null) return false;
         return creditsDoc.isDirty() || langDoc.isDirty();
     }
 
     /** Returns the on-disk path of the directory or zip file. */
-    public Path getDiskPath() {
+    @Contract(pure = true)
+    public @NotNull Path getDiskPath() {
         return diskPath;
     }
 
     /** Returns {@code true} if {@code relativePath} does not exist inside the resource root. */
-    public boolean notExists(String relativePath) {
+    @Contract(pure = true)
+    public boolean notExists(@NotNull String relativePath) {
         return !Files.exists(resourceRoot.resolve(relativePath));
     }
 
@@ -159,7 +170,7 @@ public final class ResourceManager implements Closeable {
      *
      * @throws IOException if the file does not exist or cannot be read
      */
-    public InputStream openRead(String relativePath) throws IOException {
+    public @NotNull InputStream openRead(@NotNull String relativePath) throws IOException {
         return Files.newInputStream(resourceRoot.resolve(relativePath));
     }
 
@@ -169,7 +180,7 @@ public final class ResourceManager implements Closeable {
      *
      * @throws IOException if the file cannot be written
      */
-    public OutputStream openWrite(String relativePath) throws IOException {
+    public @NotNull OutputStream openWrite(@NotNull String relativePath) throws IOException {
         Path target = resourceRoot.resolve(relativePath);
         Path parent = target.getParent();
         if (parent != null) {
@@ -186,8 +197,9 @@ public final class ResourceManager implements Closeable {
      * @throws CreditsParseException if the serialized data fails to reparse
      */
     public void writeCredits() throws IOException, CreditsParseException {
+        CreditsDocument doc = Objects.requireNonNull(creditsDoc, "call loadDocuments() first");
         ByteArrayOutputStream buf = new ByteArrayOutputStream();
-        CreditsSerializer.write(creditsDoc, buf);
+        CreditsSerializer.write(doc, buf);
         byte[] bytes = buf.toByteArray();
         CreditsParser.parse(new ByteArrayInputStream(bytes)); // round-trip validation
         try (OutputStream out = openWrite(CREDITS_PATH)) {
@@ -201,8 +213,9 @@ public final class ResourceManager implements Closeable {
      * @throws IOException if the file cannot be written
      */
     public void writeLang() throws IOException {
+        LangDocument doc = Objects.requireNonNull(langDoc, "call loadDocuments() first");
         try (OutputStream out = openWrite(LANG_PATH)) {
-            LangSerializer.write(langDoc, out);
+            LangSerializer.write(doc, out);
         }
     }
 
@@ -216,7 +229,7 @@ public final class ResourceManager implements Closeable {
 
     // -----------------------------------------------------------------------
 
-    private static FileSystem openZipFilesystem(Path zip, boolean create) throws IOException {
+    private static @NotNull FileSystem openZipFilesystem(@NotNull Path zip, boolean create) throws IOException {
         URI uri = URI.create("jar:" + zip.toUri());
         Map<String, String> env = new HashMap<>();
         if (create) {
@@ -225,7 +238,7 @@ public final class ResourceManager implements Closeable {
         return FileSystems.newFileSystem(uri, env);
     }
 
-    private static FileSystem createResourcePackZip(Path zip) throws IOException {
+    private static @NotNull FileSystem createResourcePackZip(@NotNull Path zip) throws IOException {
         Path parent = zip.getParent();
         if (parent != null) {
             Files.createDirectories(parent);
@@ -237,7 +250,8 @@ public final class ResourceManager implements Closeable {
         return openZipFilesystem(zip, false);
     }
 
-    private static String buildPackMcmeta() {
+    @Contract(pure = true)
+    private static @NotNull String buildPackMcmeta() {
         JsonObject pack = new JsonObject();
         pack.addProperty("pack_format", 1);
         pack.addProperty("description", "GTNH Credits resource pack");

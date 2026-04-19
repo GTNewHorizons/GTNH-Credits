@@ -6,6 +6,9 @@ import java.util.List;
 
 import net.noiraude.creditseditor.command.Command;
 
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
+
 /**
  * Groups multiple commands into a single undo/redo entry.
  *
@@ -15,10 +18,10 @@ import net.noiraude.creditseditor.command.Command;
  */
 public final class CompoundCommand extends AbstractStructuralCommand {
 
-    private final String displayName;
-    private final List<Command> children;
+    private final @NotNull String displayName;
+    private final @NotNull List<Command> children;
 
-    private CompoundCommand(String displayName, List<Command> children) {
+    private CompoundCommand(@NotNull String displayName, @NotNull List<Command> children) {
         this.displayName = displayName;
         this.children = children;
     }
@@ -40,11 +43,12 @@ public final class CompoundCommand extends AbstractStructuralCommand {
     }
 
     @Override
-    public String getDisplayName() {
+    public @NotNull String getDisplayName() {
         return displayName;
     }
 
     /** Returns the number of child commands in this compound. */
+    @Contract(pure = true)
     public int size() {
         return children.size();
     }
@@ -62,20 +66,22 @@ public final class CompoundCommand extends AbstractStructuralCommand {
      */
     public static final class Builder {
 
-        private final String displayName;
-        private final List<Command> children = new ArrayList<>();
+        private final @NotNull String displayName;
+        private final @NotNull List<Command> children = new ArrayList<>();
 
-        public Builder(String displayName) {
+        public Builder(@NotNull String displayName) {
             this.displayName = displayName;
         }
 
         /** Appends a child command. */
-        public Builder add(Command child) {
+        @Contract(value = "_ -> this", mutates = "this")
+        public @NotNull Builder add(@NotNull Command child) {
             children.add(child);
             return this;
         }
 
         /** Returns {@code true} if no child commands have been added. */
+        @Contract(pure = true)
         public boolean isEmpty() {
             return children.isEmpty();
         }
@@ -87,7 +93,7 @@ public final class CompoundCommand extends AbstractStructuralCommand {
          *         wrapping all children
          * @throws IllegalStateException if no children were added
          */
-        public Command build() {
+        public @NotNull Command build() {
             if (children.isEmpty()) {
                 throw new IllegalStateException("CompoundCommand requires at least one child");
             }

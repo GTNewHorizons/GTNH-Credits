@@ -14,6 +14,10 @@ import net.noiraude.libcredits.model.CreditsDocument;
 import net.noiraude.libcredits.model.DocumentMembership;
 import net.noiraude.libcredits.model.DocumentPerson;
 
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.UnmodifiableView;
+
 /**
  * Derived, read-only view of all roles present in a {@link CreditsDocument}.
  *
@@ -27,18 +31,19 @@ public final class RoleIndex {
     public static final class Entry {
 
         /** The role string as stored in the JSON. */
-        public final String raw;
+        public final @NotNull String raw;
 
         /** The lang key derived from the raw value: {@code credits.person.role.{sanitized}}. */
-        public final String langKey;
+        public final @NotNull String langKey;
 
         /** Number of distinct persons carrying this role (in any category). */
         public final int count;
 
         /** Ids of the categories where this role appears (in encounter order). */
-        public final List<String> categoryIds;
+        public final @NotNull List<String> categoryIds;
 
-        Entry(String raw, String langKey, int count, List<String> categoryIds) {
+        @Contract(pure = true)
+        Entry(@NotNull String raw, @NotNull String langKey, int count, @NotNull List<String> categoryIds) {
             this.raw = raw;
             this.langKey = langKey;
             this.count = count;
@@ -46,9 +51,10 @@ public final class RoleIndex {
         }
     }
 
-    private final List<Entry> entries;
+    private final @NotNull List<Entry> entries;
 
-    private RoleIndex(List<Entry> entries) {
+    @Contract(pure = true)
+    private RoleIndex(@NotNull List<Entry> entries) {
         this.entries = entries;
     }
 
@@ -58,7 +64,8 @@ public final class RoleIndex {
      * <p>
      * The resulting entry list is sorted alphabetically by {@link Entry#raw}.
      */
-    public static RoleIndex build(CreditsDocument creditsDoc) {
+    @Contract("_ -> new")
+    public static @NotNull RoleIndex build(@NotNull CreditsDocument creditsDoc) {
         Map<String, Set<String>> roleToCats = new LinkedHashMap<>();
         Map<String, Set<DocumentPerson>> roleToPersons = new LinkedHashMap<>();
 
@@ -87,7 +94,8 @@ public final class RoleIndex {
     }
 
     /** Returns an immutable alphabetically sorted list of all role entries. */
-    public List<Entry> entries() {
+    @Contract(pure = true)
+    public @NotNull @UnmodifiableView List<Entry> entries() {
         return entries;
     }
 
@@ -96,7 +104,7 @@ public final class RoleIndex {
      *
      * @return immutable set in encounter order
      */
-    public Set<String> rolesForCategory(String catId) {
+    public @NotNull @UnmodifiableView Set<String> rolesForCategory(@NotNull String catId) {
         Set<String> result = new LinkedHashSet<>();
         for (Entry e : entries) {
             if (e.categoryIds.contains(catId)) {
@@ -107,7 +115,8 @@ public final class RoleIndex {
     }
 
     /** Returns {@code true} if the index contains at least one occurrence of {@code role}. */
-    public boolean contains(String role) {
+    @Contract(pure = true)
+    public boolean contains(@NotNull String role) {
         for (Entry e : entries) {
             if (e.raw.equals(role)) return true;
         }

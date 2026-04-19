@@ -11,6 +11,10 @@ import java.util.Map;
 
 import javax.swing.*;
 
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 /**
  * Compact formatting toolbar for Minecraft {@code §x} codes.
  *
@@ -31,27 +35,18 @@ import javax.swing.*;
  */
 public final class McFormatToolbar extends JPanel {
 
-    private final JToggleButton[] colorButtons = new JToggleButton[16];
-    // Pre-created icon pairs per color: [colorIndex][0=plain, 1=mixed]
-    private final Icon[][] colorDieselIcons = new Icon[16][2];
-    private final Icon[][] colorSelIcons = new Icon[16][2];
-
-    // Pre-created NullColorIcon variants: [selected][mixed]
-    private final NullColorIcon[][] nullColorIcons;
-
-    private final JToggleButton noColorBtn = new JToggleButton();
+    private final McColorButton[] colorButtons = new McColorButton[16];
+    private final McNoColorButton noColorBtn;
 
     private final ButtonGroup colorGroup = new ButtonGroup();
     private final EnumMap<McFormatCode, MixedStateToggleButton> modifierButtons;
 
-    private McFormatTarget target;
+    private @Nullable McFormatTarget target;
     private boolean updatingState;
 
     public McFormatToolbar() {
         int iconSize = scaled(14);
-        nullColorIcons = new NullColorIcon[][] {
-            { new NullColorIcon(false, false, iconSize), new NullColorIcon(false, true, iconSize) },
-            { new NullColorIcon(true, false, iconSize), new NullColorIcon(true, true, iconSize) } };
+        noColorBtn = new McNoColorButton(iconSize);
         modifierButtons = buildModifierButtons();
         setLayout(new BoxLayout(this, BoxLayout.X_AXIS));
         setOpaque(false);
@@ -59,7 +54,7 @@ public final class McFormatToolbar extends JPanel {
         wireListeners(resetBtn);
     }
 
-    private static EnumMap<McFormatCode, MixedStateToggleButton> buildModifierButtons() {
+    private static @NotNull EnumMap<@NotNull McFormatCode, @NotNull MixedStateToggleButton> buildModifierButtons() {
         EnumMap<McFormatCode, MixedStateToggleButton> buttons = new EnumMap<>(McFormatCode.class);
         buttons.put(McFormatCode.BOLD, modBtn("B", McFormatCode.BOLD.displayName(), EnumSet.of(FontStyle.BOLD)));
         buttons.put(McFormatCode.ITALIC, modBtn("I", McFormatCode.ITALIC.displayName(), EnumSet.of(FontStyle.ITALIC)));
@@ -75,31 +70,20 @@ public final class McFormatToolbar extends JPanel {
         return buttons;
     }
 
-    private JButton buildColorSwatches(int iconSize) {
+    private @NotNull JButton buildColorSwatches(int iconSize) {
         for (int i = 0; i < 16; i++) {
-            final McFormatCode mc = McFormatCode.COLORS.get(i);
-            colorDieselIcons[i][0] = new ColorIcon(mc.color, false, false, iconSize);
-            colorDieselIcons[i][1] = new ColorIcon(mc.color, false, true, iconSize);
-            colorSelIcons[i][0] = new ColorIcon(mc.color, true, false, iconSize);
-            colorSelIcons[i][1] = new ColorIcon(mc.color, true, true, iconSize);
-
-            JToggleButton btn = new JToggleButton(colorDieselIcons[i][0]);
-            btn.setSelectedIcon(colorSelIcons[i][0]);
-            btn.setToolTipText(mc.displayName());
-            btn.setMargin(new Insets(scaled(1), scaled(1), scaled(1), scaled(1)));
-            btn.setFocusable(false);
+            final McFormatCode.PaletteColor pc = McFormatCode.COLORS.get(i);
+            McColorButton btn = new McColorButton(pc.color(), iconSize);
+            btn.setToolTipText(
+                pc.code()
+                    .displayName());
             colorGroup.add(btn);
             colorButtons[i] = btn;
             add(btn);
             if (i == 7) add(Box.createHorizontalStrut(scaled(3)));
-            btn.addActionListener(e -> apply(mc, true));
+            btn.addActionListener(e -> apply(pc.code(), true));
         }
 
-        noColorBtn.setIcon(nullColorIcons[0][0]);
-        noColorBtn.setSelectedIcon(nullColorIcons[1][0]);
-        noColorBtn.setToolTipText("Default color (no color attribute)");
-        noColorBtn.setMargin(new Insets(scaled(1), scaled(1), scaled(1), scaled(1)));
-        noColorBtn.setFocusable(false);
         colorGroup.add(noColorBtn);
         add(noColorBtn);
 
@@ -117,7 +101,7 @@ public final class McFormatToolbar extends JPanel {
         return resetBtn;
     }
 
-    private void wireListeners(JButton resetBtn) {
+    private void wireListeners(@NotNull JButton resetBtn) {
         for (Map.Entry<McFormatCode, MixedStateToggleButton> entry : modifierButtons.entrySet()) {
             McFormatCode mc = entry.getKey();
             MixedStateToggleButton btn = entry.getValue();
@@ -127,7 +111,7 @@ public final class McFormatToolbar extends JPanel {
         noColorBtn.addActionListener(e -> { if (target != null) target.applyColorReset(); });
     }
 
-    private void apply(McFormatCode mc, boolean active) {
+    private void apply(@NotNull McFormatCode mc, boolean active) {
         if (!updatingState && target != null) target.applyCode(mc, active);
     }
 
@@ -135,7 +119,7 @@ public final class McFormatToolbar extends JPanel {
      * Connects this toolbar to a {@link McWysiwygPane}: installs a caret listener to keep button
      * states in sync and routes apply operations back to the pane.
      */
-    void connectTo(McFormatTarget pane) {
+    void connectTo(@NotNull McFormatTarget pane) {
         this.target = pane;
         pane.addCaretListener(e -> updateState());
         updateState();
@@ -156,39 +140,36 @@ public final class McFormatToolbar extends JPanel {
     }
 
     /** Updates button states to reflect per-code mixed/all/none presence across a selection. */
-    private void applyPresence(McFormatCode.SelectionPresence presence) {
+    private void applyPresence(@NotNull McFormatCode.SelectionPresence presence) {
         boolean colorMatched = applyColorSwatchesPresence(presence);
         colorMatched |= applyNoColorButtonPresence(presence);
         if (!colorMatched) colorGroup.clearSelection();
         applyModifierPresence(presence);
     }
 
-    private boolean applyColorSwatchesPresence(McFormatCode.SelectionPresence presence) {
+    private boolean applyColorSwatchesPresence(@NotNull McFormatCode.SelectionPresence presence) {
         boolean colorMatched = false;
         for (int i = 0; i < 16; i++) {
-            McFormatCode mc = McFormatCode.COLORS.get(i);
-            boolean inAll = presence.all.contains(mc);
-            boolean inAny = presence.any.contains(mc);
-            int mixedIdx = inAny && !inAll ? 1 : 0;
-            colorButtons[i].setIcon(colorDieselIcons[i][mixedIdx]);
-            colorButtons[i].setSelectedIcon(colorSelIcons[i][mixedIdx]);
+            McFormatCode code = McFormatCode.COLORS.get(i)
+                .code();
+            boolean inAll = presence.all.contains(code);
+            boolean inAny = presence.any.contains(code);
             colorButtons[i].setSelected(inAll);
+            colorButtons[i].setMixed(inAny && !inAll);
             if (inAll) colorMatched = true;
         }
         return colorMatched;
     }
 
-    private boolean applyNoColorButtonPresence(McFormatCode.SelectionPresence presence) {
+    private boolean applyNoColorButtonPresence(@NotNull McFormatCode.SelectionPresence presence) {
         boolean anyColorInAny = McFormatCode.activeColor(presence.any) != null;
         boolean noColorAll = presence.anyLacksColor && !anyColorInAny;
-        int mixedIdx = presence.anyLacksColor && anyColorInAny ? 1 : 0;
-        noColorBtn.setIcon(nullColorIcons[0][mixedIdx]);
-        noColorBtn.setSelectedIcon(nullColorIcons[1][mixedIdx]);
         noColorBtn.setSelected(noColorAll);
+        noColorBtn.setMixed(presence.anyLacksColor && anyColorInAny);
         return noColorAll;
     }
 
-    private void applyModifierPresence(McFormatCode.SelectionPresence presence) {
+    private void applyModifierPresence(@NotNull McFormatCode.SelectionPresence presence) {
         for (Map.Entry<McFormatCode, MixedStateToggleButton> entry : modifierButtons.entrySet()) {
             McFormatCode mc = entry.getKey();
             entry.getValue()
@@ -197,19 +178,19 @@ public final class McFormatToolbar extends JPanel {
     }
 
     /** Updates button states to reflect a uniform (no-selection) attribute set. */
-    private void applyActive(EnumSet<McFormatCode> active) {
+    private void applyActive(@NotNull EnumSet<@NotNull McFormatCode> active) {
         boolean colorMatched = false;
         for (int i = 0; i < 16; i++) {
-            boolean sel = active.contains(McFormatCode.COLORS.get(i));
-            colorButtons[i].setIcon(colorDieselIcons[i][0]);
-            colorButtons[i].setSelectedIcon(colorSelIcons[i][0]);
+            boolean sel = active.contains(
+                McFormatCode.COLORS.get(i)
+                    .code());
             colorButtons[i].setSelected(sel);
+            colorButtons[i].setMixed(false);
             if (sel) colorMatched = true;
         }
         boolean noColor = McFormatCode.activeColor(active) == null;
-        noColorBtn.setIcon(nullColorIcons[0][0]);
-        noColorBtn.setSelectedIcon(nullColorIcons[1][0]);
         noColorBtn.setSelected(noColor);
+        noColorBtn.setMixed(false);
         if (noColor) colorMatched = true;
         if (!colorMatched) colorGroup.clearSelection();
         for (Map.Entry<McFormatCode, MixedStateToggleButton> entry : modifierButtons.entrySet()) {
@@ -223,37 +204,43 @@ public final class McFormatToolbar extends JPanel {
         BOLD {
 
             @Override
-            Font apply(Font f) {
+            @NotNull
+            Font apply(@NotNull Font f) {
                 return f.deriveFont(Font.BOLD);
             }
         },
         ITALIC {
 
             @Override
-            Font apply(Font f) {
+            @NotNull
+            Font apply(@NotNull Font f) {
                 return f.deriveFont(Font.ITALIC);
             }
         },
         UNDERLINE {
 
             @Override
-            Font apply(Font f) {
+            @NotNull
+            Font apply(@NotNull Font f) {
                 return f.deriveFont(Collections.singletonMap(TextAttribute.UNDERLINE, TextAttribute.UNDERLINE_ON));
             }
         },
         STRIKETHROUGH {
 
             @Override
-            Font apply(Font f) {
+            @NotNull
+            Font apply(@NotNull Font f) {
                 return f
                     .deriveFont(Collections.singletonMap(TextAttribute.STRIKETHROUGH, TextAttribute.STRIKETHROUGH_ON));
             }
         };
 
-        abstract Font apply(Font f);
+        abstract @NotNull Font apply(@NotNull Font f);
     }
 
-    private static MixedStateToggleButton modBtn(String text, String tooltip, EnumSet<FontStyle> styles) {
+    @Contract("_, _, _ -> new")
+    private static @NotNull MixedStateToggleButton modBtn(@NotNull String text, @NotNull String tooltip,
+        @NotNull EnumSet<FontStyle> styles) {
         MixedStateToggleButton btn = new MixedStateToggleButton(text);
         Font font = btn.getFont();
         for (FontStyle s : styles) font = s.apply(font);
@@ -262,6 +249,68 @@ public final class McFormatToolbar extends JPanel {
         btn.setMargin(new Insets(scaled(1), scaled(4), scaled(1), scaled(4)));
         btn.setFocusable(false);
         return btn;
+    }
+
+    // ------------------------------------------------------------------
+    // McColorButton / McNoColorButton
+    // ------------------------------------------------------------------
+
+    /**
+     * Toggle button for a single palette color swatch. Owns its four {@link ColorIcon} variants
+     * covering the {@code {unselected, selected} x {plain, mixed}} product and swaps the icon
+     * pair shown by the button according to the current mixed state.
+     */
+    private static final class McColorButton extends JToggleButton {
+
+        private final @NotNull Icon unselectedPlain;
+        private final @NotNull Icon selectedPlain;
+        private final @NotNull Icon unselectedMixed;
+        private final @NotNull Icon selectedMixed;
+
+        McColorButton(@NotNull Color fill, int iconSize) {
+            this.unselectedPlain = new ColorIcon(fill, false, false, iconSize);
+            this.selectedPlain = new ColorIcon(fill, true, false, iconSize);
+            this.unselectedMixed = new ColorIcon(fill, false, true, iconSize);
+            this.selectedMixed = new ColorIcon(fill, true, true, iconSize);
+            setIcon(unselectedPlain);
+            setSelectedIcon(selectedPlain);
+            setMargin(new Insets(scaled(1), scaled(1), scaled(1), scaled(1)));
+            setFocusable(false);
+        }
+
+        void setMixed(boolean mixed) {
+            setIcon(mixed ? unselectedMixed : unselectedPlain);
+            setSelectedIcon(mixed ? selectedMixed : selectedPlain);
+        }
+    }
+
+    /**
+     * Toggle button for the "default color / no color" choice. Owns its four {@link NoColorIcon}
+     * variants and mirrors the {@link McColorButton} API.
+     */
+    private static final class McNoColorButton extends JToggleButton {
+
+        private final @NotNull Icon unselectedPlain;
+        private final @NotNull Icon selectedPlain;
+        private final @NotNull Icon unselectedMixed;
+        private final @NotNull Icon selectedMixed;
+
+        McNoColorButton(int iconSize) {
+            this.unselectedPlain = new NoColorIcon(false, false, iconSize);
+            this.selectedPlain = new NoColorIcon(true, false, iconSize);
+            this.unselectedMixed = new NoColorIcon(false, true, iconSize);
+            this.selectedMixed = new NoColorIcon(true, true, iconSize);
+            setIcon(unselectedPlain);
+            setSelectedIcon(selectedPlain);
+            setToolTipText("Default color (no color attribute)");
+            setMargin(new Insets(scaled(1), scaled(1), scaled(1), scaled(1)));
+            setFocusable(false);
+        }
+
+        void setMixed(boolean mixed) {
+            setIcon(mixed ? unselectedMixed : unselectedPlain);
+            setSelectedIcon(mixed ? selectedMixed : selectedPlain);
+        }
     }
 
     // ------------------------------------------------------------------
@@ -280,7 +329,7 @@ public final class McFormatToolbar extends JPanel {
 
         private boolean mixed;
 
-        MixedStateToggleButton(String text) {
+        MixedStateToggleButton(@NotNull String text) {
             super(text);
         }
 
@@ -295,7 +344,7 @@ public final class McFormatToolbar extends JPanel {
         }
 
         @Override
-        protected void paintComponent(Graphics g) {
+        protected void paintComponent(@NotNull Graphics g) {
             super.paintComponent(g);
             if (mixed) {
                 Graphics2D g2 = (Graphics2D) g.create();
@@ -311,10 +360,10 @@ public final class McFormatToolbar extends JPanel {
     // ColorIcon
     // ------------------------------------------------------------------
 
-    private record ColorIcon(Color fill, boolean selected, boolean mixed, int size) implements Icon {
+    private record ColorIcon(@NotNull Color fill, boolean selected, boolean mixed, int size) implements Icon {
 
         @Override
-        public void paintIcon(Component c, Graphics g, int x, int y) {
+        public void paintIcon(@NotNull Component c, @NotNull Graphics g, int x, int y) {
             int inner = size - 2;
             int pipFill = Math.max(2, size * 2 / 7);
             int pipOffset = size - pipFill - 1;
@@ -338,11 +387,13 @@ public final class McFormatToolbar extends JPanel {
             }
         }
 
+        @Contract(pure = true)
         @Override
         public int getIconWidth() {
             return size;
         }
 
+        @Contract(pure = true)
         @Override
         public int getIconHeight() {
             return size;
@@ -350,20 +401,20 @@ public final class McFormatToolbar extends JPanel {
     }
 
     // ------------------------------------------------------------------
-    // NullColorIcon
+    // NoColorIcon
     // ------------------------------------------------------------------
 
     /**
      * Icon for the "no color / default color" button: a light gray swatch with a crossed X.
      */
-    private record NullColorIcon(boolean selected, boolean mixed, int size) implements Icon {
+    private record NoColorIcon(boolean selected, boolean mixed, int size) implements Icon {
 
-        private static final Color BG = new Color(210, 210, 210);
-        private static final Color CROSS = new Color(90, 90, 90);
-        private static final Color BORDER = new Color(150, 150, 150);
+        private static final @NotNull Color BG = new Color(210, 210, 210);
+        private static final @NotNull Color CROSS = new Color(90, 90, 90);
+        private static final @NotNull Color BORDER = new Color(150, 150, 150);
 
         @Override
-        public void paintIcon(Component c, Graphics g, int x, int y) {
+        public void paintIcon(@NotNull Component c, @NotNull Graphics g, int x, int y) {
             int inner = size - 2;
             int pipFill = Math.max(2, size * 2 / 7);
             int pipOffset = size - pipFill - 1;
@@ -391,11 +442,13 @@ public final class McFormatToolbar extends JPanel {
             }
         }
 
+        @Contract(pure = true)
         @Override
         public int getIconWidth() {
             return size;
         }
 
+        @Contract(pure = true)
         @Override
         public int getIconHeight() {
             return size;

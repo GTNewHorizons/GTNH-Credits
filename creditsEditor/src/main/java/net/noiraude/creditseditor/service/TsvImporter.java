@@ -13,6 +13,11 @@ import net.noiraude.libcredits.model.CreditsDocument;
 import net.noiraude.libcredits.model.DocumentMembership;
 import net.noiraude.libcredits.model.DocumentPerson;
 
+import org.jetbrains.annotations.Blocking;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.UnmodifiableView;
+
 /**
  * Parses a TSV file and computes the import plan against a {@link CreditsDocument}.
  *
@@ -38,14 +43,16 @@ public final class TsvImporter {
     /** One parsed TSV entry with its computed import action. */
     public static final class ImportLine {
 
-        public final String name;
+        public final @NotNull String name;
         /** All roles the person will have after import (existing + new, deduplicated). */
-        public final List<String> roles;
+        public final @NotNull List<String> roles;
         /** Roles that will actually be added by the import (subset of {@link #roles}). */
-        public final List<String> newRoles;
-        public final Action action;
+        public final @NotNull List<String> newRoles;
+        public final @NotNull Action action;
 
-        ImportLine(String name, List<String> roles, List<String> newRoles, Action action) {
+        @Contract(pure = true)
+        ImportLine(@NotNull String name, @NotNull List<String> roles, @NotNull List<String> newRoles,
+            @NotNull Action action) {
             this.name = name;
             this.roles = roles;
             this.newRoles = newRoles;
@@ -53,6 +60,7 @@ public final class TsvImporter {
         }
     }
 
+    @Contract(pure = true)
     private TsvImporter() {}
 
     /**
@@ -64,7 +72,9 @@ public final class TsvImporter {
      * @return list of parsed lines with their actions
      * @throws IOException on read failure
      */
-    public static List<ImportLine> parse(Reader reader, CreditsDocument doc, String categoryId) throws IOException {
+    @Blocking
+    public static @NotNull @UnmodifiableView List<ImportLine> parse(@NotNull Reader reader,
+        @NotNull CreditsDocument doc, @NotNull String categoryId) throws IOException {
         // Merge duplicate names: later lines add their roles to the first occurrence.
         Map<String, List<String>> merged = new LinkedHashMap<>();
         try (BufferedReader br = new BufferedReader(reader)) {
@@ -96,8 +106,9 @@ public final class TsvImporter {
         return Collections.unmodifiableList(lines);
     }
 
-    private static ImportLine buildImportLine(CreditsDocument doc, String categoryId, String name,
-        List<String> tsvRoles) {
+    @Contract("_, _, _, _ -> new")
+    private static @NotNull ImportLine buildImportLine(@NotNull CreditsDocument doc, @NotNull String categoryId,
+        @NotNull String name, @NotNull List<String> tsvRoles) {
         DocumentPerson person = doc.persons.stream()
             .filter(p -> p.name.equals(name))
             .findFirst()

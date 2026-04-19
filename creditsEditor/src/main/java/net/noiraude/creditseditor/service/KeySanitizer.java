@@ -1,5 +1,8 @@
 package net.noiraude.creditseditor.service;
 
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
+
 /**
  * Converts a category id or role string into its lang key suffix.
  *
@@ -25,10 +28,11 @@ package net.noiraude.creditseditor.service;
  */
 public final class KeySanitizer {
 
+    @Contract(pure = true)
     private KeySanitizer() {}
 
     /** Returns the lang key suffix for {@code value}. */
-    public static String sanitize(String value) {
+    public static @NotNull String sanitize(@NotNull String value) {
         return value.replace(".", "")
             .replace("-", "")
             .replaceAll(" +", "_")

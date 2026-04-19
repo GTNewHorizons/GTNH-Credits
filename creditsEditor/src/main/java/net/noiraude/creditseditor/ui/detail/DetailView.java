@@ -8,6 +8,10 @@ import javax.swing.*;
 
 import net.noiraude.creditseditor.command.CommandExecutor;
 
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 /**
  * Base panel for detail form views.
  *
@@ -20,17 +24,18 @@ import net.noiraude.creditseditor.command.CommandExecutor;
  */
 public abstract class DetailView<T> extends JPanel {
 
-    protected final CommandExecutor onCommand;
-    protected T current;
+    protected final @NotNull CommandExecutor onCommand;
+    protected @Nullable T current;
     protected boolean loading;
 
-    protected DetailView(CommandExecutor onCommand) {
+    protected DetailView(@NotNull CommandExecutor onCommand) {
         this.onCommand = onCommand;
         setLayout(new GridBagLayout());
     }
 
     /** Returns a fresh {@link GridBagConstraints} for the left-column label cell. */
-    protected static GridBagConstraints labelConstraints() {
+    @Contract(value = " -> new", pure = true)
+    protected static @NotNull GridBagConstraints labelConstraints() {
         GridBagConstraints c = new GridBagConstraints();
         c.gridx = 0;
         c.fill = GridBagConstraints.NONE;
@@ -42,7 +47,8 @@ public abstract class DetailView<T> extends JPanel {
     }
 
     /** Returns a fresh {@link GridBagConstraints} for the right-column field cell. */
-    protected static GridBagConstraints fieldConstraints() {
+    @Contract(value = " -> new", pure = true)
+    protected static @NotNull GridBagConstraints fieldConstraints() {
         GridBagConstraints c = new GridBagConstraints();
         c.gridx = 1;
         c.fill = GridBagConstraints.HORIZONTAL;

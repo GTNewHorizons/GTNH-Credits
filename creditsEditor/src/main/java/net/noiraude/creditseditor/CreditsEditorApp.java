@@ -8,19 +8,23 @@ import javax.swing.*;
 
 import net.noiraude.creditseditor.ui.MainWindow;
 
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 import com.formdev.flatlaf.FlatLightLaf;
 
 public class CreditsEditorApp {
 
-    @SuppressWarnings("unused")
-    public static void main(String[] args) {
+    public static void main(@NotNull String[] args) {
         FlatLightLaf.setup();
         new CreditsEditorApp().start(args);
     }
 
+    @Contract(pure = true)
     public CreditsEditorApp() {}
 
-    public void start(String[] argv) {
+    public void start(@NotNull String[] argv) {
         Args args;
         try {
             args = Args.parse(argv);
@@ -49,11 +53,13 @@ public class CreditsEditorApp {
         });
     }
 
-    private static String cmd() {
+    @Contract(pure = true)
+    private static @NotNull String cmd() {
         return System.getProperty("app.name", "gtnh-credits-editor");
     }
 
-    private static String version() {
+    @Contract(pure = true)
+    private static @NotNull String version() {
         try (InputStream in = CreditsEditorApp.class.getResourceAsStream("/version.properties")) {
             if (in != null) {
                 Properties p = new Properties();
@@ -80,9 +86,9 @@ public class CreditsEditorApp {
 
     // -----------------------------------------------------------------------
 
-    record Args(boolean help, boolean version, String resource) {
+    record Args(boolean help, boolean version, @Nullable String resource) {
 
-        static Args parse(String[] argv) {
+        static @NotNull Args parse(String @NotNull [] argv) {
             Builder b = new Builder();
             for (String arg : argv) b.accept(arg);
             return b.build();
@@ -91,9 +97,10 @@ public class CreditsEditorApp {
         private static final class Builder {
 
             boolean help, version, endOfOptions;
+            @Nullable
             String resource;
 
-            void accept(String arg) {
+            void accept(@NotNull String arg) {
                 if (endOfOptions || !arg.startsWith("-")) {
                     if (resource != null) throw new IllegalArgumentException("unexpected argument: " + arg);
                     resource = arg;
@@ -104,7 +111,7 @@ public class CreditsEditorApp {
                         .split("=", 2));
             }
 
-            private void applyOption(String[] kv) {
+            private void applyOption(String @NotNull [] kv) {
                 switch (kv[0]) {
                     case "h", "-help" -> help = true;
                     case "v", "-version" -> version = true;
@@ -118,6 +125,8 @@ public class CreditsEditorApp {
                 }
             }
 
+            @Contract(" -> new")
+            @NotNull
             Args build() {
                 return new Args(help, version, resource);
             }

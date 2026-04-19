@@ -15,16 +15,22 @@ val junitVersion: String by gradle.extra
 val flatLafVersion: String by gradle.extra
 
 dependencies {
-    implementation(project(":libCredits"))
+    implementation(fileTree("../libCredits/build/libs") { include("libCredits*.jar") })
     implementation("com.google.code.gson:gson:$gsonVersion")
     implementation("com.formdev:flatlaf:$flatLafVersion")
     testImplementation("junit:junit:$junitVersion")
+    compileOnly("org.jetbrains:annotations:24.1.0")
+    testCompileOnly("org.jetbrains:annotations:24.1.0")
 }
 
 java {
     toolchain {
         languageVersion.set(JavaLanguageVersion.of(21))
     }
+}
+
+tasks.withType<JavaCompile>().configureEach {
+    options.release.set(21)
 }
 
 version = rootProject.version

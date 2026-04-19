@@ -56,7 +56,7 @@ public class TsvImporterTest {
         List<ImportLine> lines = TsvImporter.parse(new StringReader(tsv), doc, "dev");
 
         assertEquals(2, lines.size());
-        assertEquals("Alice", lines.get(0).name);
+        assertEquals("Alice", lines.getFirst().name);
         assertEquals("Bob", lines.get(1).name);
     }
 
@@ -153,8 +153,8 @@ public class TsvImporterTest {
         List<ImportLine> lines = TsvImporter.parse(new StringReader(tsv), doc, "dev");
 
         assertEquals(2, lines.size());
-        assertEquals("Alice", lines.get(0).name);
-        assertEquals(Action.CREATE, lines.get(0).action);
+        assertEquals("Alice", lines.getFirst().name);
+        assertEquals(Action.CREATE, lines.getFirst().action);
         // Bob's two lines are merged: roles = [coder, newrole], and "newrole" is missing
         assertEquals("Bob", lines.get(1).name);
         assertEquals(List.of("coder", "newrole"), lines.get(1).roles);

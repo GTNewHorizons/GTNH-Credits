@@ -418,10 +418,10 @@
       "name": "Technovangelist",
       "category": [
         {
-          "team": ["dev", "infra"]
+          "team": ["dev", "infra", "bogo"]
         },
         {
-          "dev": ["dev", "infra"]
+          "dev": ["core-mods", "dev"]
         }
       ]
     },

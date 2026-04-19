@@ -5,6 +5,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
+
 /**
  * In-memory representation of a Minecraft {@code .lang} file.
  *
@@ -40,8 +43,9 @@ public final class LangDocument {
 
         static final BlankLine INSTANCE = new BlankLine();
 
+        @Contract(pure = true)
         @Override
-        public String toFileString() {
+        public @NotNull String toFileString() {
             return "";
         }
     }
@@ -50,10 +54,12 @@ public final class LangDocument {
 
         final String text;
 
+        @Contract(pure = true)
         CommentLine(String text) {
             this.text = text;
         }
 
+        @Contract(pure = true)
         @Override
         public String toFileString() {
             return text;
@@ -66,13 +72,15 @@ public final class LangDocument {
         String value;
         boolean deleted;
 
+        @Contract(pure = true)
         KeyValueLine(String key, String value) {
             this.key = key;
             this.value = value;
         }
 
+        @Contract(pure = true)
         @Override
-        public String toFileString() {
+        public @NotNull String toFileString() {
             return key + "=" + value;
         }
     }
@@ -95,15 +103,17 @@ public final class LangDocument {
     private final Map<String, String> loadedValues;
 
     // Package-private accessors for LangSerializer
+    @Contract(pure = true)
     List<Line> lines() {
         return lines;
     }
 
+    @Contract(pure = true)
     Map<String, String> pendingInserts() {
         return pendingInserts;
     }
 
-    LangDocument(List<Line> lines, Map<String, KeyValueLine> index, Set<String> ownedPrefixes) {
+    LangDocument(List<Line> lines, @NotNull Map<String, KeyValueLine> index, Set<String> ownedPrefixes) {
         this.lines = lines;
         this.index = index;
         this.ownedPrefixes = ownedPrefixes;

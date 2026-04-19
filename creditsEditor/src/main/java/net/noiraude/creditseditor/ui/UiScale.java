@@ -4,9 +4,12 @@ import java.awt.Font;
 
 import javax.swing.UIManager;
 
+import org.jetbrains.annotations.Contract;
+
 /** Utility for scaling pixel constants to the current UI font size. */
 public final class UiScale {
 
+    @Contract(pure = true)
     private UiScale() {}
 
     /**

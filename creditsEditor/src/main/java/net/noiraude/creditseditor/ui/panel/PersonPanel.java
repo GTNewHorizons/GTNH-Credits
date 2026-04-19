@@ -21,6 +21,9 @@ import net.noiraude.libcredits.model.DocumentCategory;
 import net.noiraude.libcredits.model.DocumentPerson;
 import net.noiraude.libcredits.util.PersonSortKey;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 /**
  * Middle panel showing the list of persons, optionally filtered by category.
  *
@@ -32,15 +35,15 @@ import net.noiraude.libcredits.util.PersonSortKey;
  */
 public final class PersonPanel extends ListPanel<DocumentPerson, List<DocumentPerson>> {
 
-    private DocumentCategory filter;
+    private @Nullable DocumentCategory filter;
 
-    private final JTextField searchField = new JTextField();
+    private final @NotNull JTextField searchField = new JTextField();
 
     /**
      * @param onCommand          receives each structural command to execute
      * @param onSelectionChanged called with the selected persons (empty list when cleared)
      */
-    public PersonPanel(CommandExecutor onCommand, Consumer<List<DocumentPerson>> onSelectionChanged) {
+    public PersonPanel(@NotNull CommandExecutor onCommand, @NotNull Consumer<List<DocumentPerson>> onSelectionChanged) {
         super("Persons", onCommand, onSelectionChanged);
         list.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
         list.setCellRenderer(new PersonCellRenderer());
@@ -83,7 +86,7 @@ public final class PersonPanel extends ListPanel<DocumentPerson, List<DocumentPe
      * Changes the active category filter and repopulates the list.
      * Pass {@code null} to show all persons.
      */
-    public void setFilter(DocumentCategory category) {
+    public void setFilter(@Nullable DocumentCategory category) {
         filter = category;
         applyFilter();
     }
@@ -92,7 +95,7 @@ public final class PersonPanel extends ListPanel<DocumentPerson, List<DocumentPe
      * Repopulates the list from the document, respecting the current filter and search term.
      * Preserves the selection by name where possible.
      */
-    public void refresh(CreditsDocument creditsDoc) {
+    public void refresh(@NotNull CreditsDocument creditsDoc) {
         this.creditsDoc = creditsDoc;
         refreshing = true;
         try {
@@ -103,7 +106,7 @@ public final class PersonPanel extends ListPanel<DocumentPerson, List<DocumentPe
     }
 
     @Override
-    protected List<DocumentPerson> getSelection() {
+    protected @NotNull List<DocumentPerson> getSelection() {
         return list.getSelectedValuesList();
     }
 
@@ -190,7 +193,7 @@ public final class PersonPanel extends ListPanel<DocumentPerson, List<DocumentPe
         updateButtons();
     }
 
-    private boolean passesFilter(DocumentPerson person, String search) {
+    private boolean passesFilter(@NotNull DocumentPerson person, @NotNull String search) {
         if (filter != null) {
             boolean member = person.memberships.stream()
                 .anyMatch(m -> m.categoryId.equals(filter.id));
@@ -218,8 +221,8 @@ public final class PersonPanel extends ListPanel<DocumentPerson, List<DocumentPe
     private static final class PersonCellRenderer extends DefaultListCellRenderer {
 
         @Override
-        public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected,
-            boolean cellHasFocus) {
+        public @NotNull Component getListCellRendererComponent(@NotNull JList<?> list, @Nullable Object value,
+            int index, boolean isSelected, boolean cellHasFocus) {
             JLabel label = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
             if (value instanceof DocumentPerson person) {
                 String display = McText.strip(person.name);

@@ -1,12 +1,18 @@
 package net.noiraude.creditseditor.ui.panel;
 
 import java.awt.*;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
 import java.util.function.Consumer;
 
 import javax.swing.*;
 
 import net.noiraude.creditseditor.command.CommandExecutor;
 import net.noiraude.libcredits.model.CreditsDocument;
+
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Abstract base panel for list-based editor panels (categories, persons).
@@ -23,22 +29,23 @@ import net.noiraude.libcredits.model.CreditsDocument;
  */
 abstract class ListPanel<E, S> extends JPanel {
 
-    protected final CommandExecutor onCommand;
-    protected CreditsDocument creditsDoc;
+    protected final @NotNull CommandExecutor onCommand;
+    protected @Nullable CreditsDocument creditsDoc;
 
-    protected final DefaultListModel<E> listModel = new DefaultListModel<>();
-    protected final JList<E> list = new JList<>(listModel);
+    protected final @NotNull DefaultListModel<E> listModel = new DefaultListModel<>();
+    protected final @NotNull JList<E> list = new JList<>(listModel);
     protected boolean refreshing;
 
-    protected final JButton addButton = new JButton("+");
-    protected final JButton removeButton = new JButton("-");
+    protected final @NotNull JButton addButton = new JButton("+");
+    protected final @NotNull JButton removeButton = new JButton("-");
 
     /**
      * @param title              border title for the panel
      * @param onCommand          receives each structural command to execute
      * @param onSelectionChanged called with the selection value (or {@code null}) on change
      */
-    protected ListPanel(String title, CommandExecutor onCommand, Consumer<S> onSelectionChanged) {
+    protected ListPanel(@NotNull String title, @NotNull CommandExecutor onCommand,
+        @NotNull Consumer<S> onSelectionChanged) {
         this.onCommand = onCommand;
         setLayout(new BorderLayout());
         setBorder(BorderFactory.createTitledBorder(title));
@@ -47,6 +54,13 @@ abstract class ListPanel<E, S> extends JPanel {
         list.addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
                 updateButtons();
+                if (!refreshing) onSelectionChanged.accept(getSelection());
+            }
+        });
+        list.addFocusListener(new FocusAdapter() {
+
+            @Override
+            public void focusGained(@NotNull FocusEvent e) {
                 if (!refreshing) onSelectionChanged.accept(getSelection());
             }
         });
@@ -60,13 +74,14 @@ abstract class ListPanel<E, S> extends JPanel {
      * Returns the value to pass to the selection-changed callback for the current
      * list selection. Returns {@code null} when nothing meaningful is selected.
      */
-    protected abstract S getSelection();
+    protected abstract @Nullable S getSelection();
 
     /** Updates toolbar button enabled states to reflect the current selection. */
     protected abstract void updateButtons();
 
     /** Returns the underlying list component, for targeted repaint after field edits. */
-    public JList<E> getList() {
+    @Contract(pure = true)
+    public @NotNull JList<E> getList() {
         return list;
     }
 }

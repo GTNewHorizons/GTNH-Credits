@@ -78,7 +78,7 @@ public class CompoundCommandTest {
         compound.execute();
 
         assertEquals(2, doc.categories.size());
-        assertEquals("a", doc.categories.get(0).id);
+        assertEquals("a", doc.categories.getFirst().id);
         assertEquals("b", doc.categories.get(1).id);
     }
 

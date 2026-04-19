@@ -1,5 +1,7 @@
 package net.noiraude.creditseditor.ui.detail;
 
+import static net.noiraude.creditseditor.ui.UiScale.scaled;
+
 import java.awt.*;
 import java.util.List;
 
@@ -19,6 +21,10 @@ import net.noiraude.libcredits.model.DocumentCategory;
 import net.noiraude.libcredits.model.DocumentMembership;
 import net.noiraude.libcredits.model.DocumentPerson;
 
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 /**
  * Form panel that displays and edits the fields of a single {@link DocumentPerson}.
  *
@@ -30,15 +36,18 @@ import net.noiraude.libcredits.model.DocumentPerson;
  */
 public final class PersonDetailView extends DetailView<DocumentPerson> {
 
-    private CreditsDocument creditsDoc;
-    private LangDocument langDoc;
+    private @Nullable CreditsDocument creditsDoc;
+    private @Nullable LangDocument langDoc;
+    private boolean restoringMembershipSelection = false;
 
-    private final MinecraftTextEditor nameEditor = new MinecraftTextEditor();
-    private final MembershipTableModel tableModel = new MembershipTableModel();
-    private final JTable membershipTable = new JTable(tableModel);
+    private final @NotNull MinecraftTextEditor nameEditor = new MinecraftTextEditor();
+    private final @NotNull MembershipTableModel tableModel = new MembershipTableModel();
+    private final @NotNull JTable membershipTable = new JTable(tableModel);
+    private final @NotNull MembershipRolePanel rolePanel;
 
-    public PersonDetailView(CommandExecutor onCommand) {
+    public PersonDetailView(@NotNull CommandExecutor onCommand) {
         super(onCommand);
+        rolePanel = new MembershipRolePanel(onCommand);
 
         GridBagConstraints label = labelConstraints();
         GridBagConstraints field = fieldConstraints();
@@ -93,30 +102,86 @@ public final class PersonDetailView extends DetailView<DocumentPerson> {
 
         addMembershipButton.addActionListener(e -> onAddMembership());
         removeMembershipButton.addActionListener(e -> onRemoveMembership());
+
+        membershipTable.getSelectionModel()
+            .addListSelectionListener(e -> {
+                if (e.getValueIsAdjusting() || restoringMembershipSelection) return;
+                int row = membershipTable.getSelectedRow();
+                if (row >= 0 && current != null) {
+                    rolePanel.load(current.memberships.get(row));
+                } else {
+                    rolePanel.load(null);
+                }
+            });
+
+        // Row 2: Role panel (spans both columns)
+        GridBagConstraints roleGbc = new GridBagConstraints();
+        roleGbc.gridy = 2;
+        roleGbc.gridx = 0;
+        roleGbc.gridwidth = 2;
+        roleGbc.fill = GridBagConstraints.BOTH;
+        roleGbc.weightx = 1.0;
+        roleGbc.weighty = 1.0;
+        roleGbc.insets = new Insets(scaled(4), scaled(4), scaled(4), scaled(4));
+        add(rolePanel, roleGbc);
     }
 
     /**
      * Sets the document context used for category lookups and display name resolution.
      * Call once after a session is loaded.
      */
-    public void setContext(CreditsDocument creditsDoc, LangDocument langDoc) {
+    public void setContext(@NotNull CreditsDocument creditsDoc, @NotNull LangDocument langDoc) {
         this.creditsDoc = creditsDoc;
         this.langDoc = langDoc;
+        rolePanel.setContext(creditsDoc, langDoc);
     }
 
     /**
      * Populates all fields from {@code person} without firing any commands.
      * Call after any external model change: initial load, undo, or redo.
      */
-    public void load(DocumentPerson person) {
+    public void load(@NotNull DocumentPerson person) {
+        String prevCategoryId = selectedMembershipCategoryId();
         current = person;
         loading = true;
+        restoringMembershipSelection = true;
         try {
             nameEditor.setText(person.name);
             tableModel.setMemberships(person.memberships);
+            restoreMembershipSelection(person, prevCategoryId);
         } finally {
             loading = false;
+            restoringMembershipSelection = false;
         }
+        // Trigger role panel manually now that the flag is cleared
+        int row = membershipTable.getSelectedRow();
+        if (row >= 0) {
+            rolePanel.load(current.memberships.get(row));
+        } else {
+            rolePanel.load(null);
+        }
+    }
+
+    private @Nullable String selectedMembershipCategoryId() {
+        int row = membershipTable.getSelectedRow();
+        if (row >= 0 && current != null && row < current.memberships.size()) {
+            return current.memberships.get(row).categoryId;
+        }
+        return null;
+    }
+
+    private void restoreMembershipSelection(@NotNull DocumentPerson person, @Nullable String categoryId) {
+        if (categoryId == null) {
+            membershipTable.clearSelection();
+            return;
+        }
+        for (int i = 0; i < person.memberships.size(); i++) {
+            if (person.memberships.get(i).categoryId.equals(categoryId)) {
+                membershipTable.setRowSelectionInterval(i, i);
+                return;
+            }
+        }
+        membershipTable.clearSelection();
     }
 
     private void onAddMembership() {
@@ -175,31 +240,34 @@ public final class PersonDetailView extends DetailView<DocumentPerson> {
 
     private static final class MembershipTableModel extends AbstractTableModel {
 
-        private static final String[] COLUMNS = { "Category", "Roles" };
-        private List<DocumentMembership> memberships = List.of();
+        private static final @NotNull String @NotNull [] COLUMNS = { "Category", "Roles" };
+        private @NotNull List<DocumentMembership> memberships = List.of();
 
-        void setMemberships(List<DocumentMembership> memberships) {
+        void setMemberships(@NotNull List<DocumentMembership> memberships) {
             this.memberships = memberships;
             fireTableDataChanged();
         }
 
+        @Contract(pure = true)
         @Override
         public int getRowCount() {
             return memberships.size();
         }
 
+        @Contract(pure = true)
         @Override
         public int getColumnCount() {
             return COLUMNS.length;
         }
 
+        @Contract(pure = true)
         @Override
-        public String getColumnName(int col) {
+        public @NotNull String getColumnName(int col) {
             return COLUMNS[col];
         }
 
         @Override
-        public Object getValueAt(int row, int col) {
+        public @NotNull Object getValueAt(int row, int col) {
             DocumentMembership m = memberships.get(row);
             return switch (col) {
                 case 0 -> m.categoryId;

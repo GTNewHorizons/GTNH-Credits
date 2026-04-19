@@ -2,6 +2,8 @@ package net.noiraude.creditseditor.command.impl;
 
 import javax.swing.undo.UndoableEdit;
 
+import org.jetbrains.annotations.NotNull;
+
 /**
  * Command that wraps a {@link UndoableEdit} captured from a text component's document.
  *
@@ -13,11 +15,11 @@ import javax.swing.undo.UndoableEdit;
  */
 public final class DocumentEditCommand extends AbstractLightEditCommand {
 
-    private final String displayName;
-    private final UndoableEdit edit;
+    private final @NotNull String displayName;
+    private final @NotNull UndoableEdit edit;
     private boolean applied = true;
 
-    public DocumentEditCommand(String displayName, UndoableEdit edit) {
+    public DocumentEditCommand(@NotNull String displayName, @NotNull UndoableEdit edit) {
         this.displayName = displayName;
         this.edit = edit;
     }
@@ -37,7 +39,7 @@ public final class DocumentEditCommand extends AbstractLightEditCommand {
     }
 
     @Override
-    public String getDisplayName() {
+    public @NotNull String getDisplayName() {
         return displayName;
     }
 

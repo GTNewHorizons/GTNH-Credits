@@ -3,6 +3,8 @@ package net.noiraude.creditseditor.command.impl;
 import net.noiraude.libcredits.model.DocumentMembership;
 import net.noiraude.libcredits.model.DocumentPerson;
 
+import org.jetbrains.annotations.NotNull;
+
 /**
  * Removes a category membership from a person's membership list.
  *
@@ -11,11 +13,11 @@ import net.noiraude.libcredits.model.DocumentPerson;
  */
 public final class RemoveMembershipCommand extends AbstractStructuralCommand {
 
-    private final DocumentPerson person;
-    private final DocumentMembership membership;
+    private final @NotNull DocumentPerson person;
+    private final @NotNull DocumentMembership membership;
     private int savedIndex;
 
-    public RemoveMembershipCommand(DocumentPerson person, DocumentMembership membership) {
+    public RemoveMembershipCommand(@NotNull DocumentPerson person, @NotNull DocumentMembership membership) {
         this.person = person;
         this.membership = membership;
     }
@@ -32,7 +34,7 @@ public final class RemoveMembershipCommand extends AbstractStructuralCommand {
     }
 
     @Override
-    public String getDisplayName() {
+    public @NotNull String getDisplayName() {
         return "Remove " + membership.categoryId + " from " + person.name;
     }
 }

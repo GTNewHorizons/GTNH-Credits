@@ -15,6 +15,10 @@ import net.noiraude.libcredits.lang.LangDocument;
 import net.noiraude.libcredits.model.CreditsDocument;
 import net.noiraude.libcredits.model.DocumentCategory;
 
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 /**
  * Left-side panel showing the ordered list of categories.
  *
@@ -31,50 +35,38 @@ import net.noiraude.libcredits.model.DocumentCategory;
 public final class CategoryPanel extends ListPanel<Object, DocumentCategory> {
 
     /** Sentinel value that represents the "show all persons" state. */
-    private static final Object ALL_SENTINEL = new Object() {};
+    private static final @NotNull Object ALL_SENTINEL = new Object() {};
 
-    private LangDocument langDoc;
+    private @Nullable LangDocument langDoc;
 
-    private final JButton upButton = new JButton("▲");
-    private final JButton downButton = new JButton("▼");
-    private final JButton rolesButton = new JButton("Roles...");
+    private final @NotNull JButton upButton = new JButton("▲");
+    private final @NotNull JButton downButton = new JButton("▼");
 
     /**
      * @param onCommand          receives each structural command to execute
      * @param onSelectionChanged called with the selected {@link DocumentCategory}, or
      *                           {@code null} when the "All persons" sentinel is selected
      */
-    /**
-     * @param onCommand          receives each structural command to execute
-     * @param onSelectionChanged called with the selected {@link DocumentCategory}, or
-     *                           {@code null} when the "All persons" sentinel is selected
-     * @param onRolesRequested   called when the user clicks the "Roles..." button
-     */
-    public CategoryPanel(CommandExecutor onCommand, Consumer<DocumentCategory> onSelectionChanged,
-        Runnable onRolesRequested) {
+    public CategoryPanel(@NotNull CommandExecutor onCommand, @NotNull Consumer<DocumentCategory> onSelectionChanged) {
         super("Categories", onCommand, onSelectionChanged);
 
         list.setCellRenderer(new CategoryCellRenderer());
 
-        // Toolbar
         addButton.setToolTipText("Add category");
         removeButton.setToolTipText("Remove category");
         upButton.setToolTipText("Move up");
         downButton.setToolTipText("Move down");
-        rolesButton.setToolTipText("Open role editor");
 
         addButton.addActionListener(e -> onAdd());
         removeButton.addActionListener(e -> onRemove());
         upButton.addActionListener(e -> onMove(-1));
         downButton.addActionListener(e -> onMove(+1));
-        rolesButton.addActionListener(e -> onRolesRequested.run());
 
         JPanel toolbar = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 2));
         toolbar.add(addButton);
         toolbar.add(removeButton);
         toolbar.add(upButton);
         toolbar.add(downButton);
-        toolbar.add(rolesButton);
         add(toolbar, BorderLayout.SOUTH);
 
         updateButtons();
@@ -84,7 +76,7 @@ public final class CategoryPanel extends ListPanel<Object, DocumentCategory> {
      * Repopulates the list from {@code creditsDoc}, preserving the selection by category id
      * where possible. {@code langDoc} is used by the cell renderer to resolve display names.
      */
-    public void refresh(CreditsDocument creditsDoc, LangDocument langDoc) {
+    public void refresh(@NotNull CreditsDocument creditsDoc, @NotNull LangDocument langDoc) {
         this.creditsDoc = creditsDoc;
         this.langDoc = langDoc;
         String prevId = selectedCategoryId();
@@ -123,12 +115,13 @@ public final class CategoryPanel extends ListPanel<Object, DocumentCategory> {
      * Returns the currently selected {@link DocumentCategory}, or {@code null} when
      * the "All persons" sentinel is selected or nothing is selected.
      */
-    public DocumentCategory getSelectedCategory() {
+    @Contract(pure = true)
+    public @Nullable DocumentCategory getSelectedCategory() {
         return getSelection();
     }
 
     @Override
-    protected DocumentCategory getSelection() {
+    protected @Nullable DocumentCategory getSelection() {
         Object sel = list.getSelectedValue();
         return (sel instanceof DocumentCategory dc) ? dc : null;
     }
@@ -194,7 +187,7 @@ public final class CategoryPanel extends ListPanel<Object, DocumentCategory> {
         downButton.setEnabled(catSelected && idx < creditsDoc.categories.size() - 1);
     }
 
-    private String selectedCategoryId() {
+    private @Nullable String selectedCategoryId() {
         DocumentCategory cat = getSelectedCategory();
         return cat != null ? cat.id : null;
     }
@@ -206,8 +199,8 @@ public final class CategoryPanel extends ListPanel<Object, DocumentCategory> {
     private final class CategoryCellRenderer extends DefaultListCellRenderer {
 
         @Override
-        public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected,
-            boolean cellHasFocus) {
+        public @NotNull Component getListCellRendererComponent(@NotNull JList<?> list, @Nullable Object value,
+            int index, boolean isSelected, boolean cellHasFocus) {
             JLabel label = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
             if (value == ALL_SENTINEL) {
                 label.setText("All persons");

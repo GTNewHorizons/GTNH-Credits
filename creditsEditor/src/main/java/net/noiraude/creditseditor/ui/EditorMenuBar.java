@@ -5,6 +5,10 @@ import java.awt.event.KeyEvent;
 
 import javax.swing.*;
 
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 /**
  * Menu bar for the credit editor window.
  *
@@ -18,36 +22,35 @@ final class EditorMenuBar extends JMenuBar {
     /**
      * File-menu callbacks: open, new, save, quit.
      */
-    record FileActions(Runnable onOpen, Runnable onNew, Runnable onSave, Runnable onQuit) {
+    record FileActions(@NotNull Runnable onOpen, @NotNull Runnable onNew, @NotNull Runnable onSave,
+        @NotNull Runnable onQuit) {
 
     }
 
-    /** Edit-menu callbacks: undo, redo, and roles editor. */
+    /** Edit-menu callbacks: undo, redo. */
     static final class EditActions {
 
-        final Runnable onUndo;
-        final Runnable onRedo;
-        final Runnable onRoles;
+        final @NotNull Runnable onUndo;
+        final @NotNull Runnable onRedo;
 
-        EditActions(Runnable onUndo, Runnable onRedo, Runnable onRoles) {
+        @Contract(pure = true)
+        EditActions(@NotNull Runnable onUndo, @NotNull Runnable onRedo) {
             this.onUndo = onUndo;
             this.onRedo = onRedo;
-            this.onRoles = onRoles;
         }
     }
 
-    private final JMenuItem menuSave;
-    private final JMenuItem menuUndo;
-    private final JMenuItem menuRedo;
+    private final @NotNull JMenuItem menuSave;
+    private final @NotNull JMenuItem menuUndo;
+    private final @NotNull JMenuItem menuRedo;
 
-    EditorMenuBar(FileActions fileActions, EditActions editActions) {
+    EditorMenuBar(@NotNull FileActions fileActions, @NotNull EditActions editActions) {
         Runnable onOpen = fileActions.onOpen;
         Runnable onNew = fileActions.onNew;
         Runnable onSave = fileActions.onSave;
         Runnable onQuit = fileActions.onQuit;
         Runnable onUndo = editActions.onUndo;
         Runnable onRedo = editActions.onRedo;
-        Runnable onRoles = editActions.onRoles;
         JMenu fileMenu = new JMenu("File");
         JMenuItem menuOpen = new JMenuItem("Open Resources…");
         JMenuItem menuNew = new JMenuItem("New Resources…");
@@ -70,10 +73,6 @@ final class EditorMenuBar extends JMenuBar {
         fileMenu.add(menuQuit);
 
         JMenu editMenu = new JMenu("Edit");
-        JMenuItem menuRoles = new JMenuItem("Roles...");
-        menuRoles.addActionListener(e -> onRoles.run());
-        editMenu.add(menuRoles);
-        editMenu.addSeparator();
 
         menuUndo = new JMenuItem("Undo");
         menuRedo = new JMenuItem("Redo");
@@ -98,7 +97,7 @@ final class EditorMenuBar extends JMenuBar {
      * Updates enabled state and display text of the stateful menu items to reflect
      * {@code session}. Pass {@code null} when no resource is open.
      */
-    void refresh(EditorSession session) {
+    void refresh(@Nullable EditorSession session) {
         boolean loaded = session != null;
         menuSave.setEnabled(loaded);
 

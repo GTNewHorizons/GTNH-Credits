@@ -7,6 +7,9 @@ import net.noiraude.creditseditor.command.CommandStack;
 import net.noiraude.libcredits.lang.LangDocument;
 import net.noiraude.libcredits.model.CreditsDocument;
 
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
+
 /**
  * Facade for one editing session: encapsulates the {@link ResourceManager}, loaded
  * documents, and the undo/redo stack.
@@ -26,10 +29,11 @@ import net.noiraude.libcredits.model.CreditsDocument;
  */
 final class EditorSession {
 
-    private final ResourceManager resourceManager;
-    final CommandStack stack = new CommandStack();
+    private final @NotNull ResourceManager resourceManager;
+    final @NotNull CommandStack stack = new CommandStack();
 
-    private EditorSession(ResourceManager resourceManager) {
+    @Contract(pure = true)
+    private EditorSession(@NotNull ResourceManager resourceManager) {
         this.resourceManager = resourceManager;
     }
 
@@ -41,7 +45,7 @@ final class EditorSession {
      * @return a ready-to-use session
      * @throws Exception if the path cannot be opened or the files cannot be parsed
      */
-    static EditorSession open(String path) throws Exception {
+    static @NotNull EditorSession open(@NotNull String path) throws Exception {
         ResourceManager rm = ResourceManager.open(path);
         try {
             rm.loadDocuments();
@@ -57,16 +61,22 @@ final class EditorSession {
     }
 
     /** Convenience accessor for the credits document held by the resource manager. */
+    @Contract(pure = true)
+    @NotNull
     CreditsDocument creditsDoc() {
         return resourceManager.getCreditsDoc();
     }
 
     /** Convenience accessor for the lang document held by the resource manager. */
+    @Contract(pure = true)
+    @NotNull
     LangDocument langDoc() {
         return resourceManager.getLangDoc();
     }
 
     /** Returns the file name of the resource directory or zip, for use in the title bar. */
+    @Contract(pure = true)
+    @NotNull
     String displayPath() {
         return resourceManager.getDiskPath()
             .getFileName()
@@ -82,6 +92,7 @@ final class EditorSession {
      * Delegates to {@link ResourceManager#isDirty()}, which is the authority for the
      * combined dirty state of all resources it manages.
      */
+    @Contract(pure = true)
     boolean isDirty() {
         return resourceManager.isDirty();
     }

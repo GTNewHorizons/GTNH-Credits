@@ -8,6 +8,8 @@ import net.noiraude.libcredits.model.DocumentCategory;
 import net.noiraude.libcredits.model.DocumentMembership;
 import net.noiraude.libcredits.model.DocumentPerson;
 
+import org.jetbrains.annotations.NotNull;
+
 /**
  * Removes a category from the document and strips every person's membership in that category.
  *
@@ -17,15 +19,15 @@ import net.noiraude.libcredits.model.DocumentPerson;
  */
 public final class RemoveCategoryCommand extends AbstractStructuralCommand {
 
-    private final CreditsDocument creditsDoc;
-    private final DocumentCategory category;
+    private final @NotNull CreditsDocument creditsDoc;
+    private final @NotNull DocumentCategory category;
 
     private int savedIndex;
-    private final List<AffectedMembership> saved = new ArrayList<>();
+    private final @NotNull List<AffectedMembership> saved = new ArrayList<>();
 
     private record AffectedMembership(DocumentPerson person, int index, DocumentMembership membership) {}
 
-    public RemoveCategoryCommand(CreditsDocument creditsDoc, DocumentCategory category) {
+    public RemoveCategoryCommand(@NotNull CreditsDocument creditsDoc, @NotNull DocumentCategory category) {
         this.creditsDoc = creditsDoc;
         this.category = category;
     }
@@ -58,7 +60,7 @@ public final class RemoveCategoryCommand extends AbstractStructuralCommand {
     }
 
     @Override
-    public String getDisplayName() {
+    public @NotNull String getDisplayName() {
         return "Remove category " + category.id;
     }
 }

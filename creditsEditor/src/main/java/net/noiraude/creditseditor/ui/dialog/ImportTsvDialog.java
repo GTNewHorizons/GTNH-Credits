@@ -8,6 +8,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 import javax.swing.*;
 import javax.swing.table.AbstractTableModel;
@@ -24,6 +25,10 @@ import net.noiraude.libcredits.model.DocumentCategory;
 import net.noiraude.libcredits.model.DocumentMembership;
 import net.noiraude.libcredits.model.DocumentPerson;
 
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 /**
  * Dialog for importing persons from a TSV file into a target category.
  *
@@ -34,24 +39,25 @@ import net.noiraude.libcredits.model.DocumentPerson;
  */
 public final class ImportTsvDialog extends JDialog {
 
-    private final CommandExecutor onCommand;
-    private final CreditsDocument creditsDoc;
+    private final @NotNull CommandExecutor onCommand;
+    private final @NotNull CreditsDocument creditsDoc;
 
-    private final JTextField fileField = new JTextField();
-    private final JComboBox<String> categoryCombo = new JComboBox<>();
-    private final PreviewTableModel previewModel = new PreviewTableModel();
-    private final JTable previewTable = new JTable(previewModel);
-    private final JButton importButton = new JButton("Import");
-    private final JLabel statusLabel = new JLabel(" ");
+    private final @NotNull JTextField fileField = new JTextField();
+    private final @NotNull JComboBox<String> categoryCombo = new JComboBox<>();
+    private final @NotNull PreviewTableModel previewModel = new PreviewTableModel();
+    private final @NotNull JTable previewTable = new JTable(previewModel);
+    private final @NotNull JButton importButton = new JButton("Import");
+    private final @NotNull JLabel statusLabel = new JLabel(" ");
 
-    private List<ImportLine> importLines = List.of();
-    private File selectedFile;
+    private @NotNull List<ImportLine> importLines = List.of();
+    private @Nullable File selectedFile;
+    private @Nullable SwingWorker<List<ImportLine>, Void> previewWorker;
 
     /**
      * @param defaultCategoryId category to pre-select, or {@code null} for the first entry
      */
-    public ImportTsvDialog(Frame owner, CommandExecutor onCommand, CreditsDocument creditsDoc,
-        String defaultCategoryId) {
+    public ImportTsvDialog(@Nullable Frame owner, @NotNull CommandExecutor onCommand,
+        @NotNull CreditsDocument creditsDoc, @Nullable String defaultCategoryId) {
         super(owner, "Import TSV", true);
         this.onCommand = onCommand;
         this.creditsDoc = creditsDoc;
@@ -71,7 +77,7 @@ public final class ImportTsvDialog extends JDialog {
         setLocationRelativeTo(owner);
     }
 
-    private JPanel buildTopPanel() {
+    private @NotNull JPanel buildTopPanel() {
         JPanel panel = new JPanel(new GridBagLayout());
         GridBagConstraints lbl = new GridBagConstraints();
         lbl.gridx = 0;
@@ -108,7 +114,7 @@ public final class ImportTsvDialog extends JDialog {
         return panel;
     }
 
-    private JPanel buildPreviewPanel() {
+    private @NotNull JPanel buildPreviewPanel() {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBorder(BorderFactory.createTitledBorder("Preview"));
         previewTable.setAutoCreateRowSorter(true);
@@ -118,7 +124,7 @@ public final class ImportTsvDialog extends JDialog {
         return panel;
     }
 
-    private JPanel buildBottomPanel() {
+    private @NotNull JPanel buildBottomPanel() {
         JPanel panel = new JPanel(new BorderLayout());
         panel.add(statusLabel, BorderLayout.WEST);
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
@@ -146,6 +152,8 @@ public final class ImportTsvDialog extends JDialog {
     }
 
     private void reloadPreview() {
+        if (previewWorker != null) previewWorker.cancel(true);
+
         if (selectedFile == null || categoryCombo.getSelectedIndex() < 0) {
             importLines = List.of();
             previewModel.setLines(importLines);
@@ -154,20 +162,41 @@ public final class ImportTsvDialog extends JDialog {
         }
 
         String categoryId = creditsDoc.categories.get(categoryCombo.getSelectedIndex()).id;
-        try (FileReader reader = new FileReader(selectedFile, StandardCharsets.UTF_8)) {
-            importLines = TsvImporter.parse(reader, creditsDoc, categoryId);
-        } catch (IOException ex) {
-            JOptionPane.showMessageDialog(
-                this,
-                "Failed to read file:\n" + ex.getMessage(),
-                "Read error",
-                JOptionPane.ERROR_MESSAGE);
-            importLines = List.of();
-        }
+        File file = selectedFile;
 
-        previewModel.setLines(importLines);
-        updateImportButton();
-        updateStatusLabel();
+        previewWorker = new SwingWorker<>() {
+
+            @Override
+            protected List<ImportLine> doInBackground() throws IOException {
+                try (FileReader reader = new FileReader(file, StandardCharsets.UTF_8)) {
+                    return TsvImporter.parse(reader, creditsDoc, categoryId);
+                }
+            }
+
+            @Override
+            protected void done() {
+                if (isCancelled()) return;
+                try {
+                    importLines = get();
+                } catch (InterruptedException ex) {
+                    Thread.currentThread()
+                        .interrupt();
+                    importLines = List.of();
+                } catch (ExecutionException ex) {
+                    JOptionPane.showMessageDialog(
+                        ImportTsvDialog.this,
+                        "Failed to read file:\n" + ex.getCause()
+                            .getMessage(),
+                        "Read error",
+                        JOptionPane.ERROR_MESSAGE);
+                    importLines = List.of();
+                }
+                previewModel.setLines(importLines);
+                updateImportButton();
+                updateStatusLabel();
+            }
+        };
+        previewWorker.execute();
     }
 
     private void onImport() {
@@ -199,7 +228,8 @@ public final class ImportTsvDialog extends JDialog {
         dispose();
     }
 
-    private void buildCommandsForLine(CompoundCommand.Builder builder, ImportLine line, String categoryId) {
+    private void buildCommandsForLine(@NotNull CompoundCommand.Builder builder, @NotNull ImportLine line,
+        @NotNull String categoryId) {
         switch (line.action) {
             case CREATE -> {
                 DocumentPerson person = new DocumentPerson(line.name);
@@ -251,7 +281,7 @@ public final class ImportTsvDialog extends JDialog {
         }
     }
 
-    private void preselectCategory(String categoryId) {
+    private void preselectCategory(@Nullable String categoryId) {
         if (categoryId == null) return;
         for (int i = 0; i < creditsDoc.categories.size(); i++) {
             if (creditsDoc.categories.get(i).id.equals(categoryId)) {
@@ -302,31 +332,34 @@ public final class ImportTsvDialog extends JDialog {
 
     private static final class PreviewTableModel extends AbstractTableModel {
 
-        private static final String[] COLUMNS = { "Name", "Roles", "Action" };
-        private List<ImportLine> lines = List.of();
+        private static final @NotNull String @NotNull [] COLUMNS = { "Name", "Roles", "Action" };
+        private @NotNull List<ImportLine> lines = List.of();
 
-        void setLines(List<ImportLine> lines) {
+        void setLines(@NotNull List<ImportLine> lines) {
             this.lines = lines;
             fireTableDataChanged();
         }
 
+        @Contract(pure = true)
         @Override
         public int getRowCount() {
             return lines.size();
         }
 
+        @Contract(pure = true)
         @Override
         public int getColumnCount() {
             return COLUMNS.length;
         }
 
+        @Contract(pure = true)
         @Override
-        public String getColumnName(int col) {
+        public @NotNull String getColumnName(int col) {
             return COLUMNS[col];
         }
 
         @Override
-        public Object getValueAt(int row, int col) {
+        public @NotNull Object getValueAt(int row, int col) {
             ImportLine line = lines.get(row);
             return switch (col) {
                 case 0 -> line.name;

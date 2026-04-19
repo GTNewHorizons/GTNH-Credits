@@ -1,5 +1,7 @@
 package net.noiraude.creditseditor.command;
 
+import org.jetbrains.annotations.NotNull;
+
 /**
  * A reversible editor action.
  *
@@ -20,6 +22,7 @@ public interface Command {
      * Human-readable name shown in the Undo/Redo menu items.
      * Example: {@code "Assign to category dev"}.
      */
+    @NotNull
     String getDisplayName();
 
     /**

@@ -8,6 +8,9 @@ import javax.swing.*;
 
 import net.noiraude.creditseditor.command.CommandExecutor;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 /**
  * Main application window for the GTNH Credits Editor.
  *
@@ -18,23 +21,24 @@ import net.noiraude.creditseditor.command.CommandExecutor;
  */
 public final class MainWindow extends JFrame {
 
-    private EditorSession session; // null when no resource is open
+    private @Nullable EditorSession session; // null when no resource is open
 
-    private final EditorView editorView;
-    private final EditorMenuBar menuBar;
+    private final @NotNull EditorView editorView;
+    private final @NotNull EditorMenuBar menuBar;
 
-    public MainWindow(String initialPath) {
+    public MainWindow(@Nullable String initialPath) {
         super("GTNH Credits Editor");
         setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
         addWindowListener(new WindowAdapter() {
 
             @Override
-            public void windowClosing(WindowEvent e) {
+            public void windowClosing(@NotNull WindowEvent e) {
                 handleQuit();
             }
         });
 
         CommandExecutor onCommand = cmd -> {
+            if (session == null) return;
             boolean light = session.stack.execute(cmd);
             afterCommand(light);
         };
@@ -50,7 +54,7 @@ public final class MainWindow extends JFrame {
                 () -> handleOpen(true),
                 this::handleSave,
                 this::handleQuit),
-            new EditorMenuBar.EditActions(this::handleUndo, this::handleRedo, editorView::showRoleEditor));
+            new EditorMenuBar.EditActions(this::handleUndo, this::handleRedo));
         setJMenuBar(menuBar);
 
         setSize(UiScale.scaled(1100), UiScale.scaled(700));
@@ -68,7 +72,7 @@ public final class MainWindow extends JFrame {
     // Resource loading and saving
     // -----------------------------------------------------------------------
 
-    private void loadResource(String path) {
+    private void loadResource(@NotNull String path) {
         EditorSession newSession;
         try {
             newSession = EditorSession.open(path);

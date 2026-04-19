@@ -3,6 +3,9 @@ package net.noiraude.creditseditor.command.impl;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 /**
  * Generic command that sets a single field on any mutable object.
  *
@@ -14,13 +17,14 @@ import java.util.function.Supplier;
  */
 public final class EditFieldCommand<T> extends AbstractLightEditCommand {
 
-    private final String displayName;
-    private final Supplier<T> getter;
-    private final Consumer<T> setter;
-    private final T newValue;
-    private T oldValue;
+    private final @NotNull String displayName;
+    private final @NotNull Supplier<T> getter;
+    private final @NotNull Consumer<T> setter;
+    private final @Nullable T newValue;
+    private @Nullable T oldValue;
 
-    public EditFieldCommand(String displayName, Supplier<T> getter, Consumer<T> setter, T newValue) {
+    public EditFieldCommand(@NotNull String displayName, @NotNull Supplier<T> getter, @NotNull Consumer<T> setter,
+        @Nullable T newValue) {
         this.displayName = displayName;
         this.getter = getter;
         this.setter = setter;
@@ -39,7 +43,7 @@ public final class EditFieldCommand<T> extends AbstractLightEditCommand {
     }
 
     @Override
-    public String getDisplayName() {
+    public @NotNull String getDisplayName() {
         return displayName;
     }
 
