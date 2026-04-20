@@ -6,7 +6,6 @@ import net.noiraude.libcredits.model.DocumentCategory;
 
 import org.junit.Test;
 
-@SuppressWarnings("unused")
 public class EditFieldCommandTest {
 
     @Test

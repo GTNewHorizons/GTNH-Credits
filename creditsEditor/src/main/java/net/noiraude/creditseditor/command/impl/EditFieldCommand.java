@@ -11,11 +11,12 @@ import org.jetbrains.annotations.Nullable;
  *
  * <p>
  * The getter is called during {@link #execute} to capture the old value for undo. The getter
- * and setter must operate on the same field.
+ * and setter must operate on the same field. If the caller wants a bus topic fired on execute
+ * and undo, the setter they supply should fire it; no bus reference is held here.
  *
  * @param <T> the type of the field value
  */
-public final class EditFieldCommand<T> extends AbstractLightEditCommand {
+public final class EditFieldCommand<T> extends AbstractCommand {
 
     private final @NotNull String displayName;
     private final @NotNull Supplier<T> getter;
@@ -46,5 +47,4 @@ public final class EditFieldCommand<T> extends AbstractLightEditCommand {
     public @NotNull String getDisplayName() {
         return displayName;
     }
-
 }

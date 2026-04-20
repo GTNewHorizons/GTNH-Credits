@@ -1,29 +1,31 @@
 package net.noiraude.creditseditor.command.impl;
 
-import net.noiraude.libcredits.model.CreditsDocument;
+import net.noiraude.creditseditor.bus.DocumentBus;
 import net.noiraude.libcredits.model.DocumentPerson;
 
 import org.jetbrains.annotations.NotNull;
 
 /** Appends a new person to the end of the person list. */
-public final class AddPersonCommand extends AbstractStructuralCommand {
+public final class AddPersonCommand extends AbstractCommand {
 
-    private final @NotNull CreditsDocument creditsDoc;
+    private final @NotNull DocumentBus bus;
     private final @NotNull DocumentPerson person;
 
-    public AddPersonCommand(@NotNull CreditsDocument creditsDoc, @NotNull DocumentPerson person) {
-        this.creditsDoc = creditsDoc;
+    public AddPersonCommand(@NotNull DocumentBus bus, @NotNull DocumentPerson person) {
+        this.bus = bus;
         this.person = person;
     }
 
     @Override
     public void execute() {
-        creditsDoc.persons.add(person);
+        bus.creditsDoc().persons.add(person);
+        bus.firePersonsChanged();
     }
 
     @Override
     public void undo() {
-        creditsDoc.persons.remove(person);
+        bus.creditsDoc().persons.remove(person);
+        bus.firePersonsChanged();
     }
 
     @Override

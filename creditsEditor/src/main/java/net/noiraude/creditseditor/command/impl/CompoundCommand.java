@@ -14,9 +14,9 @@ import org.jetbrains.annotations.NotNull;
  *
  * <p>
  * On execute, children run in insertion order. On undo, they run in reverse order.
- * The compound is always structural ({@link #isLightEdit()} returns {@code false}).
+ * Each child publishes its own bus topics; no extra events are fired by the compound.
  */
-public final class CompoundCommand extends AbstractStructuralCommand {
+public final class CompoundCommand extends AbstractCommand {
 
     private final @NotNull String displayName;
     private final @NotNull List<Command> children;

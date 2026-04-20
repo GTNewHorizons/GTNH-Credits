@@ -2,13 +2,27 @@ package net.noiraude.creditseditor.ui.detail;
 
 import static net.noiraude.creditseditor.ui.UiScale.scaled;
 
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.Component;
+import java.awt.Dimension;
+import java.awt.Font;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
-import javax.swing.*;
+import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.JButton;
+import javax.swing.JComboBox;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.SwingConstants;
 
+import net.noiraude.creditseditor.bus.DocumentBus;
 import net.noiraude.creditseditor.command.CommandExecutor;
 import net.noiraude.creditseditor.command.impl.AddMembershipCommand;
 import net.noiraude.creditseditor.command.impl.AddPersonRoleCommand;
@@ -17,8 +31,6 @@ import net.noiraude.creditseditor.command.impl.RemoveMembershipCommand;
 import net.noiraude.creditseditor.command.impl.RemovePersonCommand;
 import net.noiraude.creditseditor.mc.McText;
 import net.noiraude.creditseditor.service.KeySanitizer;
-import net.noiraude.libcredits.lang.LangDocument;
-import net.noiraude.libcredits.model.CreditsDocument;
 import net.noiraude.libcredits.model.DocumentCategory;
 import net.noiraude.libcredits.model.DocumentMembership;
 import net.noiraude.libcredits.model.DocumentPerson;
@@ -33,19 +45,27 @@ import org.jetbrains.annotations.Nullable;
  * Displays the selection count and provides bulk operation buttons:
  * assign to a category, add a role in the category, remove from the category, and delete all.
  * Each operation dispatches a single {@link CompoundCommand} through the executor.
+ *
+ * <p>
+ * Subscribes to {@link DocumentBus#TOPIC_PERSONS} to re-resolve the currently loaded
+ * selection by name; signals back through {@code onResolved} so the owning detail panel
+ * can collapse to a single-person view or empty when appropriate.
  */
 public final class BulkPersonView extends JPanel {
 
+    private final @NotNull DocumentBus bus;
     private final @NotNull CommandExecutor onCommand;
-    private @Nullable CreditsDocument creditsDoc;
-    private @Nullable LangDocument langDoc;
+    private final @NotNull Consumer<List<DocumentPerson>> onResolved;
     private @Nullable DocumentCategory selectedCategory;
     private @NotNull List<DocumentPerson> persons = List.of();
 
     private final @NotNull JLabel countLabel = new JLabel();
 
-    public BulkPersonView(@NotNull CommandExecutor onCommand) {
+    public BulkPersonView(@NotNull DocumentBus bus, @NotNull CommandExecutor onCommand,
+        @NotNull Consumer<List<DocumentPerson>> onResolved) {
+        this.bus = bus;
         this.onCommand = onCommand;
+        this.onResolved = onResolved;
         setLayout(new BorderLayout());
 
         countLabel.setFont(
@@ -77,15 +97,8 @@ public final class BulkPersonView extends JPanel {
 
         buttonPanel.add(Box.createVerticalGlue());
         add(buttonPanel, BorderLayout.CENTER);
-    }
 
-    /**
-     * Sets the document context used for category lookups and lang display.
-     * Call once after a session is loaded.
-     */
-    public void setContext(@NotNull CreditsDocument creditsDoc, @NotNull LangDocument langDoc) {
-        this.creditsDoc = creditsDoc;
-        this.langDoc = langDoc;
+        bus.addListener(DocumentBus.TOPIC_PERSONS, e -> reresolve());
     }
 
     /** Sets the currently selected category so picker dialogs can default to it. */
@@ -99,12 +112,24 @@ public final class BulkPersonView extends JPanel {
         countLabel.setText(persons.size() + " persons selected");
     }
 
+    private void reresolve() {
+        if (!bus.hasSession() || persons.isEmpty()) return;
+        List<String> names = persons.stream()
+            .map(p -> p.name)
+            .toList();
+        List<DocumentPerson> found = bus.creditsDoc().persons.stream()
+            .filter(p -> names.contains(p.name))
+            .collect(Collectors.toList());
+        if (found.size() > 1) load(found);
+        onResolved.accept(found);
+    }
+
     // -----------------------------------------------------------------------
     // Bulk operations
     // -----------------------------------------------------------------------
 
     private void onAssignToCategory() {
-        if (persons.isEmpty() || creditsDoc == null) return;
+        if (persons.isEmpty() || !bus.hasSession()) return;
 
         DocumentCategory target = pickCategory("Assign to category");
         if (target == null) return;
@@ -117,7 +142,7 @@ public final class BulkPersonView extends JPanel {
             boolean alreadyMember = person.memberships.stream()
                 .anyMatch(m -> m.categoryId.equals(target.id));
             if (!alreadyMember) {
-                builder.add(new AddMembershipCommand(person, new DocumentMembership(target.id)));
+                builder.add(new AddMembershipCommand(bus, person, new DocumentMembership(target.id)));
                 added++;
             }
         }
@@ -140,7 +165,7 @@ public final class BulkPersonView extends JPanel {
     }
 
     private void onAddRoleInCategory() {
-        if (persons.isEmpty() || creditsDoc == null) return;
+        if (persons.isEmpty() || !bus.hasSession()) return;
 
         DocumentCategory target = pickCategory("Add role in category");
         if (target == null) return;
@@ -185,7 +210,7 @@ public final class BulkPersonView extends JPanel {
                 continue;
             }
             if (membership.roles.contains(role)) continue;
-            builder.add(new AddPersonRoleCommand(membership, role));
+            builder.add(new AddPersonRoleCommand(bus, person, membership, role));
             added++;
         }
         return new RoleAddCounts(added, skipped);
@@ -202,7 +227,7 @@ public final class BulkPersonView extends JPanel {
     private record RoleAddCounts(int added, int skipped) {}
 
     private void onRemoveFromCategory() {
-        if (persons.isEmpty() || creditsDoc == null) return;
+        if (persons.isEmpty() || !bus.hasSession()) return;
 
         // Collect categories where at least one selected person appears
         Set<String> presentIds = new LinkedHashSet<>();
@@ -220,9 +245,9 @@ public final class BulkPersonView extends JPanel {
             return;
         }
 
-        List<DocumentCategory> available = creditsDoc.categories.stream()
+        List<DocumentCategory> available = bus.creditsDoc().categories.stream()
             .filter(c -> presentIds.contains(c.id))
-            .toList();
+            .collect(Collectors.toList());
         DocumentCategory target = pickFromList(available, "Remove from category");
         if (target == null) return;
 
@@ -233,7 +258,7 @@ public final class BulkPersonView extends JPanel {
             person.memberships.stream()
                 .filter(m -> m.categoryId.equals(target.id))
                 .findFirst()
-                .ifPresent(membership -> builder.add(new RemoveMembershipCommand(person, membership)));
+                .ifPresent(membership -> builder.add(new RemoveMembershipCommand(bus, person, membership)));
         }
 
         if (builder.isEmpty()) return;
@@ -241,7 +266,7 @@ public final class BulkPersonView extends JPanel {
     }
 
     private void onDeleteAll() {
-        if (persons.isEmpty() || creditsDoc == null) return;
+        if (persons.isEmpty() || !bus.hasSession()) return;
 
         int confirm = JOptionPane.showConfirmDialog(
             this,
@@ -253,7 +278,7 @@ public final class BulkPersonView extends JPanel {
 
         CompoundCommand.Builder builder = new CompoundCommand.Builder("Delete " + persons.size() + " person(s)");
         for (DocumentPerson person : persons) {
-            builder.add(new RemovePersonCommand(creditsDoc, person));
+            builder.add(new RemovePersonCommand(bus, person));
         }
         onCommand.execute(builder.build());
     }
@@ -263,8 +288,8 @@ public final class BulkPersonView extends JPanel {
     // -----------------------------------------------------------------------
 
     private @Nullable DocumentCategory pickCategory(@NotNull String title) {
-        if (creditsDoc == null) return null;
-        return pickFromList(creditsDoc.categories, title);
+        if (!bus.hasSession()) return null;
+        return pickFromList(bus.creditsDoc().categories, title);
     }
 
     private @Nullable DocumentCategory pickFromList(@NotNull List<DocumentCategory> categories, @NotNull String title) {
@@ -292,7 +317,8 @@ public final class BulkPersonView extends JPanel {
     }
 
     private @NotNull String categoryLabel(@NotNull DocumentCategory cat) {
-        String displayName = langDoc != null ? langDoc.get("credits.category." + KeySanitizer.sanitize(cat.id)) : null;
+        String displayName = bus.langDoc()
+            .get("credits.category." + KeySanitizer.sanitize(cat.id));
         if (displayName == null || displayName.isEmpty()) return cat.id;
         return cat.id + " (" + McText.strip(displayName) + ")";
     }

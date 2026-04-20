@@ -2,30 +2,35 @@ package net.noiraude.creditseditor.ui.dialog;
 
 import static net.noiraude.creditseditor.ui.UiScale.scaled;
 
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.FlowLayout;
+import java.awt.Frame;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
 import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 
-import javax.swing.*;
-import javax.swing.table.AbstractTableModel;
+import javax.swing.BorderFactory;
+import javax.swing.JButton;
+import javax.swing.JComboBox;
+import javax.swing.JDialog;
+import javax.swing.JFileChooser;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTable;
+import javax.swing.JTextField;
 
+import net.noiraude.creditseditor.bus.DocumentBus;
+import net.noiraude.creditseditor.command.Command;
 import net.noiraude.creditseditor.command.CommandExecutor;
-import net.noiraude.creditseditor.command.impl.AddMembershipCommand;
-import net.noiraude.creditseditor.command.impl.AddPersonCommand;
-import net.noiraude.creditseditor.command.impl.AddPersonRoleCommand;
-import net.noiraude.creditseditor.command.impl.CompoundCommand;
+import net.noiraude.creditseditor.service.TsvImportCommandFactory;
 import net.noiraude.creditseditor.service.TsvImporter;
 import net.noiraude.creditseditor.service.TsvImporter.ImportLine;
-import net.noiraude.libcredits.model.CreditsDocument;
 import net.noiraude.libcredits.model.DocumentCategory;
-import net.noiraude.libcredits.model.DocumentMembership;
-import net.noiraude.libcredits.model.DocumentPerson;
 
-import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -35,32 +40,30 @@ import org.jetbrains.annotations.Nullable;
  * <p>
  * Shows a file chooser, a target category selector, a preview table with the computed
  * action per line, and an import button. The entire import is dispatched as a single
- * {@link CompoundCommand} for atomic undo.
+ * {@link net.noiraude.creditseditor.command.impl.CompoundCommand} for atomic undo.
  */
 public final class ImportTsvDialog extends JDialog {
 
+    private final @NotNull DocumentBus bus;
     private final @NotNull CommandExecutor onCommand;
-    private final @NotNull CreditsDocument creditsDoc;
+    private final @NotNull TsvPreviewController preview;
 
     private final @NotNull JTextField fileField = new JTextField();
     private final @NotNull JComboBox<String> categoryCombo = new JComboBox<>();
-    private final @NotNull PreviewTableModel previewModel = new PreviewTableModel();
-    private final @NotNull JTable previewTable = new JTable(previewModel);
     private final @NotNull JButton importButton = new JButton("Import");
     private final @NotNull JLabel statusLabel = new JLabel(" ");
 
-    private @NotNull List<ImportLine> importLines = List.of();
     private @Nullable File selectedFile;
-    private @Nullable SwingWorker<List<ImportLine>, Void> previewWorker;
 
     /**
      * @param defaultCategoryId category to pre-select, or {@code null} for the first entry
      */
-    public ImportTsvDialog(@Nullable Frame owner, @NotNull CommandExecutor onCommand,
-        @NotNull CreditsDocument creditsDoc, @Nullable String defaultCategoryId) {
+    public ImportTsvDialog(@Nullable Frame owner, @NotNull DocumentBus bus, @NotNull CommandExecutor onCommand,
+        @Nullable String defaultCategoryId) {
         super(owner, "Import TSV", true);
+        this.bus = bus;
         this.onCommand = onCommand;
-        this.creditsDoc = creditsDoc;
+        this.preview = new TsvPreviewController(bus, this::onPreviewChanged, this::showReadError);
 
         setLayout(new BorderLayout(scaled(8), scaled(8)));
         getRootPane().setBorder(BorderFactory.createEmptyBorder(scaled(8), scaled(8), scaled(8), scaled(8)));
@@ -117,6 +120,7 @@ public final class ImportTsvDialog extends JDialog {
     private @NotNull JPanel buildPreviewPanel() {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBorder(BorderFactory.createTitledBorder("Preview"));
+        JTable previewTable = new JTable(preview.tableModel());
         previewTable.setAutoCreateRowSorter(true);
         JScrollPane scroll = new JScrollPane(previewTable);
         scroll.setBorder(BorderFactory.createEtchedBorder());
@@ -152,61 +156,21 @@ public final class ImportTsvDialog extends JDialog {
     }
 
     private void reloadPreview() {
-        if (previewWorker != null) previewWorker.cancel(true);
-
         if (selectedFile == null || categoryCombo.getSelectedIndex() < 0) {
-            importLines = List.of();
-            previewModel.setLines(importLines);
-            updateImportButton();
+            preview.clear();
             return;
         }
-
-        String categoryId = creditsDoc.categories.get(categoryCombo.getSelectedIndex()).id;
-        File file = selectedFile;
-
-        previewWorker = new SwingWorker<>() {
-
-            @Override
-            protected List<ImportLine> doInBackground() throws IOException {
-                try (FileReader reader = new FileReader(file, StandardCharsets.UTF_8)) {
-                    return TsvImporter.parse(reader, creditsDoc, categoryId);
-                }
-            }
-
-            @Override
-            protected void done() {
-                if (isCancelled()) return;
-                try {
-                    importLines = get();
-                } catch (InterruptedException ex) {
-                    Thread.currentThread()
-                        .interrupt();
-                    importLines = List.of();
-                } catch (ExecutionException ex) {
-                    JOptionPane.showMessageDialog(
-                        ImportTsvDialog.this,
-                        "Failed to read file:\n" + ex.getCause()
-                            .getMessage(),
-                        "Read error",
-                        JOptionPane.ERROR_MESSAGE);
-                    importLines = List.of();
-                }
-                previewModel.setLines(importLines);
-                updateImportButton();
-                updateStatusLabel();
-            }
-        };
-        previewWorker.execute();
+        String categoryId = bus.creditsDoc().categories.get(categoryCombo.getSelectedIndex()).id;
+        preview.reload(selectedFile, categoryId);
     }
 
     private void onImport() {
-        if (importLines.isEmpty() || categoryCombo.getSelectedIndex() < 0) return;
+        List<ImportLine> lines = preview.lines();
+        if (lines.isEmpty() || categoryCombo.getSelectedIndex() < 0) return;
 
-        String categoryId = creditsDoc.categories.get(categoryCombo.getSelectedIndex()).id;
-        long actionCount = importLines.stream()
-            .filter(l -> l.action != TsvImporter.Action.NO_CHANGE)
-            .count();
-        if (actionCount == 0) {
+        String categoryId = bus.creditsDoc().categories.get(categoryCombo.getSelectedIndex()).id;
+        Command cmd = TsvImportCommandFactory.build(bus, categoryId, lines);
+        if (cmd == null) {
             JOptionPane.showMessageDialog(
                 this,
                 "Nothing to import: all entries already present.",
@@ -214,60 +178,8 @@ public final class ImportTsvDialog extends JDialog {
                 JOptionPane.INFORMATION_MESSAGE);
             return;
         }
-
-        CompoundCommand.Builder builder = new CompoundCommand.Builder(
-            "Import TSV (" + importLines.size() + " persons)");
-
-        for (ImportLine line : importLines) {
-            buildCommandsForLine(builder, line, categoryId);
-        }
-
-        if (!builder.isEmpty()) {
-            onCommand.execute(builder.build());
-        }
+        onCommand.execute(cmd);
         dispose();
-    }
-
-    private void buildCommandsForLine(@NotNull CompoundCommand.Builder builder, @NotNull ImportLine line,
-        @NotNull String categoryId) {
-        switch (line.action) {
-            case CREATE -> {
-                DocumentPerson person = new DocumentPerson(line.name);
-                builder.add(new AddPersonCommand(creditsDoc, person));
-                DocumentMembership membership = new DocumentMembership(categoryId);
-                builder.add(new AddMembershipCommand(person, membership));
-                for (String role : line.newRoles) {
-                    builder.add(new AddPersonRoleCommand(membership, role));
-                }
-            }
-            case ADD -> {
-                DocumentPerson person = creditsDoc.persons.stream()
-                    .filter(p -> p.name.equals(line.name))
-                    .findFirst()
-                    .orElseThrow();
-                DocumentMembership membership = new DocumentMembership(categoryId);
-                builder.add(new AddMembershipCommand(person, membership));
-                for (String role : line.newRoles) {
-                    builder.add(new AddPersonRoleCommand(membership, role));
-                }
-            }
-            case COMPLETE -> {
-                DocumentPerson person = creditsDoc.persons.stream()
-                    .filter(p -> p.name.equals(line.name))
-                    .findFirst()
-                    .orElseThrow();
-                DocumentMembership membership = person.memberships.stream()
-                    .filter(m -> m.categoryId.equals(categoryId))
-                    .findFirst()
-                    .orElseThrow();
-                for (String role : line.newRoles) {
-                    builder.add(new AddPersonRoleCommand(membership, role));
-                }
-            }
-            case NO_CHANGE -> {
-                // nothing to do
-            }
-        }
     }
 
     // -----------------------------------------------------------------------
@@ -276,46 +188,58 @@ public final class ImportTsvDialog extends JDialog {
 
     private void populateCategoryCombo() {
         categoryCombo.removeAllItems();
-        for (DocumentCategory cat : creditsDoc.categories) {
+        for (DocumentCategory cat : bus.creditsDoc().categories) {
             categoryCombo.addItem(cat.id);
         }
     }
 
     private void preselectCategory(@Nullable String categoryId) {
         if (categoryId == null) return;
-        for (int i = 0; i < creditsDoc.categories.size(); i++) {
-            if (creditsDoc.categories.get(i).id.equals(categoryId)) {
+        List<DocumentCategory> categories = bus.creditsDoc().categories;
+        for (int i = 0; i < categories.size(); i++) {
+            if (categories.get(i).id.equals(categoryId)) {
                 categoryCombo.setSelectedIndex(i);
                 return;
             }
         }
     }
 
+    private void onPreviewChanged() {
+        updateImportButton();
+        updateStatusLabel();
+    }
+
+    private void showReadError(@NotNull String message) {
+        JOptionPane.showMessageDialog(this, message, "Read error", JOptionPane.ERROR_MESSAGE);
+    }
+
     private void updateImportButton() {
-        boolean hasActions = importLines.stream()
+        boolean hasActions = preview.lines()
+            .stream()
             .anyMatch(l -> l.action != TsvImporter.Action.NO_CHANGE);
         importButton.setEnabled(hasActions);
     }
 
     private void updateStatusLabel() {
-        if (importLines.isEmpty()) {
+        List<ImportLine> lines = preview.lines();
+        if (lines.isEmpty()) {
             statusLabel.setText(" ");
             return;
         }
-        long create = importLines.stream()
+        long create = lines.stream()
             .filter(l -> l.action == TsvImporter.Action.CREATE)
             .count();
-        long add = importLines.stream()
+        long add = lines.stream()
             .filter(l -> l.action == TsvImporter.Action.ADD)
             .count();
-        long complete = importLines.stream()
+        long complete = lines.stream()
             .filter(l -> l.action == TsvImporter.Action.COMPLETE)
             .count();
-        long noChange = importLines.stream()
+        long noChange = lines.stream()
             .filter(l -> l.action == TsvImporter.Action.NO_CHANGE)
             .count();
         statusLabel.setText(
-            importLines.size() + " lines: "
+            lines.size() + " lines: "
                 + create
                 + " create, "
                 + add
@@ -324,51 +248,5 @@ public final class ImportTsvDialog extends JDialog {
                 + " complete, "
                 + noChange
                 + " unchanged");
-    }
-
-    // -----------------------------------------------------------------------
-    // Preview table model
-    // -----------------------------------------------------------------------
-
-    private static final class PreviewTableModel extends AbstractTableModel {
-
-        private static final @NotNull String @NotNull [] COLUMNS = { "Name", "Roles", "Action" };
-        private @NotNull List<ImportLine> lines = List.of();
-
-        void setLines(@NotNull List<ImportLine> lines) {
-            this.lines = lines;
-            fireTableDataChanged();
-        }
-
-        @Contract(pure = true)
-        @Override
-        public int getRowCount() {
-            return lines.size();
-        }
-
-        @Contract(pure = true)
-        @Override
-        public int getColumnCount() {
-            return COLUMNS.length;
-        }
-
-        @Contract(pure = true)
-        @Override
-        public @NotNull String getColumnName(int col) {
-            return COLUMNS[col];
-        }
-
-        @Override
-        public @NotNull Object getValueAt(int row, int col) {
-            ImportLine line = lines.get(row);
-            return switch (col) {
-                case 0 -> line.name;
-                case 1 -> String.join(", ", line.roles);
-                case 2 -> line.action.name()
-                    .replace('_', ' ')
-                    .toLowerCase();
-                default -> "";
-            };
-        }
     }
 }

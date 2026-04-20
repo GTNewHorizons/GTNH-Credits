@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import net.noiraude.creditseditor.bus.DocumentBus;
 import net.noiraude.libcredits.model.CreditsDocument;
 import net.noiraude.libcredits.model.DocumentCategory;
 
@@ -20,15 +21,15 @@ import org.jetbrains.annotations.Nullable;
  * drop location. Discontinuous selections are reinserted as a contiguous block at the drop
  * position and keep their original relative order.
  */
-public final class MoveCategoriesOrderCommand extends AbstractStructuralCommand {
+public final class MoveCategoriesOrderCommand extends AbstractCommand {
 
-    private final @NotNull CreditsDocument creditsDoc;
+    private final @NotNull DocumentBus bus;
     private final int @NotNull [] fromIndices;
     private final int dropIndex;
     private @Nullable List<DocumentCategory> originalOrder;
 
-    public MoveCategoriesOrderCommand(@NotNull CreditsDocument creditsDoc, int @NotNull [] fromIndices, int dropIndex) {
-        this.creditsDoc = creditsDoc;
+    public MoveCategoriesOrderCommand(@NotNull DocumentBus bus, int @NotNull [] fromIndices, int dropIndex) {
+        this.bus = bus;
         int[] sorted = fromIndices.clone();
         Arrays.sort(sorted);
         this.fromIndices = sorted;
@@ -37,24 +38,28 @@ public final class MoveCategoriesOrderCommand extends AbstractStructuralCommand 
 
     @Override
     public void execute() {
-        originalOrder = new ArrayList<>(creditsDoc.categories);
+        CreditsDocument doc = bus.creditsDoc();
+        originalOrder = new ArrayList<>(doc.categories);
         List<DocumentCategory> extracted = new ArrayList<>(fromIndices.length);
         for (int i = fromIndices.length - 1; i >= 0; i--) {
-            extracted.addFirst(creditsDoc.categories.remove(fromIndices[i]));
+            extracted.addFirst(doc.categories.remove(fromIndices[i]));
         }
         int below = 0;
         for (int idx : fromIndices) {
             if (idx < dropIndex) below++;
         }
         int insertAt = dropIndex - below;
-        creditsDoc.categories.addAll(insertAt, extracted);
+        doc.categories.addAll(insertAt, extracted);
+        bus.fireCategoriesChanged();
     }
 
     @Override
     public void undo() {
         if (originalOrder == null) return;
-        creditsDoc.categories.clear();
-        creditsDoc.categories.addAll(originalOrder);
+        CreditsDocument doc = bus.creditsDoc();
+        doc.categories.clear();
+        doc.categories.addAll(originalOrder);
+        bus.fireCategoriesChanged();
     }
 
     @Override

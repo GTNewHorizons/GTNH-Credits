@@ -4,7 +4,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import net.noiraude.creditseditor.bus.DocumentBus;
 import net.noiraude.libcredits.model.DocumentMembership;
+import net.noiraude.libcredits.model.DocumentPerson;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -20,14 +22,19 @@ import org.jetbrains.annotations.Nullable;
  * dragged items are reinserted as a contiguous block at the computed drop position and keep
  * their original relative order.
  */
-public final class MoveRolesOrderCommand extends AbstractStructuralCommand {
+public final class MoveRolesOrderCommand extends AbstractCommand {
 
+    private final @NotNull DocumentBus bus;
+    private final @NotNull DocumentPerson person;
     private final @NotNull DocumentMembership membership;
     private final int @NotNull [] fromIndices;
     private final int dropIndex;
     private @Nullable List<String> originalOrder;
 
-    public MoveRolesOrderCommand(@NotNull DocumentMembership membership, int @NotNull [] fromIndices, int dropIndex) {
+    public MoveRolesOrderCommand(@NotNull DocumentBus bus, @NotNull DocumentPerson person,
+        @NotNull DocumentMembership membership, int @NotNull [] fromIndices, int dropIndex) {
+        this.bus = bus;
+        this.person = person;
         this.membership = membership;
         int[] sorted = fromIndices.clone();
         Arrays.sort(sorted);
@@ -48,6 +55,7 @@ public final class MoveRolesOrderCommand extends AbstractStructuralCommand {
         }
         int insertAt = dropIndex - below;
         membership.roles.addAll(insertAt, extracted);
+        bus.firePersonChanged(person);
     }
 
     @Override
@@ -55,6 +63,7 @@ public final class MoveRolesOrderCommand extends AbstractStructuralCommand {
         if (originalOrder == null) return;
         membership.roles.clear();
         membership.roles.addAll(originalOrder);
+        bus.firePersonChanged(person);
     }
 
     @Override

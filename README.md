@@ -139,6 +139,29 @@ result is lowercased. For example `"Core Team"` â†’ `core_team`, `"Core.Mod"` â†
 
 The two `detail` forms are mutually exclusive per locale: if any `detail.<suffix>` key exists, the plain `detail` key is ignored.
 
+## GTNH Credits Editor
+
+A standalone desktop tool for editing `credits.json` and the associated
+`.lang` files lives in the [`creditsEditor/`](creditsEditor/README.md)
+subproject.
+
+Run it directly from the repository:
+
+```sh
+./gradlew :creditsEditor:run
+```
+
+Install it to `~/.local` (overridable with `-PPREFIX=...`):
+
+```sh
+./gradlew :creditsEditor:install
+```
+
+Once installed, launch it with `gtnh-credits-editor [<path>]`. See the
+[Credits Editor README](creditsEditor/README.md) for full usage,
+installation options, and supported path forms (directory or resource
+pack zip).
+
 ## Build tasks
 
 ### Validate `credits.json`

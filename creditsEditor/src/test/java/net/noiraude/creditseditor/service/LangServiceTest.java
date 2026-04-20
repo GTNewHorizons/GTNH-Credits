@@ -16,7 +16,6 @@ import net.noiraude.libcredits.lang.LangSerializer;
 
 import org.junit.Test;
 
-@SuppressWarnings("unused")
 public class LangServiceTest {
 
     private static LangDocument load(String content) throws IOException {

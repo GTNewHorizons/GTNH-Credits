@@ -45,7 +45,8 @@
       "id": "NewCat"
     },
     {
-      "id": "Mod authors"
+      "id": "Mod authors",
+      "class": ["detail", "person", "role"]
     }
   ],
   "person": [

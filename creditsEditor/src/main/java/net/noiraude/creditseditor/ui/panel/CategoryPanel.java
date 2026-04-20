@@ -1,13 +1,22 @@
 package net.noiraude.creditseditor.ui.panel;
 
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.Component;
+import java.awt.FlowLayout;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
-import javax.swing.*;
+import javax.swing.DefaultListCellRenderer;
+import javax.swing.DropMode;
+import javax.swing.JLabel;
+import javax.swing.JList;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.ListSelectionModel;
 import javax.swing.event.ListSelectionEvent;
 
+import net.noiraude.creditseditor.bus.DocumentBus;
 import net.noiraude.creditseditor.command.CommandExecutor;
 import net.noiraude.creditseditor.command.impl.AddCategoryCommand;
 import net.noiraude.creditseditor.command.impl.CompoundCommand;
@@ -16,7 +25,6 @@ import net.noiraude.creditseditor.command.impl.RemoveCategoryCommand;
 import net.noiraude.creditseditor.mc.McText;
 import net.noiraude.creditseditor.service.KeySanitizer;
 import net.noiraude.creditseditor.ui.component.dnd.ListReorderTransferHandler;
-import net.noiraude.libcredits.lang.LangDocument;
 import net.noiraude.libcredits.model.CreditsDocument;
 import net.noiraude.libcredits.model.DocumentCategory;
 
@@ -34,25 +42,28 @@ import org.jetbrains.annotations.Nullable;
  * category's detail form. The sentinel is mutually exclusive with any real-category selection.
  *
  * <p>
- * Structural edits (add, remove, move) are performed via commands issued through the supplied
- * executor. Call {@link #refresh(CreditsDocument, LangDocument)} after any document change.
+ * Subscribes to the document bus at construction: rebuilds from {@code TOPIC_SESSION} and
+ * {@code TOPIC_CATEGORIES}, and repaints cells (without a rebuild) for {@code TOPIC_CATEGORY}
+ * and {@code TOPIC_LANG}. Structural edits are issued as commands through the supplied executor.
  */
 public final class CategoryPanel extends ListPanel<Object, List<DocumentCategory>> {
 
     /** Sentinel value that represents the "show all persons" state. */
     private static final @NotNull Object ALL_SENTINEL = new Object() {};
 
-    private @Nullable LangDocument langDoc;
+    private final @NotNull DocumentBus bus;
     private boolean enforcingSentinel;
 
     /**
+     * @param bus                event bus to subscribe to and pass to commands
      * @param onCommand          receives each structural command to execute
      * @param onSelectionChanged called with the selected real categories (empty when only
      *                           the sentinel or nothing is selected)
      */
-    public CategoryPanel(@NotNull CommandExecutor onCommand,
+    public CategoryPanel(@NotNull DocumentBus bus, @NotNull CommandExecutor onCommand,
         @NotNull Consumer<List<DocumentCategory>> onSelectionChanged) {
         super("Categories", onCommand, onSelectionChanged);
+        this.bus = bus;
 
         list.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
         list.setCellRenderer(new CategoryCellRenderer());
@@ -73,16 +84,17 @@ public final class CategoryPanel extends ListPanel<Object, List<DocumentCategory
         toolbar.add(removeButton);
         add(toolbar, BorderLayout.SOUTH);
 
+        bus.addListener(DocumentBus.TOPIC_SESSION, e -> rebuild());
+        bus.addListener(DocumentBus.TOPIC_CATEGORIES, e -> rebuild());
+        bus.addListener(DocumentBus.TOPIC_CATEGORY, e -> list.repaint());
+        bus.addListener(DocumentBus.TOPIC_LANG, e -> list.repaint());
+
         updateButtons();
     }
 
-    /**
-     * Repopulates the list from {@code creditsDoc}, preserving the selection by category id
-     * where possible. {@code langDoc} is used by the cell renderer to resolve display names.
-     */
-    public void refresh(@NotNull CreditsDocument creditsDoc, @NotNull LangDocument langDoc) {
-        this.creditsDoc = creditsDoc;
-        this.langDoc = langDoc;
+    private void rebuild() {
+        if (!bus.hasSession()) return;
+        CreditsDocument creditsDoc = bus.creditsDoc();
         List<String> prevIds = selectedCategoryIds();
 
         refreshing = true;
@@ -138,7 +150,8 @@ public final class CategoryPanel extends ListPanel<Object, List<DocumentCategory
     // -----------------------------------------------------------------------
 
     private void onAdd() {
-        if (creditsDoc == null) return;
+        if (!bus.hasSession()) return;
+        CreditsDocument creditsDoc = bus.creditsDoc();
         String id = JOptionPane.showInputDialog(this, "Category ID:", "Add category", JOptionPane.PLAIN_MESSAGE);
         if (id == null || id.isBlank()) return;
         id = id.strip();
@@ -153,12 +166,12 @@ public final class CategoryPanel extends ListPanel<Object, List<DocumentCategory
                 JOptionPane.WARNING_MESSAGE);
             return;
         }
-        onCommand.execute(new AddCategoryCommand(creditsDoc, new DocumentCategory(finalId)));
+        onCommand.execute(new AddCategoryCommand(bus, new DocumentCategory(finalId)));
     }
 
     private void onRemove() {
         List<DocumentCategory> selected = getSelectedCategories();
-        if (selected.isEmpty() || creditsDoc == null) return;
+        if (selected.isEmpty() || !bus.hasSession()) return;
         String message = selected.size() == 1
             ? "Remove category '" + selected.getFirst().id
                 + "'?\nAll memberships in this category will also be removed."
@@ -172,11 +185,11 @@ public final class CategoryPanel extends ListPanel<Object, List<DocumentCategory
         if (confirm != JOptionPane.OK_OPTION) return;
 
         if (selected.size() == 1) {
-            onCommand.execute(new RemoveCategoryCommand(creditsDoc, selected.getFirst()));
+            onCommand.execute(new RemoveCategoryCommand(bus, selected.getFirst()));
         } else {
             CompoundCommand.Builder builder = new CompoundCommand.Builder("Remove " + selected.size() + " categories");
             for (DocumentCategory cat : selected) {
-                builder.add(new RemoveCategoryCommand(creditsDoc, cat));
+                builder.add(new RemoveCategoryCommand(bus, cat));
             }
             onCommand.execute(builder.build());
         }
@@ -188,7 +201,8 @@ public final class CategoryPanel extends ListPanel<Object, List<DocumentCategory
      * "All persons", so UI indices are shifted by 1 relative to {@code creditsDoc.categories}.
      */
     private @Nullable MoveCategoriesOrderCommand createReorderCommand(int @NotNull [] uiFromIndices, int uiDropIndex) {
-        if (creditsDoc == null) return null;
+        if (!bus.hasSession()) return null;
+        CreditsDocument creditsDoc = bus.creditsDoc();
         int[] modelIndices = new int[uiFromIndices.length];
         for (int i = 0; i < uiFromIndices.length; i++) {
             int m = uiFromIndices[i] - 1;
@@ -196,7 +210,7 @@ public final class CategoryPanel extends ListPanel<Object, List<DocumentCategory
             modelIndices[i] = m;
         }
         int modelDrop = Math.clamp(uiDropIndex - 1, 0, creditsDoc.categories.size());
-        return new MoveCategoriesOrderCommand(creditsDoc, modelIndices, modelDrop);
+        return new MoveCategoriesOrderCommand(bus, modelIndices, modelDrop);
     }
 
     // -----------------------------------------------------------------------
@@ -226,7 +240,7 @@ public final class CategoryPanel extends ListPanel<Object, List<DocumentCategory
 
     @Override
     protected void updateButtons() {
-        removeButton.setEnabled(!getSelectedCategories().isEmpty() && creditsDoc != null);
+        removeButton.setEnabled(!getSelectedCategories().isEmpty() && bus.hasSession());
     }
 
     @Contract(pure = true)
@@ -254,7 +268,8 @@ public final class CategoryPanel extends ListPanel<Object, List<DocumentCategory
                         .deriveFont(java.awt.Font.ITALIC));
             } else if (value instanceof DocumentCategory cat) {
                 String langKey = "credits.category." + KeySanitizer.sanitize(cat.id);
-                String displayName = langDoc != null ? langDoc.get(langKey) : null;
+                String displayName = bus.hasSession() ? bus.langDoc()
+                    .get(langKey) : null;
                 if (displayName == null || displayName.isEmpty()) {
                     label.setText("[" + cat.id + "]");
                 } else {

@@ -1,11 +1,9 @@
 package net.noiraude.creditseditor;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Properties;
-
 import javax.swing.*;
 
+import net.noiraude.creditseditor.ui.AppIcons;
+import net.noiraude.creditseditor.ui.AppInfo;
 import net.noiraude.creditseditor.ui.MainWindow;
 
 import org.jetbrains.annotations.Contract;
@@ -18,6 +16,7 @@ public class CreditsEditorApp {
 
     public static void main(@NotNull String[] args) {
         FlatLightLaf.setup();
+        AppIcons.applyToTaskbar();
         new CreditsEditorApp().start(args);
     }
 
@@ -60,14 +59,7 @@ public class CreditsEditorApp {
 
     @Contract(pure = true)
     private static @NotNull String version() {
-        try (InputStream in = CreditsEditorApp.class.getResourceAsStream("/version.properties")) {
-            if (in != null) {
-                Properties p = new Properties();
-                p.load(in);
-                return p.getProperty("version", "unknown");
-            }
-        } catch (IOException ignored) {}
-        return "unknown";
+        return AppInfo.version();
     }
 
     private static void printHelp() {

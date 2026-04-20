@@ -15,7 +15,7 @@ val junitVersion: String by gradle.extra
 val flatLafVersion: String by gradle.extra
 
 dependencies {
-    implementation(fileTree("../libCredits/build/libs") { include("libCredits*.jar") })
+    implementation(project(":libCredits"))
     implementation("com.google.code.gson:gson:$gsonVersion")
     implementation("com.formdev:flatlaf:$flatLafVersion")
     testImplementation("junit:junit:$junitVersion")
@@ -42,6 +42,7 @@ application {
 
 tasks.named<ProcessResources>("processResources") {
     inputs.property("version", rootProject.version)
+    filteringCharset = "UTF-8"
     filesMatching("version.properties") {
         expand("version" to rootProject.version)
     }

@@ -1,6 +1,6 @@
 package net.noiraude.creditseditor.command.impl;
 
-import net.noiraude.libcredits.model.CreditsDocument;
+import net.noiraude.creditseditor.bus.DocumentBus;
 import net.noiraude.libcredits.model.DocumentPerson;
 
 import org.jetbrains.annotations.NotNull;
@@ -12,26 +12,28 @@ import org.jetbrains.annotations.NotNull;
  * Undo restores the person at their original position. Their memberships are preserved
  * on the person object and come back with them.
  */
-public final class RemovePersonCommand extends AbstractStructuralCommand {
+public final class RemovePersonCommand extends AbstractCommand {
 
-    private final @NotNull CreditsDocument creditsDoc;
+    private final @NotNull DocumentBus bus;
     private final @NotNull DocumentPerson person;
     private int savedIndex;
 
-    public RemovePersonCommand(@NotNull CreditsDocument creditsDoc, @NotNull DocumentPerson person) {
-        this.creditsDoc = creditsDoc;
+    public RemovePersonCommand(@NotNull DocumentBus bus, @NotNull DocumentPerson person) {
+        this.bus = bus;
         this.person = person;
     }
 
     @Override
     public void execute() {
-        savedIndex = creditsDoc.persons.indexOf(person);
-        creditsDoc.persons.remove(savedIndex);
+        savedIndex = bus.creditsDoc().persons.indexOf(person);
+        bus.creditsDoc().persons.remove(savedIndex);
+        bus.firePersonsChanged();
     }
 
     @Override
     public void undo() {
-        creditsDoc.persons.add(savedIndex, person);
+        bus.creditsDoc().persons.add(savedIndex, person);
+        bus.firePersonsChanged();
     }
 
     @Override

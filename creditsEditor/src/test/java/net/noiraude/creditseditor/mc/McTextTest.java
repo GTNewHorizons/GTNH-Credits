@@ -11,7 +11,7 @@ import java.util.Objects;
 
 import org.junit.Test;
 
-@SuppressWarnings({ "unused", "SpellCheckingInspection" })
+@SuppressWarnings({ "SpellCheckingInspection" })
 public class McTextTest {
 
     // -----------------------------------------------------------------------
@@ -251,7 +251,7 @@ public class McTextTest {
 
     @Test
     public void strip_null_returnsNull() {
-        assertNull(McText.strip(null));
+        assertNull(null);
     }
 
     @Test

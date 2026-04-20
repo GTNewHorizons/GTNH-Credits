@@ -13,8 +13,10 @@ val junitVersion: String by gradle.extra
 
 dependencies {
     compileOnly("com.google.code.gson:gson:$gsonVersion")
+    compileOnly("org.jetbrains:annotations:24.1.0")
     testImplementation("junit:junit:$junitVersion")
     testImplementation("com.google.code.gson:gson:$gsonVersion")
+    testCompileOnly("org.jetbrains:annotations:24.1.0")
 }
 
 java {

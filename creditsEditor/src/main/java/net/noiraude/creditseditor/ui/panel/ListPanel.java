@@ -8,9 +8,7 @@ import java.util.function.Consumer;
 import javax.swing.*;
 
 import net.noiraude.creditseditor.command.CommandExecutor;
-import net.noiraude.libcredits.model.CreditsDocument;
 
-import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -30,7 +28,6 @@ import org.jetbrains.annotations.Nullable;
 abstract class ListPanel<E, S> extends JPanel {
 
     protected final @NotNull CommandExecutor onCommand;
-    protected @Nullable CreditsDocument creditsDoc;
 
     protected final @NotNull DefaultListModel<E> listModel = new DefaultListModel<>();
     protected final @NotNull JList<E> list = new JList<>(listModel);
@@ -78,10 +75,4 @@ abstract class ListPanel<E, S> extends JPanel {
 
     /** Updates toolbar button enabled states to reflect the current selection. */
     protected abstract void updateButtons();
-
-    /** Returns the underlying list component, for targeted repaint after field edits. */
-    @Contract(pure = true)
-    public @NotNull JList<E> getList() {
-        return list;
-    }
 }

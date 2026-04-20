@@ -2,13 +2,26 @@ package net.noiraude.creditseditor.ui.panel;
 
 import static net.noiraude.creditseditor.ui.UiScale.scaled;
 
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.Component;
+import java.awt.Frame;
+import java.awt.GridLayout;
 import java.util.Comparator;
 import java.util.List;
 import java.util.function.Consumer;
 
-import javax.swing.*;
+import javax.swing.BorderFactory;
+import javax.swing.DefaultListCellRenderer;
+import javax.swing.JButton;
+import javax.swing.JLabel;
+import javax.swing.JList;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JTextField;
+import javax.swing.ListSelectionModel;
+import javax.swing.SwingUtilities;
 
+import net.noiraude.creditseditor.bus.DocumentBus;
 import net.noiraude.creditseditor.command.CommandExecutor;
 import net.noiraude.creditseditor.command.impl.AddPersonCommand;
 import net.noiraude.creditseditor.command.impl.CompoundCommand;
@@ -16,7 +29,6 @@ import net.noiraude.creditseditor.command.impl.RemovePersonCommand;
 import net.noiraude.creditseditor.mc.McText;
 import net.noiraude.creditseditor.ui.component.AnyChangeListener;
 import net.noiraude.creditseditor.ui.dialog.ImportTsvDialog;
-import net.noiraude.libcredits.model.CreditsDocument;
 import net.noiraude.libcredits.model.DocumentCategory;
 import net.noiraude.libcredits.model.DocumentPerson;
 import net.noiraude.libcredits.util.PersonSortKey;
@@ -29,23 +41,28 @@ import org.jetbrains.annotations.Nullable;
  *
  * <p>
  * Supports multi-selection. The selection callback receives the full list of selected
- * persons (empty list when nothing is selected). Call {@link #refresh(CreditsDocument)}
- * after any document change. Call {@link #setFilter(List)} to restrict the visible set
- * to the union of memberships across the supplied categories; pass an empty list to
- * show all persons.
+ * persons (empty list when nothing is selected). Subscribes to the document bus: rebuilds
+ * from {@code TOPIC_SESSION} and {@code TOPIC_PERSONS}, repaints cells (without a rebuild)
+ * for {@code TOPIC_PERSON} so light edits don't disturb selection or scroll.
+ * {@link #setFilter(List)} restricts the visible set to the union of memberships across
+ * the supplied categories; pass an empty list to show all persons.
  */
 public final class PersonPanel extends ListPanel<DocumentPerson, List<DocumentPerson>> {
 
+    private final @NotNull DocumentBus bus;
     private @NotNull List<DocumentCategory> filters = List.of();
 
     private final @NotNull JTextField searchField = new JTextField();
 
     /**
+     * @param bus                event bus to subscribe to and pass to commands
      * @param onCommand          receives each structural command to execute
      * @param onSelectionChanged called with the selected persons (empty list when cleared)
      */
-    public PersonPanel(@NotNull CommandExecutor onCommand, @NotNull Consumer<List<DocumentPerson>> onSelectionChanged) {
+    public PersonPanel(@NotNull DocumentBus bus, @NotNull CommandExecutor onCommand,
+        @NotNull Consumer<List<DocumentPerson>> onSelectionChanged) {
         super("Persons", onCommand, onSelectionChanged);
+        this.bus = bus;
         list.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
         list.setCellRenderer(new PersonCellRenderer());
 
@@ -80,6 +97,11 @@ public final class PersonPanel extends ListPanel<DocumentPerson, List<DocumentPe
         toolbar.add(importButton, BorderLayout.EAST);
         add(toolbar, BorderLayout.SOUTH);
 
+        bus.addListener(DocumentBus.TOPIC_SESSION, e -> rebuild());
+        bus.addListener(DocumentBus.TOPIC_PERSONS, e -> rebuild());
+        bus.addListener(DocumentBus.TOPIC_PERSON, e -> list.repaint());
+        bus.addListener(DocumentBus.TOPIC_CATEGORIES, e -> onCategoriesChanged());
+
         updateButtons();
     }
 
@@ -93,17 +115,26 @@ public final class PersonPanel extends ListPanel<DocumentPerson, List<DocumentPe
         applyFilter();
     }
 
-    /**
-     * Repopulates the list from the document, respecting the current filter and search term.
-     * Preserves the selection by name where possible.
-     */
-    public void refresh(@NotNull CreditsDocument creditsDoc) {
-        this.creditsDoc = creditsDoc;
+    private void rebuild() {
         refreshing = true;
         try {
             applyFilter();
         } finally {
             refreshing = false;
+        }
+    }
+
+    private void onCategoriesChanged() {
+        if (!bus.hasSession() || filters.isEmpty()) return;
+        // Drop any filter categories that no longer exist in the document.
+        List<DocumentCategory> surviving = filters.stream()
+            .filter(
+                f -> bus.creditsDoc().categories.stream()
+                    .anyMatch(c -> c.id.equals(f.id)))
+            .toList();
+        if (surviving.size() != filters.size()) {
+            filters = List.copyOf(surviving);
+            applyFilter();
         }
     }
 
@@ -117,15 +148,15 @@ public final class PersonPanel extends ListPanel<DocumentPerson, List<DocumentPe
     // -----------------------------------------------------------------------
 
     private void onAdd() {
-        if (creditsDoc == null) return;
+        if (!bus.hasSession()) return;
         String name = JOptionPane.showInputDialog(this, "Person name:", "Add person", JOptionPane.PLAIN_MESSAGE);
         if (name == null || name.isBlank()) return;
-        onCommand.execute(new AddPersonCommand(creditsDoc, new DocumentPerson(name.strip())));
+        onCommand.execute(new AddPersonCommand(bus, new DocumentPerson(name.strip())));
     }
 
     private void onRemove() {
         List<DocumentPerson> selected = list.getSelectedValuesList();
-        if (selected.isEmpty() || creditsDoc == null) return;
+        if (selected.isEmpty() || !bus.hasSession()) return;
 
         String message = selected.size() == 1 ? "Remove '" + McText.strip(selected.getFirst().name) + "'?"
             : "Remove " + selected.size() + " person(s)?";
@@ -138,21 +169,21 @@ public final class PersonPanel extends ListPanel<DocumentPerson, List<DocumentPe
         if (confirm != JOptionPane.OK_OPTION) return;
 
         if (selected.size() == 1) {
-            onCommand.execute(new RemovePersonCommand(creditsDoc, selected.getFirst()));
+            onCommand.execute(new RemovePersonCommand(bus, selected.getFirst()));
         } else {
             CompoundCommand.Builder builder = new CompoundCommand.Builder("Remove " + selected.size() + " person(s)");
             for (DocumentPerson person : selected) {
-                builder.add(new RemovePersonCommand(creditsDoc, person));
+                builder.add(new RemovePersonCommand(bus, person));
             }
             onCommand.execute(builder.build());
         }
     }
 
     private void onImportTsv() {
-        if (creditsDoc == null) return;
+        if (!bus.hasSession()) return;
         Frame owner = (Frame) SwingUtilities.getWindowAncestor(this);
         String defaultCategoryId = filters.size() == 1 ? filters.getFirst().id : null;
-        ImportTsvDialog dialog = new ImportTsvDialog(owner, onCommand, creditsDoc, defaultCategoryId);
+        ImportTsvDialog dialog = new ImportTsvDialog(owner, bus, onCommand, defaultCategoryId);
         dialog.setVisible(true);
     }
 
@@ -161,13 +192,13 @@ public final class PersonPanel extends ListPanel<DocumentPerson, List<DocumentPe
     // -----------------------------------------------------------------------
 
     private void applyFilter() {
-        if (creditsDoc == null) return;
+        if (!bus.hasSession()) return;
 
         String prevName = list.getSelectedValue() != null ? list.getSelectedValue().name : null;
         String search = searchField.getText()
             .toLowerCase();
 
-        List<DocumentPerson> visible = creditsDoc.persons.stream()
+        List<DocumentPerson> visible = bus.creditsDoc().persons.stream()
             .filter(p -> passesFilter(p, search))
             .sorted(Comparator.comparing(p -> PersonSortKey.of(p.name)))
             .toList();
@@ -215,7 +246,7 @@ public final class PersonPanel extends ListPanel<DocumentPerson, List<DocumentPe
     protected void updateButtons() {
         removeButton.setEnabled(
             !list.getSelectedValuesList()
-                .isEmpty() && creditsDoc != null);
+                .isEmpty() && bus.hasSession());
     }
 
     // -----------------------------------------------------------------------

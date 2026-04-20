@@ -12,7 +12,6 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
 
-@SuppressWarnings("unused")
 public class CommandStackTest {
 
     private CommandStack stack;
@@ -28,15 +27,7 @@ public class CommandStackTest {
         return new LoggingCommand(name, log);
     }
 
-    private static final class LoggingCommand implements Command {
-
-        private final String name;
-        private final List<String> log;
-
-        LoggingCommand(String name, List<String> log) {
-            this.name = name;
-            this.log = log;
-        }
+    private record LoggingCommand(String name, List<String> log) implements Command {
 
         @Override
         public void execute() {

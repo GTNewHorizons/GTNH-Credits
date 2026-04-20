@@ -3,7 +3,10 @@ package net.noiraude.creditseditor.ui;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 
-import javax.swing.*;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
+import javax.swing.KeyStroke;
 
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
@@ -27,30 +30,37 @@ final class EditorMenuBar extends JMenuBar {
 
     }
 
-    /** Edit-menu callbacks: undo, redo. */
-    static final class EditActions {
-
-        final @NotNull Runnable onUndo;
-        final @NotNull Runnable onRedo;
+    /**
+     * Edit-menu callbacks: undo, redo.
+     */
+    record EditActions(@NotNull Runnable onUndo, @NotNull Runnable onRedo) {
 
         @Contract(pure = true)
-        EditActions(@NotNull Runnable onUndo, @NotNull Runnable onRedo) {
-            this.onUndo = onUndo;
-            this.onRedo = onRedo;
-        }
+        EditActions {}
+    }
+
+    /**
+     * Help-menu callbacks: about.
+     */
+    record HelpActions(@NotNull Runnable onAbout) {
+
+        @Contract(pure = true)
+        HelpActions {}
     }
 
     private final @NotNull JMenuItem menuSave;
     private final @NotNull JMenuItem menuUndo;
     private final @NotNull JMenuItem menuRedo;
 
-    EditorMenuBar(@NotNull FileActions fileActions, @NotNull EditActions editActions) {
+    EditorMenuBar(@NotNull FileActions fileActions, @NotNull EditActions editActions,
+        @NotNull HelpActions helpActions) {
         Runnable onOpen = fileActions.onOpen;
         Runnable onNew = fileActions.onNew;
         Runnable onSave = fileActions.onSave;
         Runnable onQuit = fileActions.onQuit;
         Runnable onUndo = editActions.onUndo;
         Runnable onRedo = editActions.onRedo;
+        Runnable onAbout = helpActions.onAbout;
         JMenu fileMenu = new JMenu("File");
         JMenuItem menuOpen = new JMenuItem("Open Resources…");
         JMenuItem menuNew = new JMenuItem("New Resources…");
@@ -87,8 +97,14 @@ final class EditorMenuBar extends JMenuBar {
         editMenu.add(menuUndo);
         editMenu.add(menuRedo);
 
+        JMenu helpMenu = new JMenu("Help");
+        JMenuItem menuAbout = new JMenuItem("About " + AppInfo.name());
+        menuAbout.addActionListener(e -> onAbout.run());
+        helpMenu.add(menuAbout);
+
         add(fileMenu);
         add(editMenu);
+        add(helpMenu);
 
         refresh(null);
     }

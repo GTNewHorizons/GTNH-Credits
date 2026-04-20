@@ -2,12 +2,18 @@ package net.noiraude.creditseditor.ui.detail;
 
 import static net.noiraude.creditseditor.ui.UiScale.scaled;
 
-import java.awt.*;
+import java.awt.Dimension;
+import java.awt.GridBagConstraints;
+import java.awt.Insets;
+import java.awt.Rectangle;
 import java.util.List;
 
-import javax.swing.*;
-import javax.swing.table.AbstractTableModel;
+import javax.swing.JComboBox;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.Scrollable;
 
+import net.noiraude.creditseditor.bus.DocumentBus;
 import net.noiraude.creditseditor.command.CommandExecutor;
 import net.noiraude.creditseditor.command.impl.AddMembershipCommand;
 import net.noiraude.creditseditor.command.impl.DocumentEditCommand;
@@ -15,13 +21,10 @@ import net.noiraude.creditseditor.command.impl.RemoveMembershipCommand;
 import net.noiraude.creditseditor.mc.McText;
 import net.noiraude.creditseditor.service.KeySanitizer;
 import net.noiraude.creditseditor.ui.component.MinecraftTextEditor;
-import net.noiraude.libcredits.lang.LangDocument;
-import net.noiraude.libcredits.model.CreditsDocument;
 import net.noiraude.libcredits.model.DocumentCategory;
 import net.noiraude.libcredits.model.DocumentMembership;
 import net.noiraude.libcredits.model.DocumentPerson;
 
-import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -29,26 +32,34 @@ import org.jetbrains.annotations.Nullable;
  * Form panel that displays and edits the fields of a single {@link DocumentPerson}.
  *
  * <p>
- * Changes are dispatched through the supplied {@link CommandExecutor} rather than mutating
- * the document directly. Call {@link #setContext(CreditsDocument, LangDocument)} once after
- * a session loads, then {@link #load(DocumentPerson)} whenever the active person changes or
- * the document has been refreshed by an undo/redo.
+ * Subscribes to {@link DocumentBus#TOPIC_PERSON} to reload the current person when it is
+ * the one that changed. Removal of the current person is detected by the owning
+ * {@code DetailPanel}, which calls {@link #clear()} and switches the card away from this
+ * view; this view therefore does not listen for {@code TOPIC_PERSONS}. Membership table,
+ * toolbar, and selection-suppression logic are delegated to {@link MembershipTablePanel};
+ * role editing is delegated to {@link MembershipRolePanel}. Changes are dispatched through
+ * the supplied {@link CommandExecutor}; editing the name field goes through a
+ * {@link DocumentEditCommand} that relies on this view's own property listener to write
+ * the new value back into the model.
  */
-public final class PersonDetailView extends DetailView<DocumentPerson> {
+public final class PersonDetailView extends DetailView<DocumentPerson> implements Scrollable {
 
-    private @Nullable CreditsDocument creditsDoc;
-    private @Nullable LangDocument langDoc;
-    private boolean restoringMembershipSelection = false;
+    private final @NotNull DocumentBus bus;
 
     private final @NotNull MinecraftTextEditor nameEditor = new MinecraftTextEditor();
-    private final @NotNull MembershipTableModel tableModel = new MembershipTableModel();
-    private final @NotNull JTable membershipTable = new JTable(tableModel);
+    private final @NotNull MembershipTablePanel membershipPanel;
     private final @NotNull MembershipRolePanel rolePanel;
 
-    public PersonDetailView(@NotNull CommandExecutor onCommand) {
+    public PersonDetailView(@NotNull DocumentBus bus, @NotNull CommandExecutor onCommand) {
         super(onCommand);
-        rolePanel = new MembershipRolePanel(onCommand);
+        this.bus = bus;
+        this.rolePanel = new MembershipRolePanel(bus, onCommand);
+        this.membershipPanel = new MembershipTablePanel(this::onAddMembership, this::onRemoveMembership);
+        buildLayout();
+        wireEvents();
+    }
 
+    private void buildLayout() {
         GridBagConstraints label = labelConstraints();
         GridBagConstraints field = fieldConstraints();
 
@@ -58,61 +69,15 @@ public final class PersonDetailView extends DetailView<DocumentPerson> {
         field.gridy = 0;
         add(nameEditor, field);
 
-        // Row 1: Memberships label
+        // Row 1: Memberships table + toolbar. weighty stays at 0 so the panel keeps its
+        // preferred height (MembershipTablePanel pins 2 rows + toolbar); the role panel on
+        // row 2 absorbs any extra vertical space.
         label.gridy = 1;
         label.anchor = GridBagConstraints.NORTHWEST;
         add(new JLabel("Memberships:"), label);
-
-        // Row 1: Memberships table + toolbar
         field.gridy = 1;
         field.fill = GridBagConstraints.BOTH;
-        field.weighty = 1.0;
-        membershipTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        membershipTable.getColumnModel()
-            .getColumn(0)
-            .setPreferredWidth(120);
-        membershipTable.getColumnModel()
-            .getColumn(1)
-            .setPreferredWidth(280);
-        JScrollPane tableScroll = new JScrollPane(membershipTable);
-        tableScroll.setBorder(BorderFactory.createEtchedBorder());
-
-        JPanel membershipPanel = new JPanel(new BorderLayout());
-        membershipPanel.add(tableScroll, BorderLayout.CENTER);
-
-        JPanel membershipToolbar = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 4));
-        JButton addMembershipButton = new JButton("Add");
-        membershipToolbar.add(addMembershipButton);
-        JButton removeMembershipButton = new JButton("Remove");
-        membershipToolbar.add(removeMembershipButton);
-        membershipPanel.add(membershipToolbar, BorderLayout.SOUTH);
         add(membershipPanel, field);
-
-        // Wire events
-        nameEditor.addPropertyChangeListener("text", e -> {
-            if (!loading && current != null) {
-                current.name = (String) e.getNewValue();
-            }
-        });
-        nameEditor.addUndoableEditListener(e -> {
-            if (!loading && current != null) {
-                onCommand.execute(new DocumentEditCommand("Edit person name", e.getEdit()));
-            }
-        });
-
-        addMembershipButton.addActionListener(e -> onAddMembership());
-        removeMembershipButton.addActionListener(e -> onRemoveMembership());
-
-        membershipTable.getSelectionModel()
-            .addListSelectionListener(e -> {
-                if (e.getValueIsAdjusting() || restoringMembershipSelection) return;
-                int row = membershipTable.getSelectedRow();
-                if (row >= 0 && current != null) {
-                    rolePanel.load(current.memberships.get(row));
-                } else {
-                    rolePanel.load(null);
-                }
-            });
 
         // Row 2: Role panel (spans both columns)
         GridBagConstraints roleGbc = new GridBagConstraints();
@@ -126,14 +91,51 @@ public final class PersonDetailView extends DetailView<DocumentPerson> {
         add(rolePanel, roleGbc);
     }
 
+    private void wireEvents() {
+        wireNameEditor();
+        membershipPanel.addRowSelectionListener(this::onMembershipSelected);
+        // Name edits update the text field directly (via its document), so we only reload
+        // the membership table on TOPIC_PERSON to avoid resetting the caret position while
+        // the user is typing.
+        bus.addListener(
+            DocumentBus.TOPIC_PERSON,
+            evt -> { if (current != null && evt.getNewValue() == current) reloadMemberships(); });
+    }
+
+    private void wireNameEditor() {
+        nameEditor.addPropertyChangeListener("text", e -> {
+            if (loading || current == null) return;
+            DocumentPerson p = current;
+            p.name = (String) e.getNewValue();
+            bus.firePersonChanged(p);
+        });
+        nameEditor.addUndoableEditListener(e -> {
+            if (!loading && current != null) {
+                onCommand.execute(new DocumentEditCommand("Edit person name", e.getEdit()));
+            }
+        });
+    }
+
+    private void onMembershipSelected(int row) {
+        if (row >= 0 && current != null) {
+            rolePanel.load(current, current.memberships.get(row));
+        } else {
+            rolePanel.load(current, null);
+        }
+    }
+
+    private void reloadMemberships() {
+        if (current == null) return;
+        membershipPanel.setMembershipsPreservingSelection(current.memberships, selectedMembershipCategoryId());
+        onMembershipSelected(membershipPanel.getSelectedRow());
+    }
+
     /**
-     * Sets the document context used for category lookups and display name resolution.
-     * Call once after a session is loaded.
+     * Clears the current subject so stale bus events targeted at the previously displayed
+     * person are ignored. Called by the owning panel when switching away from this view.
      */
-    public void setContext(@NotNull CreditsDocument creditsDoc, @NotNull LangDocument langDoc) {
-        this.creditsDoc = creditsDoc;
-        this.langDoc = langDoc;
-        rolePanel.setContext(creditsDoc, langDoc);
+    public void clear() {
+        current = null;
     }
 
     /**
@@ -144,53 +146,30 @@ public final class PersonDetailView extends DetailView<DocumentPerson> {
         String prevCategoryId = selectedMembershipCategoryId();
         current = person;
         loading = true;
-        restoringMembershipSelection = true;
         try {
             nameEditor.setText(person.name);
-            tableModel.setMemberships(person.memberships);
-            restoreMembershipSelection(person, prevCategoryId);
+            membershipPanel.setMembershipsPreservingSelection(person.memberships, prevCategoryId);
         } finally {
             loading = false;
-            restoringMembershipSelection = false;
         }
-        // Trigger role panel manually now that the flag is cleared
-        int row = membershipTable.getSelectedRow();
-        if (row >= 0) {
-            rolePanel.load(current.memberships.get(row));
-        } else {
-            rolePanel.load(null);
-        }
+        onMembershipSelected(membershipPanel.getSelectedRow());
     }
 
     private @Nullable String selectedMembershipCategoryId() {
-        int row = membershipTable.getSelectedRow();
+        int row = membershipPanel.getSelectedRow();
         if (row >= 0 && current != null && row < current.memberships.size()) {
             return current.memberships.get(row).categoryId;
         }
         return null;
     }
 
-    private void restoreMembershipSelection(@NotNull DocumentPerson person, @Nullable String categoryId) {
-        if (categoryId == null) {
-            membershipTable.clearSelection();
-            return;
-        }
-        for (int i = 0; i < person.memberships.size(); i++) {
-            if (person.memberships.get(i).categoryId.equals(categoryId)) {
-                membershipTable.setRowSelectionInterval(i, i);
-                return;
-            }
-        }
-        membershipTable.clearSelection();
-    }
-
     private void onAddMembership() {
-        if (current == null || creditsDoc == null) return;
+        if (current == null || !bus.hasSession()) return;
 
         List<String> used = current.memberships.stream()
             .map(m -> m.categoryId)
             .toList();
-        List<DocumentCategory> available = creditsDoc.categories.stream()
+        List<DocumentCategory> available = bus.creditsDoc().categories.stream()
             .filter(c -> !used.contains(c.id))
             .toList();
 
@@ -205,8 +184,8 @@ public final class PersonDetailView extends DetailView<DocumentPerson> {
 
         String[] labels = available.stream()
             .map(c -> {
-                String displayName = langDoc != null ? langDoc.get("credits.category." + KeySanitizer.sanitize(c.id))
-                    : null;
+                String displayName = bus.langDoc()
+                    .get("credits.category." + KeySanitizer.sanitize(c.id));
                 return c.id + (displayName == null || displayName.isEmpty() ? "" : " " + McText.strip(displayName));
             })
             .toArray(String[]::new);
@@ -216,12 +195,12 @@ public final class PersonDetailView extends DetailView<DocumentPerson> {
         if (result != JOptionPane.OK_OPTION) return;
 
         DocumentCategory chosen = available.get(combo.getSelectedIndex());
-        onCommand.execute(new AddMembershipCommand(current, new DocumentMembership(chosen.id)));
+        onCommand.execute(new AddMembershipCommand(bus, current, new DocumentMembership(chosen.id)));
     }
 
     private void onRemoveMembership() {
         if (current == null) return;
-        int row = membershipTable.getSelectedRow();
+        int row = membershipPanel.getSelectedRow();
         if (row < 0) {
             JOptionPane.showMessageDialog(
                 this,
@@ -231,49 +210,33 @@ public final class PersonDetailView extends DetailView<DocumentPerson> {
             return;
         }
         DocumentMembership membership = current.memberships.get(row);
-        onCommand.execute(new RemoveMembershipCommand(current, membership));
+        onCommand.execute(new RemoveMembershipCommand(bus, current, membership));
     }
 
-    // -----------------------------------------------------------------------
-    // Membership table model
-    // -----------------------------------------------------------------------
+    // --- Scrollable: fill the viewport width, scroll vertically when content overflows ---
 
-    private static final class MembershipTableModel extends AbstractTableModel {
+    @Override
+    public Dimension getPreferredScrollableViewportSize() {
+        return getPreferredSize();
+    }
 
-        private static final @NotNull String @NotNull [] COLUMNS = { "Category", "Roles" };
-        private @NotNull List<DocumentMembership> memberships = List.of();
+    @Override
+    public int getScrollableUnitIncrement(Rectangle visibleRect, int orientation, int direction) {
+        return scaled(16);
+    }
 
-        void setMemberships(@NotNull List<DocumentMembership> memberships) {
-            this.memberships = memberships;
-            fireTableDataChanged();
-        }
+    @Override
+    public int getScrollableBlockIncrement(Rectangle visibleRect, int orientation, int direction) {
+        return orientation == javax.swing.SwingConstants.VERTICAL ? visibleRect.height : visibleRect.width;
+    }
 
-        @Contract(pure = true)
-        @Override
-        public int getRowCount() {
-            return memberships.size();
-        }
+    @Override
+    public boolean getScrollableTracksViewportWidth() {
+        return true;
+    }
 
-        @Contract(pure = true)
-        @Override
-        public int getColumnCount() {
-            return COLUMNS.length;
-        }
-
-        @Contract(pure = true)
-        @Override
-        public @NotNull String getColumnName(int col) {
-            return COLUMNS[col];
-        }
-
-        @Override
-        public @NotNull Object getValueAt(int row, int col) {
-            DocumentMembership m = memberships.get(row);
-            return switch (col) {
-                case 0 -> m.categoryId;
-                case 1 -> String.join(", ", m.roles);
-                default -> "";
-            };
-        }
+    @Override
+    public boolean getScrollableTracksViewportHeight() {
+        return false;
     }
 }

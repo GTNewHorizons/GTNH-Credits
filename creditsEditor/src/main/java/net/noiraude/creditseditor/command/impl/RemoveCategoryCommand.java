@@ -3,6 +3,7 @@ package net.noiraude.creditseditor.command.impl;
 import java.util.ArrayList;
 import java.util.List;
 
+import net.noiraude.creditseditor.bus.DocumentBus;
 import net.noiraude.libcredits.model.CreditsDocument;
 import net.noiraude.libcredits.model.DocumentCategory;
 import net.noiraude.libcredits.model.DocumentMembership;
@@ -17,9 +18,9 @@ import org.jetbrains.annotations.NotNull;
  * Undo restores the category at its original position and each stripped membership at its
  * original position within the respective person's membership list.
  */
-public final class RemoveCategoryCommand extends AbstractStructuralCommand {
+public final class RemoveCategoryCommand extends AbstractCommand {
 
-    private final @NotNull CreditsDocument creditsDoc;
+    private final @NotNull DocumentBus bus;
     private final @NotNull DocumentCategory category;
 
     private int savedIndex;
@@ -27,16 +28,17 @@ public final class RemoveCategoryCommand extends AbstractStructuralCommand {
 
     private record AffectedMembership(DocumentPerson person, int index, DocumentMembership membership) {}
 
-    public RemoveCategoryCommand(@NotNull CreditsDocument creditsDoc, @NotNull DocumentCategory category) {
-        this.creditsDoc = creditsDoc;
+    public RemoveCategoryCommand(@NotNull DocumentBus bus, @NotNull DocumentCategory category) {
+        this.bus = bus;
         this.category = category;
     }
 
     @Override
     public void execute() {
-        savedIndex = creditsDoc.categories.indexOf(category);
+        CreditsDocument doc = bus.creditsDoc();
+        savedIndex = doc.categories.indexOf(category);
         saved.clear();
-        for (DocumentPerson person : creditsDoc.persons) {
+        for (DocumentPerson person : doc.persons) {
             for (int i = 0; i < person.memberships.size(); i++) {
                 if (person.memberships.get(i).categoryId.equals(category.id)) {
                     saved.add(new AffectedMembership(person, i, person.memberships.get(i)));
@@ -47,16 +49,21 @@ public final class RemoveCategoryCommand extends AbstractStructuralCommand {
         for (AffectedMembership am : saved) {
             am.person().memberships.remove(am.membership());
         }
-        creditsDoc.categories.remove(savedIndex);
+        doc.categories.remove(savedIndex);
+        bus.fireCategoriesChanged();
+        if (!saved.isEmpty()) bus.firePersonsChanged();
     }
 
     @Override
     public void undo() {
-        creditsDoc.categories.add(savedIndex, category);
+        CreditsDocument doc = bus.creditsDoc();
+        doc.categories.add(savedIndex, category);
         for (AffectedMembership am : saved) {
             int idx = Math.min(am.index(), am.person().memberships.size());
             am.person().memberships.add(idx, am.membership());
         }
+        bus.fireCategoriesChanged();
+        if (!saved.isEmpty()) bus.firePersonsChanged();
     }
 
     @Override

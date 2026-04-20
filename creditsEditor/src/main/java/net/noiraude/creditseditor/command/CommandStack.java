@@ -34,12 +34,8 @@ public final class CommandStack {
     // Execute / undo / redo
     // -----------------------------------------------------------------------
 
-    /**
-     * Executes {@code command}, pushes it onto the undo stack, and clears the redo stack.
-     *
-     * @return {@code true} if the command is a {@link Command#isLightEdit() light edit}
-     */
-    public boolean execute(@NotNull Command command) {
+    /** Executes {@code command}, pushes it onto the undo stack, and clears the redo stack. */
+    public void execute(@NotNull Command command) {
         command.execute();
         undoStack.push(command);
         if (!redoStack.isEmpty()) {
@@ -51,35 +47,30 @@ public final class CommandStack {
                 cleanMark = -1;
             }
         }
-        return command.isLightEdit();
     }
 
     /**
      * Undoes the most recently executed command.
      *
-     * @return {@code true} if the undone command was a {@link Command#isLightEdit() light edit}
      * @throws IllegalStateException if there is nothing to undo
      */
-    public boolean undo() {
+    public void undo() {
         if (undoStack.isEmpty()) throw new IllegalStateException("Nothing to undo");
         Command cmd = undoStack.pop();
         cmd.undo();
         redoStack.push(cmd);
-        return cmd.isLightEdit();
     }
 
     /**
      * Re-executes the most recently undone command.
      *
-     * @return {@code true} if the redone command was a {@link Command#isLightEdit() light edit}
      * @throws IllegalStateException if there is nothing to redo
      */
-    public boolean redo() {
+    public void redo() {
         if (redoStack.isEmpty()) throw new IllegalStateException("Nothing to redo");
         Command cmd = redoStack.pop();
         cmd.execute();
         undoStack.push(cmd);
-        return cmd.isLightEdit();
     }
 
     // -----------------------------------------------------------------------

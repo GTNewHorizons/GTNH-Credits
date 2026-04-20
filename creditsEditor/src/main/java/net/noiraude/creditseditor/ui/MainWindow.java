@@ -1,12 +1,18 @@
 package net.noiraude.creditseditor.ui;
 
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.Dimension;
+import java.awt.Insets;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 
-import javax.swing.*;
+import javax.swing.JFileChooser;
+import javax.swing.JFrame;
+import javax.swing.JOptionPane;
 
+import net.noiraude.creditseditor.bus.DocumentBus;
 import net.noiraude.creditseditor.command.CommandExecutor;
+import net.noiraude.creditseditor.ui.dialog.AboutDialog;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -17,17 +23,19 @@ import org.jetbrains.annotations.Nullable;
  * <p>
  * Responsible for: the JFrame lifecycle, the menu bar, file I/O dialogs (open / save / quit),
  * and undo/redo dispatch. Panel layout and selection coordination are delegated to
- * {@link EditorView}; session state is held in {@link EditorSession}.
+ * {@link EditorView}; session state is held in {@link EditorSession}. All widgets subscribe
+ * to a single application-wide {@link DocumentBus}; refresh is entirely event-driven.
  */
 public final class MainWindow extends JFrame {
 
     private @Nullable EditorSession session; // null when no resource is open
 
-    private final @NotNull EditorView editorView;
+    private final @NotNull DocumentBus bus = new DocumentBus();
     private final @NotNull EditorMenuBar menuBar;
 
     public MainWindow(@Nullable String initialPath) {
         super("GTNH Credits Editor");
+        setIconImages(AppIcons.load());
         setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
         addWindowListener(new WindowAdapter() {
 
@@ -39,11 +47,12 @@ public final class MainWindow extends JFrame {
 
         CommandExecutor onCommand = cmd -> {
             if (session == null) return;
-            boolean light = session.stack.execute(cmd);
-            afterCommand(light);
+            session.stack.execute(cmd);
+            afterCommand();
         };
 
-        editorView = new EditorView(onCommand);
+        @NotNull
+        EditorView editorView = new EditorView(bus, onCommand);
 
         setLayout(new BorderLayout());
         add(editorView, BorderLayout.CENTER);
@@ -54,8 +63,22 @@ public final class MainWindow extends JFrame {
                 () -> handleOpen(true),
                 this::handleSave,
                 this::handleQuit),
-            new EditorMenuBar.EditActions(this::handleUndo, this::handleRedo));
+            new EditorMenuBar.EditActions(this::handleUndo, this::handleRedo),
+            new EditorMenuBar.HelpActions(this::handleAbout));
         setJMenuBar(menuBar);
+
+        // Realize the peer so getInsets() returns real chrome sizes, then force the frame's
+        // minimum size to whatever the content pane plus the menu bar report as their own
+        // minimum. This prevents the user from shrinking the window below the point where
+        // inner panels (memberships, roles, etc.) can still render at their pinned minimums.
+        pack();
+        Insets frameInsets = getInsets();
+        Dimension contentMin = getContentPane().getMinimumSize();
+        int menuBarHeight = menuBar.getPreferredSize().height;
+        setMinimumSize(
+            new Dimension(
+                contentMin.width + frameInsets.left + frameInsets.right,
+                contentMin.height + menuBarHeight + frameInsets.top + frameInsets.bottom));
 
         setSize(UiScale.scaled(1100), UiScale.scaled(700));
         setLocationRelativeTo(null);
@@ -90,7 +113,7 @@ public final class MainWindow extends JFrame {
         }
         session = newSession;
 
-        editorView.loadSession(session);
+        bus.setSession(session.creditsDoc(), session.langDoc());
         menuBar.refresh(session);
         updateTitle();
     }
@@ -131,12 +154,14 @@ public final class MainWindow extends JFrame {
 
     private void handleUndo() {
         if (session == null || !session.stack.canUndo()) return;
-        afterCommand(session.stack.undo());
+        session.stack.undo();
+        afterCommand();
     }
 
     private void handleRedo() {
         if (session == null || !session.stack.canRedo()) return;
-        afterCommand(session.stack.redo());
+        session.stack.redo();
+        afterCommand();
     }
 
     // -----------------------------------------------------------------------
@@ -150,19 +175,23 @@ public final class MainWindow extends JFrame {
     }
 
     // -----------------------------------------------------------------------
+    // Help
+    // -----------------------------------------------------------------------
+
+    private void handleAbout() {
+        new AboutDialog(this).setVisible(true);
+    }
+
+    // -----------------------------------------------------------------------
     // UI refresh helpers
     // -----------------------------------------------------------------------
 
     /**
-     * Post-command/undo/redo refresh. Light edits repaint list cells in place; structural
-     * commands trigger a full panel rebuild via {@link EditorView#refreshAll()}.
+     * Post-command/undo/redo housekeeping. Document-driven UI updates are published on the
+     * bus by the commands themselves; this method only touches frame-level state (menu
+     * enablement and window title).
      */
-    private void afterCommand(boolean light) {
-        if (light) {
-            editorView.repaintLists();
-        } else {
-            editorView.refreshAll();
-        }
+    private void afterCommand() {
         menuBar.refresh(session);
         updateTitle();
     }

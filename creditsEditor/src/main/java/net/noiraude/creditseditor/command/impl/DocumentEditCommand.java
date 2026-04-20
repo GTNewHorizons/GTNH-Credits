@@ -12,8 +12,13 @@ import org.jetbrains.annotations.NotNull;
  * delegates to {@link UndoableEdit#undo()}; redo delegates to {@link UndoableEdit#redo()}.
  * Execute is a no-op on the first call (edit already applied) and calls
  * {@link UndoableEdit#redo()} on later calls (redo after undo).
+ *
+ * <p>
+ * No bus events are fired from here. The owning text editor's {@code "text"} property
+ * change listener runs on every undo and redo path and is responsible for writing the
+ * new value into the model and publishing the appropriate topic.
  */
-public final class DocumentEditCommand extends AbstractLightEditCommand {
+public final class DocumentEditCommand extends AbstractCommand {
 
     private final @NotNull String displayName;
     private final @NotNull UndoableEdit edit;
@@ -42,5 +47,4 @@ public final class DocumentEditCommand extends AbstractLightEditCommand {
     public @NotNull String getDisplayName() {
         return displayName;
     }
-
 }

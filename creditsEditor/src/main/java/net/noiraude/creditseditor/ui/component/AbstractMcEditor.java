@@ -32,9 +32,11 @@ class AbstractMcEditor extends JPanel {
 
     private final @NotNull McWysiwygPane wysiwygPane;
     private final @NotNull JButton toggleButton = new JButton("<>");
+    private final boolean multiLine;
     private boolean rawMode = false;
 
     AbstractMcEditor(boolean multiLine) {
+        this.multiLine = multiLine;
         setLayout(new BorderLayout(0, 0));
 
         wysiwygPane = new McWysiwygPane(multiLine);
@@ -89,6 +91,26 @@ class AbstractMcEditor extends JPanel {
      */
     public void addUndoableEditListener(@NotNull UndoableEditListener l) {
         wysiwygPane.addUndoableEditListener(l);
+    }
+
+    // In single-line mode, pin the height to the preferred height so parent layouts
+    // (notably GridBagLayout with sibling weighty > 0 rows) cannot shrink the editor
+    // below one line or stretch it vertically.
+
+    /** {@inheritDoc} */
+    @Override
+    public Dimension getMinimumSize() {
+        Dimension min = super.getMinimumSize();
+        if (multiLine) return min;
+        return new Dimension(min.width, getPreferredSize().height);
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public Dimension getMaximumSize() {
+        Dimension max = super.getMaximumSize();
+        if (multiLine) return max;
+        return new Dimension(max.width, getPreferredSize().height);
     }
 
     // ------------------------------------------------------------------

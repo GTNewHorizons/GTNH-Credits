@@ -1,6 +1,25 @@
 tasks.register('runCreditsEditor') {
     group = 'application'
+    description = 'Runs the creditsEditor subproject (delegates to :creditsEditor:run).'
     dependsOn(':creditsEditor:run')
+}
+
+tasks.register('buildCreditsEditor') {
+    group = 'build'
+    description = 'Builds the creditsEditor subproject (delegates to :creditsEditor:build).'
+    dependsOn(':creditsEditor:build')
+}
+
+tasks.register('installCreditsEditor') {
+    group = 'distribution'
+    description = 'Installs the creditsEditor under $PREFIX (delegates to :creditsEditor:install).'
+    dependsOn(':creditsEditor:install')
+}
+
+tasks.register('uninstallCreditsEditor') {
+    group = 'distribution'
+    description = 'Uninstalls the creditsEditor from $PREFIX (delegates to :creditsEditor:uninstall).'
+    dependsOn(':creditsEditor:uninstall')
 }
 
 // CustomMainMenu is client-only and must not run on the server (it loads GuiScreen during preInit,

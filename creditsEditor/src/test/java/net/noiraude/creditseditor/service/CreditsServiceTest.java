@@ -15,7 +15,6 @@ import net.noiraude.libcredits.model.DocumentPerson;
 
 import org.junit.Test;
 
-@SuppressWarnings("unused")
 public class CreditsServiceTest {
 
     // -----------------------------------------------------------------------

@@ -10,6 +10,7 @@ import javax.swing.*;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.UndoableEditEvent;
 
+import net.noiraude.creditseditor.bus.DocumentBus;
 import net.noiraude.creditseditor.command.CommandExecutor;
 import net.noiraude.creditseditor.command.impl.*;
 import net.noiraude.creditseditor.mc.McText;
@@ -17,9 +18,9 @@ import net.noiraude.creditseditor.service.KeySanitizer;
 import net.noiraude.creditseditor.service.RoleIndex;
 import net.noiraude.creditseditor.ui.component.MinecraftTextEditor;
 import net.noiraude.creditseditor.ui.component.dnd.ListReorderTransferHandler;
-import net.noiraude.libcredits.lang.LangDocument;
 import net.noiraude.libcredits.model.CreditsDocument;
 import net.noiraude.libcredits.model.DocumentMembership;
+import net.noiraude.libcredits.model.DocumentPerson;
 
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
@@ -32,9 +33,17 @@ import org.jetbrains.annotations.Nullable;
  * Displays the roles held by one person within a specific category membership. Supports
  * multi-selection, add, delete, and drag-to-reorder. Selecting exactly one role reveals
  * a lang-key / display-name form identical in structure to the category detail view.
+ *
+ * <p>
+ * Commands targeting roles (add, remove, reorder) require both the person and the
+ * membership; the owning person is supplied via {@link #load(DocumentMembership)} by
+ * {@link PersonDetailView}.
  */
 public final class MembershipRolePanel extends JPanel {
 
+    private static final int MIN_VISIBLE_ROLE_ROWS = 2;
+
+    private final @NotNull DocumentBus bus;
     private final @NotNull CommandExecutor onCommand;
 
     private final @NotNull JLabel contextLabel = new JLabel();
@@ -43,12 +52,14 @@ public final class MembershipRolePanel extends JPanel {
     private final @NotNull JButton addButton = new JButton("Add");
     private final @NotNull JButton deleteButton = new JButton("Delete");
     private final @NotNull RoleDetailCard roleDetailCard;
+    private @NotNull JScrollPane roleListScroll = new JScrollPane();
+    private @NotNull JPanel toolbar = new JPanel();
 
+    private @Nullable DocumentPerson currentPerson;
     private @Nullable DocumentMembership currentMembership;
-    private @Nullable CreditsDocument creditsDoc;
-    private @Nullable LangDocument langDoc;
 
-    public MembershipRolePanel(@NotNull CommandExecutor onCommand) {
+    public MembershipRolePanel(@NotNull DocumentBus bus, @NotNull CommandExecutor onCommand) {
+        this.bus = bus;
         this.onCommand = onCommand;
         roleDetailCard = new RoleDetailCard(
             this::onDisplayNameChanged,
@@ -65,26 +76,34 @@ public final class MembershipRolePanel extends JPanel {
         load(null);
     }
 
-    // -----------------------------------------------------------------------
-    // Public API
-    // -----------------------------------------------------------------------
-
     /**
-     * Sets the document context used for role suggestions and display-name resolution.
-     * Call once after a session is loaded.
+     * Ensures the titled panel keeps the context label, {@value #MIN_VISIBLE_ROLE_ROWS} role-list
+     * rows, and the Add/Delete toolbar visible even when the parent layout shrinks. The role
+     * detail card on row 3 is the only part allowed to collapse below its preferred height.
      */
-    @Contract(mutates = "this")
-    public void setContext(@NotNull CreditsDocument creditsDoc, @NotNull LangDocument langDoc) {
-        this.creditsDoc = creditsDoc;
-        this.langDoc = langDoc;
+    @Override
+    public Dimension getMinimumSize() {
+        Dimension min = super.getMinimumSize();
+        int contextH = contextLabel.getPreferredSize().height;
+        int rowsH = roleList.getFixedCellHeight() > 0 ? roleList.getFixedCellHeight() * MIN_VISIBLE_ROLE_ROWS
+            : new JLabel("X").getPreferredSize().height * MIN_VISIBLE_ROLE_ROWS;
+        Insets scrollInsets = roleListScroll.getInsets();
+        int scrollH = rowsH + scrollInsets.top + scrollInsets.bottom;
+        int toolbarH = toolbar.getPreferredSize().height;
+        Insets borderInsets = getInsets();
+        int rowSpacing = scaled(2) * 2 * 3; // 3 top-bottom insets between rows
+        int floorH = borderInsets.top + borderInsets.bottom + rowSpacing + contextH + scrollH + toolbarH;
+        return new Dimension(min.width, Math.max(min.height, floorH));
     }
 
     /**
-     * Loads the role list for {@code membership}. Passing {@code null} resets to the
-     * placeholder state. If {@code membership} is the same object as the current one,
-     * delegates to {@link #refresh()} to preserve the list selection.
+     * Sets the current person and loads the role list for {@code membership}, or resets to
+     * the placeholder state when {@code membership} is {@code null}. If {@code membership} is
+     * the same object as the current one, delegates to {@link #refresh()} to preserve the
+     * list selection.
      */
-    public void load(@Nullable DocumentMembership membership) {
+    public void load(@Nullable DocumentPerson person, @Nullable DocumentMembership membership) {
+        this.currentPerson = person;
         if (membership != null && membership == currentMembership) {
             refresh();
             return;
@@ -97,9 +116,14 @@ public final class MembershipRolePanel extends JPanel {
     }
 
     /**
-     * Rebuilds the role list from the current membership, preserving the selection where
-     * possible. Call after an undo or redo that may have changed the role list.
+     * Convenience form for callers that do not track the owning person separately. Used by
+     * internal selection changes that stay within a single person.
      */
+    public void load(@Nullable DocumentMembership membership) {
+        load(currentPerson, membership);
+    }
+
+    /** Rebuilds the role list from the current membership, preserving the selection. */
     public void refresh() {
         List<String> previous = roleList.getSelectedValuesList();
         rebuildListModel();
@@ -120,8 +144,8 @@ public final class MembershipRolePanel extends JPanel {
             new ListReorderTransferHandler<>(
                 roleList,
                 onCommand,
-                (fromIndices, dropIndex) -> currentMembership == null ? null
-                    : new MoveRolesOrderCommand(currentMembership, fromIndices, dropIndex),
+                (fromIndices, dropIndex) -> (currentMembership == null || currentPerson == null) ? null
+                    : new MoveRolesOrderCommand(bus, currentPerson, currentMembership, fromIndices, dropIndex),
                 i -> true,
                 i -> currentMembership != null));
         roleList.setVisibleRowCount(5);
@@ -153,13 +177,26 @@ public final class MembershipRolePanel extends JPanel {
         gbc.gridy = 1;
         gbc.weighty = 0;
         gbc.fill = GridBagConstraints.BOTH;
-        add(new JScrollPane(roleList), gbc);
+        roleListScroll = new JScrollPane(roleList) {
+
+            @Override
+            public Dimension getMinimumSize() {
+                int rowH = roleList.getFixedCellHeight() > 0 ? roleList.getFixedCellHeight()
+                    : getFontMetrics(roleList.getFont()).getHeight();
+                Insets in = getInsets();
+                int h = rowH * MIN_VISIBLE_ROLE_ROWS + in.top + in.bottom;
+                Dimension d = super.getMinimumSize();
+                return new Dimension(d.width, Math.max(d.height, h));
+            }
+        };
+        add(roleListScroll, gbc);
 
         gbc.gridy = 2;
         gbc.weighty = 0;
         gbc.fill = GridBagConstraints.NONE;
         gbc.anchor = GridBagConstraints.WEST;
-        add(buildToolbar(), gbc);
+        toolbar = buildToolbar();
+        add(toolbar, gbc);
 
         gbc.gridy = 3;
         gbc.weighty = 1.0;
@@ -218,7 +255,8 @@ public final class MembershipRolePanel extends JPanel {
 
     private void loadDetailForm(@NotNull String role) {
         String langKey = langKeyForRole(role);
-        String stored = langDoc != null ? langDoc.get(langKey) : null;
+        String stored = bus.hasSession() ? bus.langDoc()
+            .get(langKey) : null;
         roleDetailCard.load(role, langKey, stored);
     }
 
@@ -227,7 +265,8 @@ public final class MembershipRolePanel extends JPanel {
     // -----------------------------------------------------------------------
 
     private void onAdd() {
-        if (currentMembership == null) return;
+        if (currentMembership == null || currentPerson == null) return;
+        CreditsDocument creditsDoc = bus.hasSession() ? bus.creditsDoc() : null;
         String role = new AddRolePrompt(currentMembership, creditsDoc).show(this);
         if (role == null) return;
         if (currentMembership.roles.contains(role)) {
@@ -238,17 +277,17 @@ public final class MembershipRolePanel extends JPanel {
                 JOptionPane.WARNING_MESSAGE);
             return;
         }
-        onCommand.execute(new AddPersonRoleCommand(currentMembership, role));
+        onCommand.execute(new AddPersonRoleCommand(bus, currentPerson, currentMembership, role));
     }
 
     private void onDelete() {
         List<String> selected = roleList.getSelectedValuesList();
-        if (selected.isEmpty() || currentMembership == null) return;
+        if (selected.isEmpty() || currentMembership == null || currentPerson == null) return;
 
         CompoundCommand.Builder builder = new CompoundCommand.Builder(
             "Remove " + selected.size() + " role(s) from " + currentMembership.categoryId);
         for (String role : selected) {
-            builder.add(new RemovePersonRoleCommand(currentMembership, role));
+            builder.add(new RemovePersonRoleCommand(bus, currentPerson, currentMembership, role));
         }
         onCommand.execute(builder.build());
     }
@@ -258,12 +297,15 @@ public final class MembershipRolePanel extends JPanel {
     // -----------------------------------------------------------------------
 
     private void onDisplayNameChanged(@NotNull String value) {
-        if (langDoc == null) return;
+        if (!bus.hasSession()) return;
         List<String> sel = roleList.getSelectedValuesList();
         if (sel.size() != 1) return;
         String langKey = langKeyForRole(sel.getFirst());
-        if (value.isEmpty()) langDoc.remove(langKey);
-        else langDoc.set(langKey, value);
+        if (value.isEmpty()) bus.langDoc()
+            .remove(langKey);
+        else bus.langDoc()
+            .set(langKey, value);
+        bus.fireLangChanged(langKey);
     }
 
     // -----------------------------------------------------------------------
@@ -287,7 +329,7 @@ public final class MembershipRolePanel extends JPanel {
     }
 
     private void updateButtons() {
-        boolean hasMembership = currentMembership != null;
+        boolean hasMembership = currentMembership != null && currentPerson != null;
         addButton.setEnabled(hasMembership);
         deleteButton.setEnabled(hasMembership && !roleList.isSelectionEmpty());
     }
@@ -314,7 +356,8 @@ public final class MembershipRolePanel extends JPanel {
             int index, boolean isSelected, boolean cellHasFocus) {
             JLabel label = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
             if (value instanceof String raw) {
-                String display = langDoc != null ? langDoc.get(langKeyForRole(raw)) : null;
+                String display = bus.hasSession() ? bus.langDoc()
+                    .get(langKeyForRole(raw)) : null;
                 label.setText((display == null || display.isEmpty()) ? raw : McText.strip(display));
             }
             return label;

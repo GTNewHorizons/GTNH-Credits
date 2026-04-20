@@ -6,7 +6,9 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.List;
 
+import net.noiraude.creditseditor.bus.DocumentBus;
 import net.noiraude.creditseditor.command.Command;
+import net.noiraude.libcredits.lang.LangParser;
 import net.noiraude.libcredits.model.CreditsDocument;
 import net.noiraude.libcredits.model.DocumentCategory;
 import net.noiraude.libcredits.model.DocumentMembership;
@@ -15,6 +17,12 @@ import net.noiraude.libcredits.model.DocumentPerson;
 import org.junit.Test;
 
 public class CompoundCommandTest {
+
+    private static DocumentBus busFor(CreditsDocument doc) {
+        DocumentBus bus = new DocumentBus();
+        bus.setSession(doc, LangParser.empty());
+        return bus;
+    }
 
     // -----------------------------------------------------------------------
     // Builder
@@ -28,8 +36,9 @@ public class CompoundCommandTest {
     @Test
     public void build_singleChild_returnsThatChild() {
         CreditsDocument doc = CreditsDocument.empty();
+        DocumentBus bus = busFor(doc);
         DocumentCategory cat = new DocumentCategory("team");
-        Command single = new AddCategoryCommand(doc, cat);
+        Command single = new AddCategoryCommand(bus, cat);
 
         Command result = new CompoundCommand.Builder("single").add(single)
             .build();
@@ -40,9 +49,10 @@ public class CompoundCommandTest {
     @Test
     public void build_multipleChildren_returnsCompound() {
         CreditsDocument doc = CreditsDocument.empty();
+        DocumentBus bus = busFor(doc);
         Command result = new CompoundCommand.Builder("multi")
-            .add(new AddCategoryCommand(doc, new DocumentCategory("a")))
-            .add(new AddCategoryCommand(doc, new DocumentCategory("b")))
+            .add(new AddCategoryCommand(bus, new DocumentCategory("a")))
+            .add(new AddCategoryCommand(bus, new DocumentCategory("b")))
             .build();
 
         assertTrue(result instanceof CompoundCommand);
@@ -56,8 +66,10 @@ public class CompoundCommandTest {
 
     @Test
     public void isEmpty_afterAdd_returnsFalse() {
+        CreditsDocument doc = CreditsDocument.empty();
+        DocumentBus bus = busFor(doc);
         CompoundCommand.Builder builder = new CompoundCommand.Builder("x");
-        builder.add(new AddCategoryCommand(CreditsDocument.empty(), new DocumentCategory("a")));
+        builder.add(new AddCategoryCommand(bus, new DocumentCategory("a")));
         assertFalse(builder.isEmpty());
     }
 
@@ -68,11 +80,12 @@ public class CompoundCommandTest {
     @Test
     public void execute_appliesAllChildrenInOrder() {
         CreditsDocument doc = CreditsDocument.empty();
+        DocumentBus bus = busFor(doc);
         DocumentCategory catA = new DocumentCategory("a");
         DocumentCategory catB = new DocumentCategory("b");
 
-        Command compound = new CompoundCommand.Builder("add two").add(new AddCategoryCommand(doc, catA))
-            .add(new AddCategoryCommand(doc, catB))
+        Command compound = new CompoundCommand.Builder("add two").add(new AddCategoryCommand(bus, catA))
+            .add(new AddCategoryCommand(bus, catB))
             .build();
 
         compound.execute();
@@ -85,11 +98,12 @@ public class CompoundCommandTest {
     @Test
     public void undo_reversesAllChildrenInReverseOrder() {
         CreditsDocument doc = CreditsDocument.empty();
+        DocumentBus bus = busFor(doc);
         DocumentPerson alice = new DocumentPerson("Alice");
         DocumentPerson bob = new DocumentPerson("Bob");
 
-        Command compound = new CompoundCommand.Builder("add two persons").add(new AddPersonCommand(doc, alice))
-            .add(new AddPersonCommand(doc, bob))
+        Command compound = new CompoundCommand.Builder("add two persons").add(new AddPersonCommand(bus, alice))
+            .add(new AddPersonCommand(bus, bob))
             .build();
 
         compound.execute();
@@ -102,11 +116,12 @@ public class CompoundCommandTest {
     @Test
     public void execute_afterUndo_reapplies() {
         CreditsDocument doc = CreditsDocument.empty();
+        DocumentBus bus = busFor(doc);
         DocumentCategory cat = new DocumentCategory("team");
         DocumentPerson person = new DocumentPerson("Alice");
 
-        Command compound = new CompoundCommand.Builder("add both").add(new AddCategoryCommand(doc, cat))
-            .add(new AddPersonCommand(doc, person))
+        Command compound = new CompoundCommand.Builder("add both").add(new AddCategoryCommand(bus, cat))
+            .add(new AddPersonCommand(bus, person))
             .build();
 
         compound.execute();
@@ -119,22 +134,14 @@ public class CompoundCommandTest {
 
     @Test
     public void displayName_matchesBuilder() {
+        CreditsDocument doc = CreditsDocument.empty();
+        DocumentBus bus = busFor(doc);
         Command compound = new CompoundCommand.Builder("Import TSV (5 persons)")
-            .add(new AddPersonCommand(CreditsDocument.empty(), new DocumentPerson("a")))
-            .add(new AddPersonCommand(CreditsDocument.empty(), new DocumentPerson("b")))
+            .add(new AddPersonCommand(bus, new DocumentPerson("a")))
+            .add(new AddPersonCommand(bus, new DocumentPerson("b")))
             .build();
 
         assertEquals("Import TSV (5 persons)", compound.getDisplayName());
-    }
-
-    @Test
-    public void isLightEdit_returnsFalse() {
-        Command compound = new CompoundCommand.Builder("x")
-            .add(new AddPersonCommand(CreditsDocument.empty(), new DocumentPerson("a")))
-            .add(new AddPersonCommand(CreditsDocument.empty(), new DocumentPerson("b")))
-            .build();
-
-        assertFalse(compound.isLightEdit());
     }
 
     // -----------------------------------------------------------------------
@@ -144,6 +151,7 @@ public class CompoundCommandTest {
     @Test
     public void compound_withMixedCommands_undoesCorrectly() {
         CreditsDocument doc = CreditsDocument.empty();
+        DocumentBus bus = busFor(doc);
         DocumentCategory cat = new DocumentCategory("dev");
         doc.categories.add(cat);
         DocumentPerson person = new DocumentPerson("Alice");
@@ -152,8 +160,8 @@ public class CompoundCommandTest {
         // Compound: add membership + add role
         DocumentMembership membership = new DocumentMembership("dev");
         Command compound = new CompoundCommand.Builder("assign with role")
-            .add(new AddMembershipCommand(person, membership))
-            .add(new AddPersonRoleCommand(membership, "lead"))
+            .add(new AddMembershipCommand(bus, person, membership))
+            .add(new AddPersonRoleCommand(bus, person, membership, "lead"))
             .build();
 
         compound.execute();
