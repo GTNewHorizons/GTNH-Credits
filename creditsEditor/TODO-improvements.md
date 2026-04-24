@@ -58,7 +58,7 @@ Current: 11 test files for 59 production classes. Zero UI tests.
   Cover: directory mode opens missing `assets/gtnhcredits/lang/` without throwing; zip mode same; non-existent `.zip` path creates a pack with correct `pack.mcmeta` for MC 1.7.10 (pack_format=1).
   Done when: test class covers both modes.
 
-- [ ] **2.3 McWysiwygPaneTest**
+- [x] **2.3 McWysiwygPaneTest**
   Cover: §-code round-trip against `McText`; pending-codes carry when caret is between styled runs; caret position preserved after style toggle.
   Done when: at least 3 cases pass headlessly.
 
