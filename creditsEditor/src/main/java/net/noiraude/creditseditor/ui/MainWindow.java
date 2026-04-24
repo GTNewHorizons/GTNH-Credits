@@ -100,11 +100,7 @@ public final class MainWindow extends JFrame {
         try {
             newSession = EditorSession.open(path);
         } catch (Exception ex) {
-            JOptionPane.showMessageDialog(
-                this,
-                "Failed to load credits data:\n" + ex.getMessage(),
-                "Load error",
-                JOptionPane.ERROR_MESSAGE);
+            ErrorPresenter.show(this, "Load error", ex);
             return;
         }
 
@@ -138,11 +134,7 @@ public final class MainWindow extends JFrame {
         try {
             session.save();
         } catch (Exception ex) {
-            JOptionPane.showMessageDialog(
-                this,
-                "Failed to save:\n" + ex.getMessage(),
-                "Save error",
-                JOptionPane.ERROR_MESSAGE);
+            ErrorPresenter.show(this, "Save error", ex);
             return;
         }
         updateTitle();

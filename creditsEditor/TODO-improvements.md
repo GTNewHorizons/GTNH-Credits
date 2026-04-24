@@ -30,7 +30,7 @@ Running verification for every task:
   Action: log at WARNING. These indicate document-model invariant violations and should be visible in diagnostics.
   Done when: five catches each have a logger call with distinct messages identifying the call site.
 
-- [ ] **1.4 Add ErrorPresenter helper and stop leaking `ex.getMessage()` in MainWindow**
+- [x] **1.4 Add ErrorPresenter helper and stop leaking `ex.getMessage()` in MainWindow**
   File: `src/main/java/net/noiraude/creditseditor/ui/MainWindow.java:102,105,140`
   Current: raw `ex.getMessage()` is concatenated into user dialogs; may leak paths or class names.
   Action: create `ui/ErrorPresenter.java` that maps known exception types (IOException, JsonParseException, etc.) to friendly strings, with a "Details..." toggle to reveal raw text.
