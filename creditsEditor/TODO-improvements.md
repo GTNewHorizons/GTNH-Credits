@@ -46,6 +46,12 @@ Running verification for every task:
   Action: add `assert SwingUtilities.isEventDispatchThread()` at the top of each public mutation method. Enable `-ea` in the `run` gradle task so dev runs fail loudly on EDT violations.
   Done when: assertion present in every Swing-touching entry point, and the `run` task passes `-ea`.
 
+- [ ] **1.7 Fix McFormatToolbar stale-read on caret move**
+  Files: `ui/component/McWysiwygPane.java`, `ui/component/McFormatToolbar.java`
+  Discovered while writing task 2.4: `McFormatToolbar.connectTo` adds its `CaretListener` after `McWysiwygPane`'s own `syncPendingFromCaret` listener. Swing fires `CaretListener`s in reverse insertion order, so the toolbar reads `pendingCodes` before the pane has updated it. Result: the toolbar display lags one caret move behind in production.
+  Action: either fire `syncPendingFromCaret` before installing the public caret listener API (e.g., do the sync eagerly inside `addCaretListener` override or expose a direct sync entry point the toolbar calls first), or expose a method on `McWysiwygPane` that returns the caret style by reading the document directly rather than via the cached `pendingCodes`.
+  Done when: a headless test places the caret, then calls `connectToolbar`, then moves the caret once more; the resulting modifier button state matches the post-move run without any workaround nudge.
+
 ## P2 Test coverage
 
 Current: 11 test files for 59 production classes. Zero UI tests.
@@ -62,7 +68,7 @@ Current: 11 test files for 59 production classes. Zero UI tests.
   Cover: §-code round-trip against `McText`; pending-codes carry when caret is between styled runs; caret position preserved after style toggle.
   Done when: at least 3 cases pass headlessly.
 
-- [ ] **2.4 McFormatToolbarTest**
+- [x] **2.4 McFormatToolbarTest**
   Cover: toggle state sync when caret moves into pre-styled text (bold button should light up).
   Done when: headless test verifies button state after a synthetic caret move.
 
