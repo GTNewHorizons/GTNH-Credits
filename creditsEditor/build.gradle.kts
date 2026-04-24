@@ -50,6 +50,7 @@ tasks.named<ProcessResources>("processResources") {
 
 tasks.named<JavaExec>("run") {
     args(rootProject.file("src/main/resources"))
+    jvmArgs("-ea")
 }
 
 tasks.named<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("shadowJar") {

@@ -7,6 +7,7 @@ import java.util.List;
 
 import javax.swing.JPanel;
 import javax.swing.JSplitPane;
+import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
 
 import net.noiraude.creditseditor.bus.DocumentBus;
@@ -41,12 +42,14 @@ final class EditorView extends JPanel {
      * @param onCommand executor for all structural and field-level commands
      */
     EditorView(@NotNull DocumentBus bus, @NotNull CommandExecutor onCommand) {
+        assert SwingUtilities.isEventDispatchThread();
         detailPanel = new DetailPanel(bus, onCommand);
 
         personPanel = new PersonPanel(bus, onCommand, this::onPersonSelectionChanged);
 
         @NotNull
         CategoryPanel categoryPanel = new CategoryPanel(bus, onCommand, cats -> {
+            assert SwingUtilities.isEventDispatchThread();
             boolean reClick = cats.equals(selectedCategories) && !selectedPersons.isEmpty();
             selectedCategories = cats;
             personPanel.setFilter(cats);
@@ -71,6 +74,7 @@ final class EditorView extends JPanel {
     }
 
     private void onPersonSelectionChanged(@NotNull List<DocumentPerson> persons) {
+        assert SwingUtilities.isEventDispatchThread();
         selectedPersons = persons;
         if (persons.size() > 1) {
             detailPanel.showBulkPersons(persons);
@@ -84,6 +88,7 @@ final class EditorView extends JPanel {
     }
 
     private void showSoleCategoryOrEmpty() {
+        assert SwingUtilities.isEventDispatchThread();
         if (selectedCategories.size() == 1) detailPanel.showCategory(selectedCategories.getFirst());
         else detailPanel.showEmpty();
     }

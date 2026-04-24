@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 
+import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 import javax.swing.table.AbstractTableModel;
 
@@ -57,6 +58,7 @@ final class TsvPreviewController {
     }
 
     void clear() {
+        assert SwingUtilities.isEventDispatchThread();
         if (worker != null) worker.cancel(true);
         worker = null;
         lines = List.of();
@@ -65,6 +67,7 @@ final class TsvPreviewController {
     }
 
     void reload(@NotNull File file, @NotNull String categoryId) {
+        assert SwingUtilities.isEventDispatchThread();
         if (worker != null) worker.cancel(true);
         worker = new ParseWorker(file, categoryId);
         worker.execute();
@@ -104,6 +107,7 @@ final class TsvPreviewController {
 
         @Override
         protected void done() {
+            assert SwingUtilities.isEventDispatchThread();
             if (isCancelled()) return;
             try {
                 lines = get();

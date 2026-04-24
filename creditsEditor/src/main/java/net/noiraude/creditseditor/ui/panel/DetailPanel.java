@@ -12,6 +12,7 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
 import javax.swing.border.TitledBorder;
 
 import net.noiraude.creditseditor.bus.DocumentBus;
@@ -66,6 +67,7 @@ public final class DetailPanel extends JPanel {
     private @Nullable DocumentPerson currentPerson;
 
     public DetailPanel(@NotNull DocumentBus bus, @NotNull CommandExecutor onCommand) {
+        assert SwingUtilities.isEventDispatchThread();
         this.bus = bus;
         setLayout(new BorderLayout());
         setBorder(detailBorder);
@@ -96,6 +98,7 @@ public final class DetailPanel extends JPanel {
 
     /** Shows the empty hint card. */
     public void showEmpty() {
+        assert SwingUtilities.isEventDispatchThread();
         mode = Mode.EMPTY;
         currentCategory = null;
         currentPerson = null;
@@ -107,6 +110,7 @@ public final class DetailPanel extends JPanel {
 
     /** Loads {@code category} into the category detail view and shows it. */
     public void showCategory(@NotNull DocumentCategory category) {
+        assert SwingUtilities.isEventDispatchThread();
         mode = Mode.CATEGORY;
         currentCategory = category;
         currentPerson = null;
@@ -117,6 +121,7 @@ public final class DetailPanel extends JPanel {
 
     /** Loads {@code person} into the person detail view and shows it. */
     public void showPerson(@NotNull DocumentPerson person) {
+        assert SwingUtilities.isEventDispatchThread();
         mode = Mode.PERSON;
         currentPerson = person;
         currentCategory = null;
@@ -127,11 +132,13 @@ public final class DetailPanel extends JPanel {
 
     /** Updates the selected category so bulk-operation pickers can default to it. */
     public void setSelectedCategory(@Nullable DocumentCategory category) {
+        assert SwingUtilities.isEventDispatchThread();
         bulkPersonView.setSelectedCategory(category);
     }
 
     /** Loads the bulk-operation view for the given multi-selection. */
     public void showBulkPersons(@NotNull List<DocumentPerson> persons) {
+        assert SwingUtilities.isEventDispatchThread();
         mode = Mode.BULK;
         setDetailTitle(persons.size() + " persons selected");
         bulkPersonView.load(persons);

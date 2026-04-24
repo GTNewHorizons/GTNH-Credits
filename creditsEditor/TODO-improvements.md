@@ -41,7 +41,7 @@ Running verification for every task:
   Action: fall back to `ex.getMessage()` when `getCause()` is null.
   Done when: no NPE possible; add a unit test using a fresh `ExecutionException` with null cause.
 
-- [ ] **1.6 Add EDT assertions to Swing mutation sites**
+- [x] **1.6 Add EDT assertions to Swing mutation sites**
   Files: `ui/dialog/TsvPreviewController.java`, `ui/EditorView.java`, `ui/panel/DetailPanel.java`
   Action: add `assert SwingUtilities.isEventDispatchThread()` at the top of each public mutation method. Enable `-ea` in the `run` gradle task so dev runs fail loudly on EDT violations.
   Done when: assertion present in every Swing-touching entry point, and the `run` task passes `-ea`.
