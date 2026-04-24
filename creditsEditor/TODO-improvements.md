@@ -25,7 +25,7 @@ Running verification for every task:
   Action: log at WARNING level. Icon load failures should not be invisible.
   Done when: both catches log and name their exception.
 
-- [ ] **1.3 Replace silent `BadLocationException` catches in McWysiwygPane**
+- [x] **1.3 Replace silent `BadLocationException` catches in McWysiwygPane**
   File: `src/main/java/net/noiraude/creditseditor/ui/component/McWysiwygPane.java:161,180,315,376,415`
   Action: log at WARNING. These indicate document-model invariant violations and should be visible in diagnostics.
   Done when: five catches each have a logger call with distinct messages identifying the call site.

@@ -1,6 +1,8 @@
 package net.noiraude.creditseditor.ui.component;
 
 import java.awt.event.ActionEvent;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.util.EnumSet;
 
 import javax.swing.*;
@@ -51,6 +53,8 @@ import org.jetbrains.annotations.Nullable;
  * characters inserted by Swing's key handler inherit it automatically.
  */
 public final class McWysiwygPane extends JScrollPane implements McFormatTarget {
+
+    private static final Logger LOG = System.getLogger(McWysiwygPane.class.getName());
 
     /** Property name fired when the text value changes due to user input. */
     public static final @NotNull String PROP_TEXT = "text";
@@ -158,7 +162,9 @@ public final class McWysiwygPane extends JScrollPane implements McFormatTarget {
             } else {
                 insertParagraph(doc, content);
             }
-        } catch (BadLocationException ignored) {} finally {
+        } catch (BadLocationException ex) {
+            LOG.log(Level.WARNING, "setText: bad location while rebuilding document", ex);
+        } finally {
             settingText = false;
         }
         pane.setCaretPosition(0);
@@ -177,7 +183,8 @@ public final class McWysiwygPane extends JScrollPane implements McFormatTarget {
             try {
                 String text = doc.getText(0, doc.getLength());
                 return text.endsWith("\n") ? text.substring(0, text.length() - 1) : text;
-            } catch (BadLocationException ignored) {
+            } catch (BadLocationException ex) {
+                LOG.log(Level.WARNING, "getText: bad location while reading raw document", ex);
                 return "";
             }
         }
@@ -312,7 +319,9 @@ public final class McWysiwygPane extends JScrollPane implements McFormatTarget {
                         attrs.removeAttribute(StyleConstants.Foreground);
                         doc.setCharacterAttributes(offset, runEnd - offset, attrs, true);
                     }
-                } catch (BadLocationException ignored) {}
+                } catch (BadLocationException ex) {
+                    LOG.log(Level.WARNING, "applyColorReset: bad location while scanning run", ex);
+                }
                 offset = runEnd;
             }
         } else {
@@ -373,7 +382,9 @@ public final class McWysiwygPane extends JScrollPane implements McFormatTarget {
                 if (McText.containsNonNewline(text)) {
                     doc.setCharacterAttributes(offset, runEnd - offset, attrs, replace);
                 }
-            } catch (BadLocationException ignored) {}
+            } catch (BadLocationException ex) {
+                LOG.log(Level.WARNING, "applyAttrsToSelectionRange: bad location while scanning run", ex);
+            }
             offset = runEnd;
         }
     }
@@ -412,7 +423,8 @@ public final class McWysiwygPane extends JScrollPane implements McFormatTarget {
             String text;
             try {
                 text = doc.getText(offset, runEnd - offset);
-            } catch (BadLocationException ignored) {
+            } catch (BadLocationException ex) {
+                LOG.log(Level.WARNING, "styledDocToRaw: bad location while reading run", ex);
                 offset = runEnd;
                 continue;
             }
