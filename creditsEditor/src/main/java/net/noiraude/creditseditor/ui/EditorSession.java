@@ -1,6 +1,8 @@
 package net.noiraude.creditseditor.ui;
 
 import java.io.IOException;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 
 import net.noiraude.creditseditor.ResourceManager;
 import net.noiraude.creditseditor.command.CommandStack;
@@ -28,6 +30,8 @@ import org.jetbrains.annotations.NotNull;
  * through this facade.
  */
 final class EditorSession {
+
+    private static final Logger LOG = System.getLogger(EditorSession.class.getName());
 
     private final @NotNull ResourceManager resourceManager;
     final @NotNull CommandStack stack = new CommandStack();
@@ -121,10 +125,16 @@ final class EditorSession {
         }
     }
 
-    /** Closes the resource manager, silently swallowing any {@link IOException}. */
+    /**
+     * Closes the resource manager. Any {@link IOException} is logged at
+     * {@link Level#WARNING} and not rethrown; close-time failures are diagnostic noise
+     * only and should never block shutdown paths such as window closing.
+     */
     void close() {
         try {
             resourceManager.close();
-        } catch (IOException ignored) {}
+        } catch (IOException ex) {
+            LOG.log(Level.WARNING, "Failed to close resource manager", ex);
+        }
     }
 }

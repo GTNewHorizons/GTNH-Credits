@@ -14,7 +14,7 @@ Running verification for every task:
 
 ## P1 Correctness and error handling
 
-- [ ] **1.1 Replace silent `catch (IOException ignored)` in EditorSession**
+- [x] **1.1 Replace silent `catch (IOException ignored)` in EditorSession**
   File: `src/main/java/net/noiraude/creditseditor/ui/EditorSession.java:128`
   Current: resource close failure is swallowed.
   Action: use `System.getLogger(EditorSession.class.getName()).log(WARNING, "...", ex)`. Do not surface a dialog (close-time noise is annoying), just log.
