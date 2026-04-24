@@ -98,6 +98,22 @@ public class TsvImporterTest {
     }
 
     @Test
+    public void action_existingPersonInOtherCategory_addDoesNotLeakOtherRoles() throws IOException {
+        CreditsDocument doc = docWithCategory("art");
+        DocumentPerson alice = new DocumentPerson("Alice");
+        alice.memberships.add(new DocumentMembership("art", List.of("painter")));
+        doc.persons.add(alice);
+
+        List<ImportLine> lines = TsvImporter.parse(new StringReader("Alice\tlead\n"), doc, "dev");
+
+        assertEquals(1, lines.size());
+        assertEquals(Action.ADD, lines.getFirst().action);
+        // Only the TSV roles; the "art" membership roles must stay isolated.
+        assertEquals(List.of("lead"), lines.getFirst().roles);
+        assertEquals(List.of("lead"), lines.getFirst().newRoles);
+    }
+
+    @Test
     public void action_existingPersonInCategoryMissingRoles_complete() throws IOException {
         CreditsDocument doc = docWithCategory("dev");
         DocumentPerson alice = new DocumentPerson("Alice");
