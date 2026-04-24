@@ -20,7 +20,7 @@ Running verification for every task:
   Action: use `System.getLogger(EditorSession.class.getName()).log(WARNING, "...", ex)`. Do not surface a dialog (close-time noise is annoying), just log.
   Done when: the catch contains a logger call and no `ignored` variable.
 
-- [ ] **1.2 Replace silent catches in AppIcons**
+- [x] **1.2 Replace silent catches in AppIcons**
   File: `src/main/java/net/noiraude/creditseditor/ui/AppIcons.java:32,47`
   Action: log at WARNING level. Icon load failures should not be invisible.
   Done when: both catches log and name their exception.

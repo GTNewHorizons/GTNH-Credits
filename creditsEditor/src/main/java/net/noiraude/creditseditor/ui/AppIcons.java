@@ -4,6 +4,8 @@ import java.awt.Image;
 import java.awt.Taskbar;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -14,6 +16,8 @@ import org.jetbrains.annotations.NotNull;
 
 /** Loads the bundled application icons and applies them to the window and the OS taskbar. */
 public final class AppIcons {
+
+    private static final Logger LOG = System.getLogger(AppIcons.class.getName());
 
     private static final String[] RESOURCES = { "/icons/icon16.png", "/icons/icon32.png", "/icons/icon64.png",
         "/icons/icon128.png", };
@@ -29,7 +33,9 @@ public final class AppIcons {
         for (String path : RESOURCES) {
             try (InputStream in = AppIcons.class.getResourceAsStream(path)) {
                 if (in != null) images.add(ImageIO.read(in));
-            } catch (IOException ignored) {}
+            } catch (IOException ex) {
+                LOG.log(Level.WARNING, "Failed to load icon resource: " + path, ex);
+            }
         }
         cached = List.copyOf(images);
         return cached;
@@ -44,6 +50,8 @@ public final class AppIcons {
         if (!taskbar.isSupported(Taskbar.Feature.ICON_IMAGE)) return;
         try {
             taskbar.setIconImage(images.getLast());
-        } catch (UnsupportedOperationException | SecurityException ignored) {}
+        } catch (UnsupportedOperationException | SecurityException ex) {
+            LOG.log(Level.WARNING, "Failed to apply icon to taskbar", ex);
+        }
     }
 }
