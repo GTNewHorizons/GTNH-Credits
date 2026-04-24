@@ -50,7 +50,7 @@ Running verification for every task:
 
 Current: 11 test files for 59 production classes. Zero UI tests.
 
-- [ ] **2.1 EditorSessionTest**
+- [x] **2.1 EditorSessionTest**
   Cover: dirty-flag transitions on edits and saves; new-file-from-nonexistent-zip path; save-failure does not clear dirty flag.
   Done when: test class exists with at least 4 cases and passes.
 
