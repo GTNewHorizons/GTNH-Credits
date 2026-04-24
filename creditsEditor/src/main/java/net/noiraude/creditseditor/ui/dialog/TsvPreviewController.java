@@ -70,6 +70,21 @@ final class TsvPreviewController {
         worker.execute();
     }
 
+    /**
+     * Extracts a non-null user-facing message from an {@link ExecutionException}.
+     *
+     * <p>
+     * Prefers the cause's message when present; otherwise the outer exception's message; and
+     * otherwise a placeholder. Protects against {@link NullPointerException} on exceptions
+     * constructed without a cause.
+     */
+    @Contract(pure = true)
+    static @NotNull String causeMessageOf(@NotNull ExecutionException ex) {
+        Throwable cause = ex.getCause();
+        String msg = cause != null ? cause.getMessage() : ex.getMessage();
+        return msg != null ? msg : "unknown error";
+    }
+
     private final class ParseWorker extends SwingWorker<List<ImportLine>, Void> {
 
         private final @NotNull File file;
@@ -98,9 +113,7 @@ final class TsvPreviewController {
                 lines = List.of();
             } catch (ExecutionException ex) {
                 lines = List.of();
-                onError.accept(
-                    "Failed to read file:\n" + ex.getCause()
-                        .getMessage());
+                onError.accept("Failed to read file:\n" + causeMessageOf(ex));
             }
             tableModel.setLines(lines);
             onStateChange.run();

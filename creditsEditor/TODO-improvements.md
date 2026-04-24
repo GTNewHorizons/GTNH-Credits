@@ -36,7 +36,7 @@ Running verification for every task:
   Action: create `ui/ErrorPresenter.java` that maps known exception types (IOException, JsonParseException, etc.) to friendly strings, with a "Details..." toggle to reveal raw text.
   Done when: MainWindow calls `ErrorPresenter.show(parent, title, ex)` for every error path.
 
-- [ ] **1.5 Null-safe `getCause().getMessage()` in TsvPreviewController**
+- [x] **1.5 Null-safe `getCause().getMessage()` in TsvPreviewController**
   File: `src/main/java/net/noiraude/creditseditor/ui/dialog/TsvPreviewController.java:99-103`
   Action: fall back to `ex.getMessage()` when `getCause()` is null.
   Done when: no NPE possible; add a unit test using a fresh `ExecutionException` with null cause.
