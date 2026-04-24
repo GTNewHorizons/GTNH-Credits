@@ -54,7 +54,7 @@ Current: 11 test files for 59 production classes. Zero UI tests.
   Cover: dirty-flag transitions on edits and saves; new-file-from-nonexistent-zip path; save-failure does not clear dirty flag.
   Done when: test class exists with at least 4 cases and passes.
 
-- [ ] **2.2 ResourceManagerTest**
+- [x] **2.2 ResourceManagerTest**
   Cover: directory mode opens missing `assets/gtnhcredits/lang/` without throwing; zip mode same; non-existent `.zip` path creates a pack with correct `pack.mcmeta` for MC 1.7.10 (pack_format=1).
   Done when: test class covers both modes.
 

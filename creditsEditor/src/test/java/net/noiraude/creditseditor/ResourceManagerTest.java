@@ -1,0 +1,109 @@
+package net.noiraude.creditseditor;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
+import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Map;
+
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+
+public class ResourceManagerTest {
+
+    @Rule
+    public TemporaryFolder temp = new TemporaryFolder();
+
+    @Test
+    public void directoryMode_withNoAssetsTree_loadsEmptyDocuments() throws Exception {
+        Path dir = temp.newFolder("root")
+            .toPath();
+
+        try (ResourceManager rm = ResourceManager.open(dir.toString())) {
+            rm.loadDocuments();
+            assertTrue(rm.getCreditsDoc().categories.isEmpty());
+            assertTrue(rm.getCreditsDoc().persons.isEmpty());
+            assertFalse(rm.isDirty());
+        }
+    }
+
+    @Test
+    public void directoryMode_withCreditsJsonButNoLangDir_loadsCreditsAndEmptyLang() throws Exception {
+        Path dir = temp.newFolder("root")
+            .toPath();
+        Path creditsJson = dir.resolve(ResourceManager.CREDITS_PATH);
+        Files.createDirectories(creditsJson.getParent());
+        Files.writeString(creditsJson, "{\"version\":2,\"category\":[],\"person\":[]}\n", StandardCharsets.UTF_8);
+
+        try (ResourceManager rm = ResourceManager.open(dir.toString())) {
+            rm.loadDocuments();
+            assertTrue(rm.getCreditsDoc().categories.isEmpty());
+            assertFalse("loading a missing lang directory must not mark the document dirty", rm.isDirty());
+        }
+    }
+
+    @Test
+    public void zipMode_freshZip_loadsEmptyDocumentsDespiteMissingLangDir() throws Exception {
+        Path zip = temp.getRoot()
+            .toPath()
+            .resolve("fresh.zip");
+
+        try (ResourceManager rm = ResourceManager.open(zip.toString())) {
+            rm.loadDocuments();
+            assertTrue(rm.getCreditsDoc().categories.isEmpty());
+            assertTrue(rm.getCreditsDoc().persons.isEmpty());
+            assertFalse(rm.isDirty());
+        }
+    }
+
+    @Test
+    public void nonExistentZip_createsPackWithMcmetaPackFormat1() throws Exception {
+        Path zip = temp.getRoot()
+            .toPath()
+            .resolve("new-pack.zip");
+        assertFalse(Files.exists(zip));
+
+        try (ResourceManager rm = ResourceManager.open(zip.toString())) {
+            rm.loadDocuments();
+        }
+
+        assertTrue(Files.exists(zip));
+        URI uri = URI.create("jar:" + zip.toUri());
+        try (FileSystem fs = FileSystems.newFileSystem(uri, Map.<String, String>of())) {
+            Path mcmeta = fs.getPath("/pack.mcmeta");
+            assertTrue(Files.exists(mcmeta));
+            String text = Files.readString(mcmeta, StandardCharsets.UTF_8);
+            JsonObject root = JsonParser.parseString(text)
+                .getAsJsonObject();
+            JsonObject pack = root.getAsJsonObject("pack");
+            assertEquals(
+                "Minecraft 1.7.10 uses pack_format 1",
+                1,
+                pack.get("pack_format")
+                    .getAsInt());
+        }
+    }
+
+    @Test
+    public void directoryMode_nonExistentPath_createsDirectory() throws Exception {
+        Path dir = temp.getRoot()
+            .toPath()
+            .resolve("newdir");
+        assertFalse(Files.exists(dir));
+
+        try (ResourceManager rm = ResourceManager.open(dir.toString())) {
+            rm.loadDocuments();
+            assertTrue(Files.isDirectory(dir));
+        }
+    }
+}
