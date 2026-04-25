@@ -1,5 +1,6 @@
 package net.noiraude.creditseditor.ui.detail;
 
+import static net.noiraude.creditseditor.ui.UiMetrics.GAP_LARGE;
 import static net.noiraude.creditseditor.ui.UiScale.scaled;
 
 import java.util.Set;
@@ -35,9 +36,9 @@ public final class CategoryClassSelector extends JPanel {
         setLayout(new BoxLayout(this, BoxLayout.X_AXIS));
         setOpaque(false);
         add(classPerson);
-        add(Box.createHorizontalStrut(scaled(8)));
+        add(Box.createHorizontalStrut(scaled(GAP_LARGE)));
         add(classRole);
-        add(Box.createHorizontalStrut(scaled(8)));
+        add(Box.createHorizontalStrut(scaled(GAP_LARGE)));
         add(classDetail);
         add(Box.createHorizontalGlue());
     }

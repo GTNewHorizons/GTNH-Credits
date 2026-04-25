@@ -99,7 +99,7 @@ Current: 11 test files for 59 production classes. Zero UI tests.
   Cover: toggle state sync when caret moves into pre-styled text (bold button should light up).
   Done when: headless test verifies button state after a synthetic caret move.
 
-- [ ] **3.6 Introduce UiMetrics for scaled layout constants**
+- [x] **3.6 Introduce UiMetrics for scaled layout constants**
   Files: everything under `ui/component/`, `ui/panel/`, `ui/detail/`
   `UiScale.scaled(n)` is called ~50 times with bare integer literals. Create `ui/UiMetrics.java` with semantic constants (`GAP_SMALL`, `GAP_MEDIUM`, `TOOLBAR_ICON_SIZE`, etc.).
   Done when: no bare `scaled(<number>)` call outside `UiMetrics`.

@@ -1,5 +1,10 @@
 package net.noiraude.creditseditor.ui.dialog;
 
+import static net.noiraude.creditseditor.ui.UiMetrics.FONT_HEADING_DELTA;
+import static net.noiraude.creditseditor.ui.UiMetrics.GAP_HUGE;
+import static net.noiraude.creditseditor.ui.UiMetrics.GAP_MEDIUM;
+import static net.noiraude.creditseditor.ui.UiMetrics.GAP_XLARGE;
+import static net.noiraude.creditseditor.ui.UiMetrics.GAP_XXLARGE;
 import static net.noiraude.creditseditor.ui.UiScale.scaled;
 
 import java.awt.BorderLayout;
@@ -43,8 +48,9 @@ public final class AboutDialog extends JDialog {
     public AboutDialog(@Nullable Frame owner) {
         super(owner, "About " + AppInfo.name(), true);
 
-        JPanel content = new JPanel(new BorderLayout(scaled(16), scaled(12)));
-        content.setBorder(BorderFactory.createEmptyBorder(scaled(16), scaled(16), scaled(12), scaled(16)));
+        JPanel content = new JPanel(new BorderLayout(scaled(GAP_HUGE), scaled(GAP_XXLARGE)));
+        content.setBorder(
+            BorderFactory.createEmptyBorder(scaled(GAP_HUGE), scaled(GAP_HUGE), scaled(GAP_XXLARGE), scaled(GAP_HUGE)));
 
         content.add(buildIconPanel(), BorderLayout.WEST);
         content.add(buildInfoPanel(), BorderLayout.CENTER);
@@ -76,23 +82,23 @@ public final class AboutDialog extends JDialog {
 
         JLabel nameLabel = leftLabel(AppInfo.name());
         Font base = nameLabel.getFont();
-        nameLabel.setFont(base.deriveFont(Font.BOLD, base.getSize2D() + scaled(6)));
+        nameLabel.setFont(base.deriveFont(Font.BOLD, base.getSize2D() + scaled(FONT_HEADING_DELTA)));
         panel.add(nameLabel);
 
-        panel.add(Box.createVerticalStrut(scaled(6)));
+        panel.add(Box.createVerticalStrut(scaled(GAP_MEDIUM)));
         panel.add(leftLabel("Version " + AppInfo.version()));
 
         String description = AppInfo.description();
         String license = AppInfo.license();
         if (!description.isEmpty() || !license.isEmpty()) {
-            panel.add(Box.createVerticalStrut(scaled(10)));
+            panel.add(Box.createVerticalStrut(scaled(GAP_XLARGE)));
             if (!description.isEmpty()) panel.add(leftLabel(description));
             if (!license.isEmpty()) panel.add(leftLabel(license));
         }
 
         String copyright = AppInfo.copyright();
         if (!copyright.isEmpty()) {
-            panel.add(Box.createVerticalStrut(scaled(10)));
+            panel.add(Box.createVerticalStrut(scaled(GAP_XLARGE)));
             panel.add(leftLabel(copyright));
         }
 

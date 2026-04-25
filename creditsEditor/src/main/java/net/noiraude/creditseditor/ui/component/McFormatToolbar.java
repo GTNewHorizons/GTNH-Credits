@@ -1,5 +1,10 @@
 package net.noiraude.creditseditor.ui.component;
 
+import static net.noiraude.creditseditor.ui.UiMetrics.GAP_HAIR;
+import static net.noiraude.creditseditor.ui.UiMetrics.GAP_MEDIUM;
+import static net.noiraude.creditseditor.ui.UiMetrics.GAP_SMALL;
+import static net.noiraude.creditseditor.ui.UiMetrics.GAP_TOOLBAR_GROUP;
+import static net.noiraude.creditseditor.ui.UiMetrics.TOOLBAR_ICON_SIZE;
 import static net.noiraude.creditseditor.ui.UiScale.scaled;
 
 import java.awt.*;
@@ -48,7 +53,7 @@ public final class McFormatToolbar extends JPanel {
     private boolean updatingState;
 
     public McFormatToolbar() {
-        int iconSize = scaled(14);
+        int iconSize = scaled(TOOLBAR_ICON_SIZE);
         noColorBtn = new McNoColorButton(iconSize);
         modifierButtons = buildModifierButtons();
         setLayout(new BoxLayout(this, BoxLayout.X_AXIS));
@@ -81,21 +86,21 @@ public final class McFormatToolbar extends JPanel {
             colorGroup.add(btn);
             colorButtons[i] = btn;
             add(btn);
-            if (i == 7) add(Box.createHorizontalStrut(scaled(3)));
+            if (i == 7) add(Box.createHorizontalStrut(scaled(GAP_TOOLBAR_GROUP)));
             btn.addActionListener(e -> apply(code, true));
         }
 
         colorGroup.add(noColorBtn);
         add(noColorBtn);
 
-        add(Box.createHorizontalStrut(scaled(6)));
+        add(Box.createHorizontalStrut(scaled(GAP_MEDIUM)));
         for (MixedStateToggleButton mb : modifierButtons.values()) {
             add(mb);
         }
-        add(Box.createHorizontalStrut(scaled(4)));
+        add(Box.createHorizontalStrut(scaled(GAP_SMALL)));
 
         JButton resetBtn = new JButton("§r");
-        resetBtn.setMargin(new Insets(scaled(1), scaled(4), scaled(1), scaled(4)));
+        resetBtn.setMargin(new Insets(scaled(GAP_HAIR), scaled(GAP_SMALL), scaled(GAP_HAIR), scaled(GAP_SMALL)));
         resetBtn.setFocusable(false);
         resetBtn.setToolTipText(McFormatCode.RESET.displayName());
         add(resetBtn);
@@ -250,7 +255,7 @@ public final class McFormatToolbar extends JPanel {
         for (FontStyle s : styles) font = s.apply(font);
         btn.setFont(font);
         btn.setToolTipText(tooltip);
-        btn.setMargin(new Insets(scaled(1), scaled(4), scaled(1), scaled(4)));
+        btn.setMargin(new Insets(scaled(GAP_HAIR), scaled(GAP_SMALL), scaled(GAP_HAIR), scaled(GAP_SMALL)));
         btn.setFocusable(false);
         return btn;
     }
@@ -278,7 +283,7 @@ public final class McFormatToolbar extends JPanel {
             this.selectedMixed = new ColorIcon(fill, true, true, iconSize);
             setIcon(unselectedPlain);
             setSelectedIcon(selectedPlain);
-            setMargin(new Insets(scaled(1), scaled(1), scaled(1), scaled(1)));
+            setMargin(new Insets(scaled(GAP_HAIR), scaled(GAP_HAIR), scaled(GAP_HAIR), scaled(GAP_HAIR)));
             setFocusable(false);
         }
 
@@ -307,7 +312,7 @@ public final class McFormatToolbar extends JPanel {
             setIcon(unselectedPlain);
             setSelectedIcon(selectedPlain);
             setToolTipText("Default color (no color attribute)");
-            setMargin(new Insets(scaled(1), scaled(1), scaled(1), scaled(1)));
+            setMargin(new Insets(scaled(GAP_HAIR), scaled(GAP_HAIR), scaled(GAP_HAIR), scaled(GAP_HAIR)));
             setFocusable(false);
         }
 

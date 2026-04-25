@@ -1,5 +1,7 @@
 package net.noiraude.creditseditor.ui.detail;
 
+import static net.noiraude.creditseditor.ui.UiMetrics.GAP_SMALL;
+import static net.noiraude.creditseditor.ui.UiMetrics.GAP_TINY;
 import static net.noiraude.creditseditor.ui.UiScale.scaled;
 
 import java.awt.Dimension;
@@ -57,7 +59,7 @@ public final class MembershipRolePanel extends JPanel {
         Dimension min = super.getMinimumSize();
         Insets borderInsets = getInsets();
         Dimension listMin = roleListPanel.getMinimumSize();
-        int rowSpacing = scaled(2) * 2; // single inter-row gap between list panel and detail card
+        int rowSpacing = scaled(GAP_TINY) * 2; // single inter-row gap between list panel and detail card
         int floorH = borderInsets.top + borderInsets.bottom + rowSpacing + listMin.height;
         return new Dimension(min.width, Math.max(min.height, floorH));
     }
@@ -79,7 +81,7 @@ public final class MembershipRolePanel extends JPanel {
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.gridx = 0;
         gbc.weightx = 1.0;
-        gbc.insets = new Insets(scaled(2), scaled(4), scaled(2), scaled(4));
+        gbc.insets = new Insets(scaled(GAP_TINY), scaled(GAP_SMALL), scaled(GAP_TINY), scaled(GAP_SMALL));
 
         gbc.gridy = 0;
         gbc.weighty = 0;

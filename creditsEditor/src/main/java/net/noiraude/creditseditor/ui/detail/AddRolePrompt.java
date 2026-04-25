@@ -1,5 +1,6 @@
 package net.noiraude.creditseditor.ui.detail;
 
+import static net.noiraude.creditseditor.ui.UiMetrics.GAP_SMALL;
 import static net.noiraude.creditseditor.ui.UiScale.scaled;
 
 import java.awt.BorderLayout;
@@ -34,7 +35,7 @@ final class AddRolePrompt {
         this.membership = membership;
         this.index = creditsDoc != null ? RoleIndex.build(creditsDoc) : null;
         combo.setEditable(true);
-        content = new JPanel(new BorderLayout(0, scaled(4)));
+        content = new JPanel(new BorderLayout(0, scaled(GAP_SMALL)));
         content.add(combo, BorderLayout.CENTER);
         content.add(showAll, BorderLayout.SOUTH);
         populate();

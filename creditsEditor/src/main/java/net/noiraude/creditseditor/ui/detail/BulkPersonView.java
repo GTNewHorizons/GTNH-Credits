@@ -1,5 +1,9 @@
 package net.noiraude.creditseditor.ui.detail;
 
+import static net.noiraude.creditseditor.ui.UiMetrics.GAP_HUGE;
+import static net.noiraude.creditseditor.ui.UiMetrics.GAP_LARGE;
+import static net.noiraude.creditseditor.ui.UiMetrics.GAP_SMALL;
+import static net.noiraude.creditseditor.ui.UiMetrics.GAP_XXLARGE;
 import static net.noiraude.creditseditor.ui.UiScale.scaled;
 
 import java.awt.BorderLayout;
@@ -75,24 +79,24 @@ public final class BulkPersonView extends JPanel {
                     countLabel.getFont()
                         .getSize() + 2f));
         countLabel.setHorizontalAlignment(SwingConstants.CENTER);
-        countLabel.setBorder(BorderFactory.createEmptyBorder(scaled(12), 0, scaled(16), 0));
+        countLabel.setBorder(BorderFactory.createEmptyBorder(scaled(GAP_XXLARGE), 0, scaled(GAP_HUGE), 0));
         add(countLabel, BorderLayout.NORTH);
 
         JPanel buttonPanel = new JPanel();
         buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.Y_AXIS));
-        buttonPanel.setBorder(BorderFactory.createEmptyBorder(0, scaled(16), scaled(16), scaled(16)));
+        buttonPanel.setBorder(BorderFactory.createEmptyBorder(0, scaled(GAP_HUGE), scaled(GAP_HUGE), scaled(GAP_HUGE)));
 
         JLabel bulkLabel = new JLabel("Bulk operations:");
         bulkLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        bulkLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, scaled(8), 0));
+        bulkLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, scaled(GAP_LARGE), 0));
         buttonPanel.add(bulkLabel);
 
         addActionButton(buttonPanel, "Assign to category...", this::onAssignToCategory);
-        buttonPanel.add(Box.createVerticalStrut(scaled(4)));
+        buttonPanel.add(Box.createVerticalStrut(scaled(GAP_SMALL)));
         addActionButton(buttonPanel, "Add role in category...", this::onAddRoleInCategory);
-        buttonPanel.add(Box.createVerticalStrut(scaled(4)));
+        buttonPanel.add(Box.createVerticalStrut(scaled(GAP_SMALL)));
         addActionButton(buttonPanel, "Remove from category...", this::onRemoveFromCategory);
-        buttonPanel.add(Box.createVerticalStrut(scaled(12)));
+        buttonPanel.add(Box.createVerticalStrut(scaled(GAP_XXLARGE)));
         addActionButton(buttonPanel, "Delete all", this::onDeleteAll);
 
         buttonPanel.add(Box.createVerticalGlue());

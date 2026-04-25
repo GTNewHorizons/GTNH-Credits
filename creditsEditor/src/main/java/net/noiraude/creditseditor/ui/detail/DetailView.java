@@ -1,5 +1,7 @@
 package net.noiraude.creditseditor.ui.detail;
 
+import static net.noiraude.creditseditor.ui.UiMetrics.GAP_MEDIUM;
+import static net.noiraude.creditseditor.ui.UiMetrics.GAP_SMALL;
 import static net.noiraude.creditseditor.ui.UiScale.scaled;
 
 import java.awt.*;
@@ -42,7 +44,7 @@ public abstract class DetailView<T> extends JPanel {
         c.anchor = GridBagConstraints.WEST;
         c.weightx = 0;
         c.weighty = 0;
-        c.insets = new Insets(scaled(4), scaled(6), scaled(4), scaled(4));
+        c.insets = new Insets(scaled(GAP_SMALL), scaled(GAP_MEDIUM), scaled(GAP_SMALL), scaled(GAP_SMALL));
         return c;
     }
 
@@ -55,7 +57,7 @@ public abstract class DetailView<T> extends JPanel {
         c.anchor = GridBagConstraints.WEST;
         c.weightx = 1.0;
         c.weighty = 0;
-        c.insets = new Insets(scaled(4), 0, scaled(4), scaled(6));
+        c.insets = new Insets(scaled(GAP_SMALL), 0, scaled(GAP_SMALL), scaled(GAP_MEDIUM));
         return c;
     }
 }

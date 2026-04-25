@@ -1,5 +1,10 @@
 package net.noiraude.creditseditor.ui.dialog;
 
+import static net.noiraude.creditseditor.ui.UiMetrics.GAP_LARGE;
+import static net.noiraude.creditseditor.ui.UiMetrics.GAP_SMALL;
+import static net.noiraude.creditseditor.ui.UiMetrics.GAP_TINY;
+import static net.noiraude.creditseditor.ui.UiMetrics.IMPORT_DIALOG_HEIGHT;
+import static net.noiraude.creditseditor.ui.UiMetrics.IMPORT_DIALOG_WIDTH;
 import static net.noiraude.creditseditor.ui.UiScale.scaled;
 
 import java.awt.BorderLayout;
@@ -65,8 +70,10 @@ public final class ImportTsvDialog extends JDialog {
         this.onCommand = onCommand;
         this.preview = new TsvPreviewController(bus, this::onPreviewChanged, this::showReadError);
 
-        setLayout(new BorderLayout(scaled(8), scaled(8)));
-        getRootPane().setBorder(BorderFactory.createEmptyBorder(scaled(8), scaled(8), scaled(8), scaled(8)));
+        setLayout(new BorderLayout(scaled(GAP_LARGE), scaled(GAP_LARGE)));
+        getRootPane().setBorder(
+            BorderFactory
+                .createEmptyBorder(scaled(GAP_LARGE), scaled(GAP_LARGE), scaled(GAP_LARGE), scaled(GAP_LARGE)));
 
         add(buildTopPanel(), BorderLayout.NORTH);
         add(buildPreviewPanel(), BorderLayout.CENTER);
@@ -76,7 +83,7 @@ public final class ImportTsvDialog extends JDialog {
         preselectCategory(defaultCategoryId);
         updateImportButton();
 
-        setSize(scaled(600), scaled(450));
+        setSize(scaled(IMPORT_DIALOG_WIDTH), scaled(IMPORT_DIALOG_HEIGHT));
         setLocationRelativeTo(owner);
     }
 
@@ -85,15 +92,15 @@ public final class ImportTsvDialog extends JDialog {
         GridBagConstraints lbl = new GridBagConstraints();
         lbl.gridx = 0;
         lbl.anchor = GridBagConstraints.WEST;
-        lbl.insets = new Insets(scaled(2), 0, scaled(2), scaled(4));
+        lbl.insets = new Insets(scaled(GAP_TINY), 0, scaled(GAP_TINY), scaled(GAP_SMALL));
         GridBagConstraints fld = new GridBagConstraints();
         fld.gridx = 1;
         fld.fill = GridBagConstraints.HORIZONTAL;
         fld.weightx = 1.0;
-        fld.insets = new Insets(scaled(2), 0, scaled(2), 0);
+        fld.insets = new Insets(scaled(GAP_TINY), 0, scaled(GAP_TINY), 0);
         GridBagConstraints btn = new GridBagConstraints();
         btn.gridx = 2;
-        btn.insets = new Insets(scaled(2), scaled(4), scaled(2), 0);
+        btn.insets = new Insets(scaled(GAP_TINY), scaled(GAP_SMALL), scaled(GAP_TINY), 0);
 
         // File row
         lbl.gridy = 0;

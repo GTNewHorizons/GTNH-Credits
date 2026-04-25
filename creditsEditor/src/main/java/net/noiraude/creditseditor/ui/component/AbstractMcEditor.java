@@ -1,5 +1,8 @@
 package net.noiraude.creditseditor.ui.component;
 
+import static net.noiraude.creditseditor.ui.UiMetrics.GAP_HAIR;
+import static net.noiraude.creditseditor.ui.UiMetrics.GAP_SMALL;
+import static net.noiraude.creditseditor.ui.UiMetrics.GAP_TINY;
 import static net.noiraude.creditseditor.ui.UiScale.scaled;
 
 import java.awt.*;
@@ -43,12 +46,12 @@ class AbstractMcEditor extends JPanel {
         McFormatToolbar toolbar = new McFormatToolbar();
         wysiwygPane.connectToolbar(toolbar);
 
-        toggleButton.setMargin(new Insets(scaled(1), scaled(4), scaled(1), scaled(4)));
+        toggleButton.setMargin(new Insets(scaled(GAP_HAIR), scaled(GAP_SMALL), scaled(GAP_HAIR), scaled(GAP_SMALL)));
         toggleButton.setFocusable(false);
         toggleButton.setToolTipText("Toggle raw / rendered mode");
         toggleButton.addActionListener(e -> setRawMode(!rawMode));
 
-        JPanel topBar = new JPanel(new BorderLayout(scaled(2), 0));
+        JPanel topBar = new JPanel(new BorderLayout(scaled(GAP_TINY), 0));
         topBar.setOpaque(false);
         topBar.add(toolbar, BorderLayout.CENTER);
         topBar.add(toggleButton, BorderLayout.EAST);
