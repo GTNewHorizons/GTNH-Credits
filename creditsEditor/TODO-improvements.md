@@ -79,7 +79,7 @@ Current: 11 test files for 59 production classes. Zero UI tests.
   ~60% of the extract-and-reinsert logic is duplicated. Create `command/impl/ListReorderHelper.java` with a static method that takes indices and a mutable list.
   Done when: both commands delegate and shrink by roughly a third, existing command tests still pass.
 
-- [ ] **3.2 Split MembershipRolePanel (540 lines)**
+- [x] **3.2 Split MembershipRolePanel (540 lines)**
   File: `ui/detail/MembershipRolePanel.java`
   Split into `RoleListPanel` (list + toolbar) and `RoleDetailCard` (right card). Parent composes the two and mediates selection.
   Note: `MembershipTablePanelTest` (task 3.3, formerly 2.6) must target the post-split class structure rather than the pre-split monolith.
