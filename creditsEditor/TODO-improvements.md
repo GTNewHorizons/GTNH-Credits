@@ -68,7 +68,7 @@ Current: 11 test files for 59 production classes. Zero UI tests.
   Cover: §-code round-trip against `McText`; pending-codes carry when caret is between styled runs; caret position preserved after style toggle.
   Done when: at least 3 cases pass headlessly.
 
-- [ ] **2.4 EditorMenuBarTest**
+- [x] **2.4 EditorMenuBarTest**
   Cover: undo/redo/save enablement reflects `CommandStack` state and session dirty flag.
   Done when: test mutates state and asserts `JMenuItem.isEnabled()` matches expectation.
 
