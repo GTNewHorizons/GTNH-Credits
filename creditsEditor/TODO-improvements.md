@@ -94,8 +94,8 @@ Current: 11 test files for 59 production classes. Zero UI tests.
 
 - [ ] **3.3 Extract McDocumentModel from McWysiwygPane (436 lines)**
   File: `ui/component/McWysiwygPane.java`
-  Pull §code state and `pendingCodes` carry into a separate `McDocumentModel`. The pane becomes a thin `JTextPane` subclass that delegates.
-  Done when: McWysiwygPane is under 250 lines; McDocumentModel has unit tests (ties into task 2.3).
+  Pull §code state and `pendingCodes` carry into a separate `McDocumentModel`. The pane becomes a thin `JTextPane` subclass that delegates. Once the toolbar can query the model directly, remove the caret-listener-ordering workaround introduced by task 1.7 (commit aaddf20), since the root cause (toolbar reading cached `pendingCodes`) no longer exists.
+  Done when: McWysiwygPane is under 250 lines; McDocumentModel has its own unit tests, and the §code round-trip and pending-codes carry cases from the existing `McWysiwygPaneTest` (task 2.3) are migrated to target `McDocumentModel` where the behavior now lives; the pendingCodes pre-sync hack from 1.7 is gone.
 
 - [ ] **3.4 Introduce UiMetrics for scaled layout constants**
   Files: everything under `ui/component/`, `ui/panel/`, `ui/detail/`
