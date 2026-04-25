@@ -40,16 +40,7 @@ public final class MoveCategoriesOrderCommand extends AbstractCommand {
     public void execute() {
         CreditsDocument doc = bus.creditsDoc();
         originalOrder = new ArrayList<>(doc.categories);
-        List<DocumentCategory> extracted = new ArrayList<>(fromIndices.length);
-        for (int i = fromIndices.length - 1; i >= 0; i--) {
-            extracted.addFirst(doc.categories.remove(fromIndices[i]));
-        }
-        int below = 0;
-        for (int idx : fromIndices) {
-            if (idx < dropIndex) below++;
-        }
-        int insertAt = dropIndex - below;
-        doc.categories.addAll(insertAt, extracted);
+        ListReorderHelper.move(doc.categories, fromIndices, dropIndex);
         bus.fireCategoriesChanged();
     }
 

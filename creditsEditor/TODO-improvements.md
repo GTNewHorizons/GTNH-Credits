@@ -74,7 +74,7 @@ Current: 11 test files for 59 production classes. Zero UI tests.
 
 ## P3 Refactoring
 
-- [ ] **3.1 Extract ListReorderHelper**
+- [x] **3.1 Extract ListReorderHelper**
   Files: `command/impl/MoveCategoriesOrderCommand.java` (69 lines), `command/impl/MoveRolesOrderCommand.java` (74 lines)
   ~60% of the extract-and-reinsert logic is duplicated. Create `command/impl/ListReorderHelper.java` with a static method that takes indices and a mutable list.
   Done when: both commands delegate and shrink by roughly a third, existing command tests still pass.

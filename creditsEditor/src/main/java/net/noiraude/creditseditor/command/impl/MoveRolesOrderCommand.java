@@ -45,16 +45,7 @@ public final class MoveRolesOrderCommand extends AbstractCommand {
     @Override
     public void execute() {
         originalOrder = new ArrayList<>(membership.roles);
-        List<String> extracted = new ArrayList<>(fromIndices.length);
-        for (int i = fromIndices.length - 1; i >= 0; i--) {
-            extracted.addFirst(membership.roles.remove(fromIndices[i]));
-        }
-        int below = 0;
-        for (int idx : fromIndices) {
-            if (idx < dropIndex) below++;
-        }
-        int insertAt = dropIndex - below;
-        membership.roles.addAll(insertAt, extracted);
+        ListReorderHelper.move(membership.roles, fromIndices, dropIndex);
         bus.firePersonChanged(person);
     }
 
