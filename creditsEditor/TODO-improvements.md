@@ -89,7 +89,7 @@ Current: 11 test files for 59 production classes. Zero UI tests.
   Cover: add, remove, reorder rows, and that undo restores the previous table contents.
   Done when: test class passes using off-screen rendering.
 
-- [ ] **3.4 Extract McDocumentModel from McWysiwygPane (436 lines)**
+- [x] **3.4 Extract McDocumentModel from McWysiwygPane (436 lines)**
   File: `ui/component/McWysiwygPane.java`
   Pull §code state and `pendingCodes` carry into a separate `McDocumentModel`. The pane becomes a thin `JTextPane` subclass that delegates. Once the toolbar can query the model directly, remove the caret-listener-ordering workaround introduced by task 1.7 (commit aaddf20), since the root cause (toolbar reading cached `pendingCodes`) no longer exists.
   Note: `McFormatToolbarTest` (task 3.5, formerly 2.4) must be rewritten to target the model's new API rather than the caret listener ordering it currently asserts on.

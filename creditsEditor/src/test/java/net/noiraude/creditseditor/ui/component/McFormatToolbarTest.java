@@ -7,7 +7,6 @@ import static org.junit.Assert.fail;
 import java.awt.Component;
 import java.awt.GraphicsEnvironment;
 
-import javax.swing.JTextPane;
 import javax.swing.JToggleButton;
 
 import org.junit.Assume;
@@ -25,11 +24,7 @@ public class McFormatToolbarTest {
     public void boldButton_selected_whenCaretIsInBoldRunAtConnectTime() {
         McWysiwygPane pane = new McWysiwygPane(true);
         pane.setText("§lHello§rWorld");
-        JTextPane inner = (JTextPane) pane.getViewport()
-            .getView();
-        // Move the caret into the bold run before connecting so the toolbar's
-        // initial updateState reflects the correct pendingCodes.
-        inner.setCaretPosition(3);
+        pane.setCaretPosition(3);
 
         McFormatToolbar toolbar = new McFormatToolbar();
         pane.connectToolbar(toolbar);
@@ -42,9 +37,7 @@ public class McFormatToolbarTest {
     public void boldButton_notSelected_whenCaretIsInPlainRunAtConnectTime() {
         McWysiwygPane pane = new McWysiwygPane(true);
         pane.setText("§lHello§rWorld");
-        JTextPane inner = (JTextPane) pane.getViewport()
-            .getView();
-        inner.setCaretPosition(8); // inside plain "World"
+        pane.setCaretPosition(8); // inside plain "World"
 
         McFormatToolbar toolbar = new McFormatToolbar();
         pane.connectToolbar(toolbar);
@@ -57,10 +50,8 @@ public class McFormatToolbarTest {
     public void boldButton_updatesAfterCaretMove_whenConnectedBeforeMove() {
         McWysiwygPane pane = new McWysiwygPane(true);
         pane.setText("§lHello§rWorld");
-        JTextPane inner = (JTextPane) pane.getViewport()
-            .getView();
         // Caret starts in the plain "World" run before the toolbar attaches.
-        inner.setCaretPosition(8);
+        pane.setCaretPosition(8);
 
         McFormatToolbar toolbar = new McFormatToolbar();
         pane.connectToolbar(toolbar);
@@ -68,11 +59,10 @@ public class McFormatToolbarTest {
         JToggleButton bold = findModifierButton(toolbar, "B");
         assertFalse("BOLD button must reflect the plain initial caret position", bold.isSelected());
 
-        // Move the caret into the bold run after the toolbar is connected.
-        // Swing fires CaretListeners in reverse insertion order, so the toolbar's
-        // listener fires before McWysiwygPane's own sync listener. The fix ensures
-        // pendingCodes is updated before the toolbar's callback runs.
-        inner.setCaretPosition(3);
+        // Move the caret into the bold run after the toolbar is connected. The toolbar reads
+        // the model directly via getCaretStyle, so its button reflects the new position
+        // regardless of caret-listener ordering.
+        pane.setCaretPosition(3);
 
         assertTrue("BOLD button must light up after caret moves into the bold run", bold.isSelected());
     }
@@ -81,9 +71,7 @@ public class McFormatToolbarTest {
     public void italicButton_selected_whenCaretIsInItalicRunAtConnectTime() {
         McWysiwygPane pane = new McWysiwygPane(true);
         pane.setText("§oHello");
-        JTextPane inner = (JTextPane) pane.getViewport()
-            .getView();
-        inner.setCaretPosition(3);
+        pane.setCaretPosition(3);
 
         McFormatToolbar toolbar = new McFormatToolbar();
         pane.connectToolbar(toolbar);

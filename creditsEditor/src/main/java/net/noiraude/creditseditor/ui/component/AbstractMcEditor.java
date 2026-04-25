@@ -53,8 +53,11 @@ class AbstractMcEditor extends JPanel {
         topBar.add(toolbar, BorderLayout.CENTER);
         topBar.add(toggleButton, BorderLayout.EAST);
 
+        JScrollPane scroll = new JScrollPane(wysiwygPane);
+        scroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+
         add(topBar, BorderLayout.NORTH);
-        add(wysiwygPane, BorderLayout.CENTER);
+        add(scroll, BorderLayout.CENTER);
 
         wysiwygPane.addPropertyChangeListener(
             McWysiwygPane.PROP_TEXT,
@@ -121,7 +124,7 @@ class AbstractMcEditor extends JPanel {
         rawMode = raw;
         toggleButton.setText(raw ? "Aa" : "<>");
         wysiwygPane.setRawMode(raw);
-        wysiwygPane.requestPaneFocus();
+        wysiwygPane.requestFocusInWindow();
     }
 
     // ------------------------------------------------------------------

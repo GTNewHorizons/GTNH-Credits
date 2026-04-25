@@ -1,13 +1,10 @@
 package net.noiraude.creditseditor.ui.component;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.awt.GraphicsEnvironment;
 import java.util.EnumSet;
-
-import javax.swing.JTextPane;
 
 import net.noiraude.creditseditor.mc.McFormatCode;
 
@@ -23,65 +20,35 @@ public class McWysiwygPaneTest {
     }
 
     @Test
-    public void roundTrip_plainText_preserved() {
-        McWysiwygPane pane = new McWysiwygPane(true);
-        pane.setText("Hello World");
-        assertEquals("Hello World", pane.getText());
-    }
-
-    @Test
-    public void roundTrip_singleColor_preserved() {
+    public void setText_thenGetText_delegatesToModel() {
         McWysiwygPane pane = new McWysiwygPane(true);
         pane.setText("§aHello");
         assertEquals("§aHello", pane.getText());
     }
 
     @Test
-    public void applyCode_noSelection_togglesPendingCodeCarry() {
-        McWysiwygPane pane = new McWysiwygPane(true);
-        pane.setText("");
-        assertFalse(
-            pane.getCaretStyle()
-                .contains(McFormatCode.BOLD));
-
-        pane.applyCode(McFormatCode.BOLD, true);
-        assertTrue(
-            pane.getCaretStyle()
-                .contains(McFormatCode.BOLD));
-
-        pane.applyCode(McFormatCode.BOLD, false);
-        assertFalse(
-            pane.getCaretStyle()
-                .contains(McFormatCode.BOLD));
-    }
-
-    @Test
-    public void pendingCodes_syncFromPrecedingChar_whenCaretBetweenStyledRuns() {
-        McWysiwygPane pane = new McWysiwygPane(true);
-        pane.setText("§aHello§cWorld");
-        JTextPane inner = (JTextPane) pane.getViewport()
-            .getView();
-        // Document content is "HelloWorld" (codes removed). Caret at position 5
-        // sits between "o" (GREEN run) and "W" (RED run); the carry reads attrs
-        // from position caret-1 which is the "o", so carry must be GREEN.
-        inner.setCaretPosition(5);
-
-        EnumSet<McFormatCode> style = pane.getCaretStyle();
-        assertTrue("preceding char 'o' is green", style.contains(McFormatCode.GREEN));
-        assertFalse("preceding char is not red", style.contains(McFormatCode.RED));
-    }
-
-    @Test
     public void applyCode_onSelection_preservesSelectionBounds() {
         McWysiwygPane pane = new McWysiwygPane(true);
         pane.setText("Hello");
-        JTextPane inner = (JTextPane) pane.getViewport()
-            .getView();
-        inner.select(1, 4); // "ell"
+        pane.select(1, 4); // "ell"
 
         pane.applyCode(McFormatCode.BOLD, true);
 
-        assertEquals(1, inner.getSelectionStart());
-        assertEquals(4, inner.getSelectionEnd());
+        assertEquals(1, pane.getSelectionStart());
+        assertEquals(4, pane.getSelectionEnd());
+    }
+
+    @Test
+    public void caretMove_syncsPendingForInputAttributes() {
+        McWysiwygPane pane = new McWysiwygPane(true);
+        pane.setText("§aHello§cWorld");
+        // Caret at position 5 sits between green 'o' (pos 4) and red 'W' (pos 5). Moving the
+        // caret triggers the pane's listener, which syncs the carry from caret-1 ('o') and
+        // flushes it to the input-attributes map. getCaretStyle reads the document directly
+        // and must reflect GREEN.
+        pane.setCaretPosition(5);
+
+        EnumSet<McFormatCode> style = pane.getCaretStyle();
+        assertTrue("preceding char 'o' is green", style.contains(McFormatCode.GREEN));
     }
 }
