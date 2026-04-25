@@ -85,7 +85,7 @@ Current: 11 test files for 59 production classes. Zero UI tests.
   Note: `MembershipTablePanelTest` (task 3.3, formerly 2.6) must target the post-split class structure rather than the pre-split monolith.
   Done when: each new class is under 300 lines and behavior is unchanged.
 
-- [ ] **3.3 MembershipTablePanelTest** (formerly 2.6)
+- [x] **3.3 MembershipTablePanelTest** (formerly 2.6)
   Cover: add, remove, reorder rows, and that undo restores the previous table contents.
   Done when: test class passes using off-screen rendering.
 
