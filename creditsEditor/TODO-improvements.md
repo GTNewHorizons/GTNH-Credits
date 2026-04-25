@@ -48,7 +48,7 @@ Running verification for every task:
 
 - [x] **1.7 Fix McFormatToolbar stale-read on caret move**
   Files: `ui/component/McWysiwygPane.java`, `ui/component/McFormatToolbar.java`
-  Discovered while writing task 2.4: `McFormatToolbar.connectTo` adds its `CaretListener` after `McWysiwygPane`'s own `syncPendingFromCaret` listener. Swing fires `CaretListener`s in reverse insertion order, so the toolbar reads `pendingCodes` before the pane has updated it. Result: the toolbar display lags one caret move behind in production.
+  Discovered while writing task 3.5 (McFormatToolbarTest): `McFormatToolbar.connectTo` adds its `CaretListener` after `McWysiwygPane`'s own `syncPendingFromCaret` listener. Swing fires `CaretListener`s in reverse insertion order, so the toolbar reads `pendingCodes` before the pane has updated it. Result: the toolbar display lags one caret move behind in production.
   Action: either fire `syncPendingFromCaret` before installing the public caret listener API (e.g., do the sync eagerly inside `addCaretListener` override or expose a direct sync entry point the toolbar calls first), or expose a method on `McWysiwygPane` that returns the caret style by reading the document directly rather than via the cached `pendingCodes`.
   Done when: a headless test places the caret, then calls `connectToolbar`, then moves the caret once more; the resulting modifier button state matches the post-move run without any workaround nudge.
 
@@ -68,17 +68,9 @@ Current: 11 test files for 59 production classes. Zero UI tests.
   Cover: §-code round-trip against `McText`; pending-codes carry when caret is between styled runs; caret position preserved after style toggle.
   Done when: at least 3 cases pass headlessly.
 
-- [x] **2.4 McFormatToolbarTest**
-  Cover: toggle state sync when caret moves into pre-styled text (bold button should light up).
-  Done when: headless test verifies button state after a synthetic caret move.
-
-- [ ] **2.5 EditorMenuBarTest**
+- [ ] **2.4 EditorMenuBarTest**
   Cover: undo/redo/save enablement reflects `CommandStack` state and session dirty flag.
   Done when: test mutates state and asserts `JMenuItem.isEnabled()` matches expectation.
-
-- [ ] **2.6 MembershipTablePanelTest**
-  Cover: add, remove, reorder rows, and that undo restores the previous table contents.
-  Done when: test class passes using off-screen rendering.
 
 ## P3 Refactoring
 
@@ -90,14 +82,24 @@ Current: 11 test files for 59 production classes. Zero UI tests.
 - [ ] **3.2 Split MembershipRolePanel (540 lines)**
   File: `ui/detail/MembershipRolePanel.java`
   Split into `RoleListPanel` (list + toolbar) and `RoleDetailCard` (right card). Parent composes the two and mediates selection.
+  Note: `MembershipTablePanelTest` (task 3.3, formerly 2.6) must target the post-split class structure rather than the pre-split monolith.
   Done when: each new class is under 300 lines and behavior is unchanged.
 
-- [ ] **3.3 Extract McDocumentModel from McWysiwygPane (436 lines)**
+- [ ] **3.3 MembershipTablePanelTest** (formerly 2.6)
+  Cover: add, remove, reorder rows, and that undo restores the previous table contents.
+  Done when: test class passes using off-screen rendering.
+
+- [ ] **3.4 Extract McDocumentModel from McWysiwygPane (436 lines)**
   File: `ui/component/McWysiwygPane.java`
   Pull §code state and `pendingCodes` carry into a separate `McDocumentModel`. The pane becomes a thin `JTextPane` subclass that delegates. Once the toolbar can query the model directly, remove the caret-listener-ordering workaround introduced by task 1.7 (commit aaddf20), since the root cause (toolbar reading cached `pendingCodes`) no longer exists.
+  Note: `McFormatToolbarTest` (task 3.5, formerly 2.4) must be rewritten to target the model's new API rather than the caret listener ordering it currently asserts on.
   Done when: McWysiwygPane is under 250 lines; McDocumentModel has its own unit tests, and the §code round-trip and pending-codes carry cases from the existing `McWysiwygPaneTest` (task 2.3) are migrated to target `McDocumentModel` where the behavior now lives; the pendingCodes pre-sync hack from 1.7 is gone.
 
-- [ ] **3.4 Introduce UiMetrics for scaled layout constants**
+- [x] **3.5 McFormatToolbarTest** (formerly 2.4)
+  Cover: toggle state sync when caret moves into pre-styled text (bold button should light up).
+  Done when: headless test verifies button state after a synthetic caret move.
+
+- [ ] **3.6 Introduce UiMetrics for scaled layout constants**
   Files: everything under `ui/component/`, `ui/panel/`, `ui/detail/`
   `UiScale.scaled(n)` is called ~50 times with bare integer literals. Create `ui/UiMetrics.java` with semantic constants (`GAP_SMALL`, `GAP_MEDIUM`, `TOOLBAR_ICON_SIZE`, etc.).
   Done when: no bare `scaled(<number>)` call outside `UiMetrics`.
@@ -197,6 +199,12 @@ Current: 11 test files for 59 production classes. Zero UI tests.
 Recommended: P1 first (real bugs, small patches), then P2 tests (makes later
 refactors safe), then P3 refactors, then P4 i18n/a11y (larger sweep), then P6
 UX polish, then P5 packaging last (release-adjacent).
+
+Exception: tasks 3.3 (`MembershipTablePanelTest`, formerly 2.6) and 3.5
+(`McFormatToolbarTest`, formerly 2.4) sit inside P3 instead of P2 because
+they cover classes whose structure the surrounding refactors (3.2 and 3.4)
+reshape. Run each after its related refactor, not before. Writing them
+first is throwaway work.
 
 ---
 
