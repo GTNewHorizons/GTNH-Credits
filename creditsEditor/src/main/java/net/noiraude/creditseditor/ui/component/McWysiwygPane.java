@@ -114,11 +114,13 @@ public final class McWysiwygPane extends JScrollPane implements McFormatTarget {
             .addDocumentListener(new AnyChangeListener(this::onChanged));
 
         // Reinitialize the carry whenever the caret moves with no selection (rendered mode only).
-        pane.addCaretListener(e -> {
-            if (!settingText && !rawMode && pane.getSelectionStart() == pane.getSelectionEnd()) {
-                syncPendingFromCaret();
-            }
-        });
+        pane.addCaretListener(e -> maybeSyncPendingFromCaret());
+    }
+
+    private void maybeSyncPendingFromCaret() {
+        if (!settingText && !rawMode && pane.getSelectionStart() == pane.getSelectionEnd()) {
+            syncPendingFromCaret();
+        }
     }
 
     private void onChanged() {
@@ -232,10 +234,20 @@ public final class McWysiwygPane extends JScrollPane implements McFormatTarget {
     /**
      * Registers a {@link CaretListener} on the internal {@link JTextPane}. Used by
      * {@link McFormatToolbar} to detect caret and selection changes.
+     *
+     * <p>
+     * The registered listener is wrapped so that {@link #syncPendingFromCaret()} runs first.
+     * Swing dispatches {@link CaretListener}s in reverse insertion order, so a publicly registered
+     * listener that reads {@link #pendingCodes} (e.g. the toolbar's {@code updateState}) would
+     * otherwise observe a stale carry: the constructor-installed sync listener was added earlier
+     * and would not fire until after. Pre-syncing inside the wrapper makes the read order-independent.
      */
     @Override
     public void addCaretListener(@NotNull CaretListener l) {
-        pane.addCaretListener(l);
+        pane.addCaretListener(e -> {
+            maybeSyncPendingFromCaret();
+            l.caretUpdate(e);
+        });
     }
 
     /**
