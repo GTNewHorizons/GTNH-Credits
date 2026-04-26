@@ -98,7 +98,7 @@ final class EditorMenuBar extends JMenuBar {
         editMenu.add(menuRedo);
 
         JMenu helpMenu = new JMenu("Help");
-        JMenuItem menuAbout = new JMenuItem("About " + AppInfo.name());
+        JMenuItem menuAbout = new JMenuItem(I18n.get("menu.help.about", AppInfo.name()));
         menuAbout.addActionListener(e -> onAbout.run());
         helpMenu.add(menuAbout);
 

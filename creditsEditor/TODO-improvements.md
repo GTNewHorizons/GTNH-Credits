@@ -106,7 +106,7 @@ Current: 11 test files for 59 production classes. Zero UI tests.
 
 ## P4 Accessibility and internationalization
 
-- [ ] **4.1 Add i18n infrastructure (bundle + helper)**
+- [x] **4.1 Add i18n infrastructure (bundle + helper)**
   Create `src/main/resources/messages_en.properties` (empty at first) and `ui/I18n.java` wrapper with `I18n.get(key, args...)`, lazy-loaded for `Locale.getDefault()`, falling back to the key name.
   Done when: the helper exists and is used from one call site as proof of concept.
 
