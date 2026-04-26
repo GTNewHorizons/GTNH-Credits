@@ -80,8 +80,9 @@ public final class MainWindow extends JFrame {
                 contentMin.width + frameInsets.left + frameInsets.right,
                 contentMin.height + menuBarHeight + frameInsets.top + frameInsets.bottom));
 
-        setSize(UiScale.scaled(UiMetrics.MAIN_WINDOW_WIDTH), UiScale.scaled(UiMetrics.MAIN_WINDOW_HEIGHT));
+        setSize(ScaledMetrics.mainWindowWidth, ScaledMetrics.mainWindowHeight);
         setLocationRelativeTo(null);
+        ScaledMetrics.attachTo(this);
 
         if (initialPath != null) {
             loadResource(initialPath);

@@ -1,8 +1,7 @@
 package net.noiraude.creditseditor.ui.detail;
 
-import static net.noiraude.creditseditor.ui.UiMetrics.GAP_SMALL;
-import static net.noiraude.creditseditor.ui.UiMetrics.GAP_TINY;
-import static net.noiraude.creditseditor.ui.UiScale.scaled;
+import static net.noiraude.creditseditor.ui.ScaledMetrics.gapSmall;
+import static net.noiraude.creditseditor.ui.ScaledMetrics.gapTiny;
 
 import java.awt.Component;
 import java.awt.Dimension;
@@ -96,7 +95,7 @@ public final class RoleListPanel extends JPanel {
         Insets scrollInsets = roleListScroll.getInsets();
         int scrollH = rowsH + scrollInsets.top + scrollInsets.bottom;
         int toolbarH = toolbar.getPreferredSize().height;
-        int rowSpacing = scaled(GAP_TINY) * 2 * 2; // 2 inter-row gaps inside this panel
+        int rowSpacing = gapTiny * 2 * 2; // 2 inter-row gaps inside this panel
         int floorH = rowSpacing + contextH + scrollH + toolbarH;
         return new Dimension(min.width, Math.max(min.height, floorH));
     }
@@ -163,7 +162,7 @@ public final class RoleListPanel extends JPanel {
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.gridx = 0;
         gbc.weightx = 1.0;
-        gbc.insets = new Insets(scaled(GAP_TINY), scaled(GAP_SMALL), scaled(GAP_TINY), scaled(GAP_SMALL));
+        gbc.insets = new Insets(gapTiny, gapSmall, gapTiny, gapSmall);
 
         gbc.gridy = 0;
         gbc.weighty = 0;
@@ -196,7 +195,7 @@ public final class RoleListPanel extends JPanel {
     }
 
     private @NotNull JPanel buildToolbar() {
-        JPanel bar = new JPanel(new FlowLayout(FlowLayout.LEFT, scaled(GAP_SMALL), scaled(GAP_TINY)));
+        JPanel bar = new JPanel(new FlowLayout(FlowLayout.LEFT, gapSmall, gapTiny));
         bar.add(addButton);
         bar.add(deleteButton);
         return bar;

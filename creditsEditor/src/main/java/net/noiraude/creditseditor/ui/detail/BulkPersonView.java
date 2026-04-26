@@ -1,31 +1,5 @@
 package net.noiraude.creditseditor.ui.detail;
 
-import static net.noiraude.creditseditor.ui.UiMetrics.GAP_HUGE;
-import static net.noiraude.creditseditor.ui.UiMetrics.GAP_LARGE;
-import static net.noiraude.creditseditor.ui.UiMetrics.GAP_SMALL;
-import static net.noiraude.creditseditor.ui.UiMetrics.GAP_XXLARGE;
-import static net.noiraude.creditseditor.ui.UiScale.scaled;
-
-import java.awt.BorderLayout;
-import java.awt.Component;
-import java.awt.Dimension;
-import java.awt.Font;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.function.Consumer;
-import java.util.stream.Collectors;
-
-import javax.swing.BorderFactory;
-import javax.swing.Box;
-import javax.swing.BoxLayout;
-import javax.swing.JButton;
-import javax.swing.JComboBox;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.SwingConstants;
-
 import net.noiraude.creditseditor.bus.DocumentBus;
 import net.noiraude.creditseditor.command.CommandExecutor;
 import net.noiraude.creditseditor.command.impl.AddMembershipCommand;
@@ -38,9 +12,32 @@ import net.noiraude.creditseditor.service.KeySanitizer;
 import net.noiraude.libcredits.model.DocumentCategory;
 import net.noiraude.libcredits.model.DocumentMembership;
 import net.noiraude.libcredits.model.DocumentPerson;
-
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.JButton;
+import javax.swing.JComboBox;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.SwingConstants;
+import java.awt.BorderLayout;
+import java.awt.Component;
+import java.awt.Dimension;
+import java.awt.Font;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
+
+import static net.noiraude.creditseditor.ui.ScaledMetrics.gapHuge;
+import static net.noiraude.creditseditor.ui.ScaledMetrics.gapLarge;
+import static net.noiraude.creditseditor.ui.ScaledMetrics.gapSmall;
+import static net.noiraude.creditseditor.ui.ScaledMetrics.gapXXLarge;
 
 /**
  * Detail panel card shown when multiple persons are selected.
@@ -79,24 +76,24 @@ public final class BulkPersonView extends JPanel {
                     countLabel.getFont()
                         .getSize() + 2f));
         countLabel.setHorizontalAlignment(SwingConstants.CENTER);
-        countLabel.setBorder(BorderFactory.createEmptyBorder(scaled(GAP_XXLARGE), 0, scaled(GAP_HUGE), 0));
+        countLabel.setBorder(BorderFactory.createEmptyBorder(gapXXLarge, 0, gapHuge, 0));
         add(countLabel, BorderLayout.NORTH);
 
         JPanel buttonPanel = new JPanel();
         buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.Y_AXIS));
-        buttonPanel.setBorder(BorderFactory.createEmptyBorder(0, scaled(GAP_HUGE), scaled(GAP_HUGE), scaled(GAP_HUGE)));
+        buttonPanel.setBorder(BorderFactory.createEmptyBorder(0, gapHuge, gapHuge, gapHuge));
 
         JLabel bulkLabel = new JLabel("Bulk operations:");
         bulkLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        bulkLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, scaled(GAP_LARGE), 0));
+        bulkLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, gapLarge, 0));
         buttonPanel.add(bulkLabel);
 
         addActionButton(buttonPanel, "Assign to category...", this::onAssignToCategory);
-        buttonPanel.add(Box.createVerticalStrut(scaled(GAP_SMALL)));
+        buttonPanel.add(Box.createVerticalStrut(gapSmall));
         addActionButton(buttonPanel, "Add role in category...", this::onAddRoleInCategory);
-        buttonPanel.add(Box.createVerticalStrut(scaled(GAP_SMALL)));
+        buttonPanel.add(Box.createVerticalStrut(gapSmall));
         addActionButton(buttonPanel, "Remove from category...", this::onRemoveFromCategory);
-        buttonPanel.add(Box.createVerticalStrut(scaled(GAP_XXLARGE)));
+        buttonPanel.add(Box.createVerticalStrut(gapXXLarge));
         addActionButton(buttonPanel, "Delete all", this::onDeleteAll);
 
         buttonPanel.add(Box.createVerticalGlue());

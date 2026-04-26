@@ -1,8 +1,7 @@
 package net.noiraude.creditseditor.ui.detail;
 
-import static net.noiraude.creditseditor.ui.UiMetrics.GAP_SMALL;
-import static net.noiraude.creditseditor.ui.UiMetrics.SCROLL_UNIT_INCREMENT;
-import static net.noiraude.creditseditor.ui.UiScale.scaled;
+import static net.noiraude.creditseditor.ui.ScaledMetrics.gapSmall;
+import static net.noiraude.creditseditor.ui.ScaledMetrics.scrollUnitIncrement;
 
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
@@ -89,7 +88,7 @@ public final class PersonDetailView extends DetailView<DocumentPerson> implement
         roleGbc.fill = GridBagConstraints.BOTH;
         roleGbc.weightx = 1.0;
         roleGbc.weighty = 1.0;
-        roleGbc.insets = new Insets(scaled(GAP_SMALL), scaled(GAP_SMALL), scaled(GAP_SMALL), scaled(GAP_SMALL));
+        roleGbc.insets = new Insets(gapSmall, gapSmall, gapSmall, gapSmall);
         add(rolePanel, roleGbc);
     }
 
@@ -224,7 +223,7 @@ public final class PersonDetailView extends DetailView<DocumentPerson> implement
 
     @Override
     public int getScrollableUnitIncrement(Rectangle visibleRect, int orientation, int direction) {
-        return scaled(SCROLL_UNIT_INCREMENT);
+        return scrollUnitIncrement;
     }
 
     @Override

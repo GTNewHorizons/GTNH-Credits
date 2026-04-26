@@ -1,9 +1,8 @@
 package net.noiraude.creditseditor.ui;
 
-import static net.noiraude.creditseditor.ui.UiMetrics.GAP_SMALL;
-import static net.noiraude.creditseditor.ui.UiMetrics.SPLIT_DIVIDER_LEFT;
-import static net.noiraude.creditseditor.ui.UiMetrics.SPLIT_DIVIDER_RIGHT;
-import static net.noiraude.creditseditor.ui.UiScale.scaled;
+import static net.noiraude.creditseditor.ui.ScaledMetrics.gapSmall;
+import static net.noiraude.creditseditor.ui.ScaledMetrics.splitDividerLeft;
+import static net.noiraude.creditseditor.ui.ScaledMetrics.splitDividerRight;
 
 import java.awt.BorderLayout;
 import java.util.List;
@@ -64,14 +63,13 @@ final class EditorView extends JPanel {
         });
 
         JSplitPane rightSplit = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, personPanel, detailPanel);
-        rightSplit.setDividerLocation(scaled(SPLIT_DIVIDER_RIGHT));
+        rightSplit.setDividerLocation(splitDividerRight);
         rightSplit.setResizeWeight(0.3);
 
         JSplitPane mainSplit = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, categoryPanel, rightSplit);
-        mainSplit.setDividerLocation(scaled(SPLIT_DIVIDER_LEFT));
+        mainSplit.setDividerLocation(splitDividerLeft);
         mainSplit.setResizeWeight(0.2);
-        mainSplit
-            .setBorder(new EmptyBorder(scaled(GAP_SMALL), scaled(GAP_SMALL), scaled(GAP_SMALL), scaled(GAP_SMALL)));
+        mainSplit.setBorder(new EmptyBorder(gapSmall, gapSmall, gapSmall, gapSmall));
 
         setLayout(new BorderLayout());
         add(mainSplit, BorderLayout.CENTER);

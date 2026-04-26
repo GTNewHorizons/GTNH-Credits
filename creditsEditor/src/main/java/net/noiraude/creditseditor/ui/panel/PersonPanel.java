@@ -1,8 +1,7 @@
 package net.noiraude.creditseditor.ui.panel;
 
-import static net.noiraude.creditseditor.ui.UiMetrics.GAP_SMALL;
-import static net.noiraude.creditseditor.ui.UiMetrics.GAP_TINY;
-import static net.noiraude.creditseditor.ui.UiScale.scaled;
+import static net.noiraude.creditseditor.ui.ScaledMetrics.gapSmall;
+import static net.noiraude.creditseditor.ui.ScaledMetrics.gapTiny;
 
 import java.awt.BorderLayout;
 import java.awt.Component;
@@ -72,9 +71,8 @@ public final class PersonPanel extends ListPanel<DocumentPerson, List<DocumentPe
         searchField.putClientProperty("JTextField.placeholderText", "Filter by name...");
         searchField.getDocument()
             .addDocumentListener(new AnyChangeListener(this::applyFilter));
-        JPanel searchRow = new JPanel(new BorderLayout(scaled(GAP_SMALL), 0));
-        searchRow.setBorder(
-            BorderFactory.createEmptyBorder(scaled(GAP_TINY), scaled(GAP_TINY), scaled(GAP_TINY), scaled(GAP_TINY)));
+        JPanel searchRow = new JPanel(new BorderLayout(gapSmall, 0));
+        searchRow.setBorder(BorderFactory.createEmptyBorder(gapTiny, gapTiny, gapTiny, gapTiny));
         searchRow.add(new JLabel("Search:"), BorderLayout.WEST);
         searchRow.add(searchField, BorderLayout.CENTER);
         add(searchRow, BorderLayout.NORTH);
@@ -90,13 +88,12 @@ public final class PersonPanel extends ListPanel<DocumentPerson, List<DocumentPe
         importButton.setMinimumSize(importButton.getPreferredSize());
         importButton.addActionListener(e -> onImportTsv());
 
-        JPanel leftButtons = new JPanel(new GridLayout(1, 0, scaled(GAP_SMALL), 0));
+        JPanel leftButtons = new JPanel(new GridLayout(1, 0, gapSmall, 0));
         leftButtons.add(addButton);
         leftButtons.add(removeButton);
 
-        JPanel toolbar = new JPanel(new BorderLayout(scaled(GAP_SMALL), 0));
-        toolbar.setBorder(
-            BorderFactory.createEmptyBorder(scaled(GAP_TINY), scaled(GAP_TINY), scaled(GAP_TINY), scaled(GAP_TINY)));
+        JPanel toolbar = new JPanel(new BorderLayout(gapSmall, 0));
+        toolbar.setBorder(BorderFactory.createEmptyBorder(gapTiny, gapTiny, gapTiny, gapTiny));
         toolbar.add(leftButtons, BorderLayout.WEST);
         toolbar.add(importButton, BorderLayout.EAST);
         add(toolbar, BorderLayout.SOUTH);

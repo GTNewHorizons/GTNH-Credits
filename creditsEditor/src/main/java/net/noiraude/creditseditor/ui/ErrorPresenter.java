@@ -44,7 +44,7 @@ public final class ErrorPresenter {
      * @param ex     the thrown exception
      */
     public static void show(@Nullable Component parent, @NotNull String title, @NotNull Throwable ex) {
-        JPanel panel = new JPanel(new BorderLayout(0, UiScale.scaled(UiMetrics.GAP_LARGE)));
+        JPanel panel = new JPanel(new BorderLayout(0, ScaledMetrics.gapLarge));
         panel.add(new JLabel(friendlyMessage(ex)), BorderLayout.NORTH);
 
         JTextArea details = new JTextArea(10, 60);

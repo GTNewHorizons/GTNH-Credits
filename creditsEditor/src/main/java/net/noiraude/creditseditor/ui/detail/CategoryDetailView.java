@@ -1,8 +1,7 @@
 package net.noiraude.creditseditor.ui.detail;
 
-import static net.noiraude.creditseditor.ui.UiMetrics.GAP_MEDIUM;
-import static net.noiraude.creditseditor.ui.UiMetrics.GAP_SMALL;
-import static net.noiraude.creditseditor.ui.UiScale.scaled;
+import static net.noiraude.creditseditor.ui.ScaledMetrics.gapMedium;
+import static net.noiraude.creditseditor.ui.ScaledMetrics.gapSmall;
 
 import java.awt.Component;
 import java.awt.GridBagConstraints;
@@ -100,7 +99,7 @@ public final class CategoryDetailView extends DetailView<DocumentCategory> {
         // Row 4: Details text (visible only when "detail" class is checked)
         label.gridy = 4;
         label.anchor = GridBagConstraints.NORTHWEST;
-        label.insets = new Insets(scaled(GAP_MEDIUM), scaled(GAP_MEDIUM), scaled(GAP_SMALL), scaled(GAP_SMALL));
+        label.insets = new Insets(gapMedium, gapMedium, gapSmall, gapSmall);
         add(descriptionSection.label(), label);
         field.gridy = 4;
         field.fill = GridBagConstraints.BOTH;

@@ -1,11 +1,10 @@
 package net.noiraude.creditseditor.ui.dialog;
 
-import static net.noiraude.creditseditor.ui.UiMetrics.FONT_HEADING_DELTA;
-import static net.noiraude.creditseditor.ui.UiMetrics.GAP_HUGE;
-import static net.noiraude.creditseditor.ui.UiMetrics.GAP_MEDIUM;
-import static net.noiraude.creditseditor.ui.UiMetrics.GAP_XLARGE;
-import static net.noiraude.creditseditor.ui.UiMetrics.GAP_XXLARGE;
-import static net.noiraude.creditseditor.ui.UiScale.scaled;
+import static net.noiraude.creditseditor.ui.ScaledMetrics.fontHeadingDelta;
+import static net.noiraude.creditseditor.ui.ScaledMetrics.gapHuge;
+import static net.noiraude.creditseditor.ui.ScaledMetrics.gapMedium;
+import static net.noiraude.creditseditor.ui.ScaledMetrics.gapXLarge;
+import static net.noiraude.creditseditor.ui.ScaledMetrics.gapXXLarge;
 
 import java.awt.BorderLayout;
 import java.awt.Component;
@@ -48,9 +47,8 @@ public final class AboutDialog extends JDialog {
     public AboutDialog(@Nullable Frame owner) {
         super(owner, "About " + AppInfo.name(), true);
 
-        JPanel content = new JPanel(new BorderLayout(scaled(GAP_HUGE), scaled(GAP_XXLARGE)));
-        content.setBorder(
-            BorderFactory.createEmptyBorder(scaled(GAP_HUGE), scaled(GAP_HUGE), scaled(GAP_XXLARGE), scaled(GAP_HUGE)));
+        JPanel content = new JPanel(new BorderLayout(gapHuge, gapXXLarge));
+        content.setBorder(BorderFactory.createEmptyBorder(gapHuge, gapHuge, gapXXLarge, gapHuge));
 
         content.add(buildIconPanel(), BorderLayout.WEST);
         content.add(buildInfoPanel(), BorderLayout.CENTER);
@@ -82,23 +80,23 @@ public final class AboutDialog extends JDialog {
 
         JLabel nameLabel = leftLabel(AppInfo.name());
         Font base = nameLabel.getFont();
-        nameLabel.setFont(base.deriveFont(Font.BOLD, base.getSize2D() + scaled(FONT_HEADING_DELTA)));
+        nameLabel.setFont(base.deriveFont(Font.BOLD, base.getSize2D() + fontHeadingDelta));
         panel.add(nameLabel);
 
-        panel.add(Box.createVerticalStrut(scaled(GAP_MEDIUM)));
+        panel.add(Box.createVerticalStrut(gapMedium));
         panel.add(leftLabel("Version " + AppInfo.version()));
 
         String description = AppInfo.description();
         String license = AppInfo.license();
         if (!description.isEmpty() || !license.isEmpty()) {
-            panel.add(Box.createVerticalStrut(scaled(GAP_XLARGE)));
+            panel.add(Box.createVerticalStrut(gapXLarge));
             if (!description.isEmpty()) panel.add(leftLabel(description));
             if (!license.isEmpty()) panel.add(leftLabel(license));
         }
 
         String copyright = AppInfo.copyright();
         if (!copyright.isEmpty()) {
-            panel.add(Box.createVerticalStrut(scaled(GAP_XLARGE)));
+            panel.add(Box.createVerticalStrut(gapXLarge));
             panel.add(leftLabel(copyright));
         }
 

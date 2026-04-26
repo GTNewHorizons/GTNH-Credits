@@ -1,11 +1,10 @@
 package net.noiraude.creditseditor.ui.dialog;
 
-import static net.noiraude.creditseditor.ui.UiMetrics.GAP_LARGE;
-import static net.noiraude.creditseditor.ui.UiMetrics.GAP_SMALL;
-import static net.noiraude.creditseditor.ui.UiMetrics.GAP_TINY;
-import static net.noiraude.creditseditor.ui.UiMetrics.IMPORT_DIALOG_HEIGHT;
-import static net.noiraude.creditseditor.ui.UiMetrics.IMPORT_DIALOG_WIDTH;
-import static net.noiraude.creditseditor.ui.UiScale.scaled;
+import static net.noiraude.creditseditor.ui.ScaledMetrics.gapLarge;
+import static net.noiraude.creditseditor.ui.ScaledMetrics.gapSmall;
+import static net.noiraude.creditseditor.ui.ScaledMetrics.gapTiny;
+import static net.noiraude.creditseditor.ui.ScaledMetrics.importDialogHeight;
+import static net.noiraude.creditseditor.ui.ScaledMetrics.importDialogWidth;
 
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
@@ -70,10 +69,8 @@ public final class ImportTsvDialog extends JDialog {
         this.onCommand = onCommand;
         this.preview = new TsvPreviewController(bus, this::onPreviewChanged, this::showReadError);
 
-        setLayout(new BorderLayout(scaled(GAP_LARGE), scaled(GAP_LARGE)));
-        getRootPane().setBorder(
-            BorderFactory
-                .createEmptyBorder(scaled(GAP_LARGE), scaled(GAP_LARGE), scaled(GAP_LARGE), scaled(GAP_LARGE)));
+        setLayout(new BorderLayout(gapLarge, gapLarge));
+        getRootPane().setBorder(BorderFactory.createEmptyBorder(gapLarge, gapLarge, gapLarge, gapLarge));
 
         add(buildTopPanel(), BorderLayout.NORTH);
         add(buildPreviewPanel(), BorderLayout.CENTER);
@@ -83,7 +80,7 @@ public final class ImportTsvDialog extends JDialog {
         preselectCategory(defaultCategoryId);
         updateImportButton();
 
-        setSize(scaled(IMPORT_DIALOG_WIDTH), scaled(IMPORT_DIALOG_HEIGHT));
+        setSize(importDialogWidth, importDialogHeight);
         setLocationRelativeTo(owner);
     }
 
@@ -92,15 +89,15 @@ public final class ImportTsvDialog extends JDialog {
         GridBagConstraints lbl = new GridBagConstraints();
         lbl.gridx = 0;
         lbl.anchor = GridBagConstraints.WEST;
-        lbl.insets = new Insets(scaled(GAP_TINY), 0, scaled(GAP_TINY), scaled(GAP_SMALL));
+        lbl.insets = new Insets(gapTiny, 0, gapTiny, gapSmall);
         GridBagConstraints fld = new GridBagConstraints();
         fld.gridx = 1;
         fld.fill = GridBagConstraints.HORIZONTAL;
         fld.weightx = 1.0;
-        fld.insets = new Insets(scaled(GAP_TINY), 0, scaled(GAP_TINY), 0);
+        fld.insets = new Insets(gapTiny, 0, gapTiny, 0);
         GridBagConstraints btn = new GridBagConstraints();
         btn.gridx = 2;
-        btn.insets = new Insets(scaled(GAP_TINY), scaled(GAP_SMALL), scaled(GAP_TINY), 0);
+        btn.insets = new Insets(gapTiny, gapSmall, gapTiny, 0);
 
         // File row
         lbl.gridy = 0;

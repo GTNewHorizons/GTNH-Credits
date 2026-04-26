@@ -1,8 +1,7 @@
 package net.noiraude.creditseditor.ui.detail;
 
-import static net.noiraude.creditseditor.ui.UiMetrics.GAP_MEDIUM;
-import static net.noiraude.creditseditor.ui.UiMetrics.GAP_SMALL;
-import static net.noiraude.creditseditor.ui.UiScale.scaled;
+import static net.noiraude.creditseditor.ui.ScaledMetrics.gapMedium;
+import static net.noiraude.creditseditor.ui.ScaledMetrics.gapSmall;
 
 import java.awt.CardLayout;
 import java.awt.Dimension;
@@ -137,7 +136,7 @@ public final class RoleDetailCard {
         c.anchor = GridBagConstraints.WEST;
         c.weightx = 0;
         c.weighty = 0;
-        c.insets = new Insets(scaled(GAP_SMALL), scaled(GAP_MEDIUM), scaled(GAP_SMALL), scaled(GAP_SMALL));
+        c.insets = new Insets(gapSmall, gapMedium, gapSmall, gapSmall);
         return c;
     }
 
@@ -149,7 +148,7 @@ public final class RoleDetailCard {
         c.anchor = GridBagConstraints.WEST;
         c.weightx = 1.0;
         c.weighty = 0;
-        c.insets = new Insets(scaled(GAP_SMALL), 0, scaled(GAP_SMALL), scaled(GAP_MEDIUM));
+        c.insets = new Insets(gapSmall, 0, gapSmall, gapMedium);
         return c;
     }
 }

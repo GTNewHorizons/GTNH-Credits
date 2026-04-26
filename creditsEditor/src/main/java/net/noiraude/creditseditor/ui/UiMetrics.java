@@ -1,8 +1,8 @@
 package net.noiraude.creditseditor.ui;
 
 /**
- * Semantic raw-pixel layout constants. Wrap with {@link UiScale#scaled(int)} at the call site
- * so values track the current UI font scale dynamically.
+ * Raw, unscaled pixel layout constants. Read scaled values from {@link ScaledMetrics}, which
+ * caches them and refreshes on multi-monitor DPI transitions.
  */
 public final class UiMetrics {
 
