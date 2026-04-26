@@ -138,7 +138,7 @@ Current: 11 test files for 59 production classes. Zero UI tests.
   Add `list.getAccessibleContext().setAccessibleName(...)` with localized labels.
   Done when: every `JList` and `JTable` in the app has an accessible name.
 
-- [ ] **4.8 Replace hardcoded colors with FlatLaf lookups**
+- [x] **4.8 Replace hardcoded colors with FlatLaf lookups**
   Files: `ui/panel/DetailPanel.java:82` (Color.GRAY), `ui/component/McFormatToolbar.java:416-418` (RGB 210,210,210)
   Action: use `UIManager.getColor("...")` or extend `McSwingStyle` with semantic keys.
   Done when: no literal `Color.*` or `new Color(...)` for UI chrome remains in these files.

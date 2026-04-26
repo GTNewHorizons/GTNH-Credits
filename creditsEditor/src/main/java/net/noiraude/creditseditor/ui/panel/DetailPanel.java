@@ -13,6 +13,7 @@ import javax.swing.JScrollPane;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
+import javax.swing.UIManager;
 import javax.swing.border.TitledBorder;
 
 import net.noiraude.creditseditor.bus.DocumentBus;
@@ -82,7 +83,7 @@ public final class DetailPanel extends JPanel {
         hint.setFont(
             hint.getFont()
                 .deriveFont(Font.ITALIC));
-        hint.setForeground(java.awt.Color.GRAY);
+        hint.setForeground(UIManager.getColor("Label.disabledForeground"));
         cardPanel.add(hint, CARD_EMPTY);
 
         cardPanel.add(categoryView, CARD_CATEGORY);

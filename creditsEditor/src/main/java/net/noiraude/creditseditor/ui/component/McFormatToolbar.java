@@ -425,10 +425,6 @@ public final class McFormatToolbar extends JPanel {
      */
     private record NoColorIcon(boolean selected, boolean mixed, int size) implements Icon {
 
-        private static final @NotNull Color BG = new Color(210, 210, 210);
-        private static final @NotNull Color CROSS = new Color(90, 90, 90);
-        private static final @NotNull Color BORDER = new Color(150, 150, 150);
-
         @Override
         public void paintIcon(@NotNull Component c, @NotNull Graphics g, int x, int y) {
             int inner = size - 2;
@@ -436,12 +432,12 @@ public final class McFormatToolbar extends JPanel {
             int pipOffset = size - pipFill - 1;
             int crossMargin = Math.max(1, size * 3 / 14);
             int crossFar = size - crossMargin;
-            g.setColor(BG);
+            g.setColor(UIManager.getColor("Button.background"));
             g.fillRect(x + 1, y + 1, inner, inner);
-            g.setColor(CROSS);
+            g.setColor(UIManager.getColor("Label.disabledForeground"));
             g.drawLine(x + crossMargin, y + crossMargin, x + crossFar, y + crossFar);
             g.drawLine(x + crossFar, y + crossMargin, x + crossMargin, y + crossFar);
-            g.setColor(BORDER);
+            g.setColor(UIManager.getColor("Component.borderColor"));
             g.drawRect(x + 1, y + 1, inner - 1, inner - 1);
             if (selected) {
                 // Selection pip: small white square with dark border in the bottom-left corner
