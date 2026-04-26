@@ -58,11 +58,11 @@ public final class ErrorPresenter {
         detailsPane.setVisible(false);
         panel.add(detailsPane, BorderLayout.CENTER);
 
-        JButton toggle = new JButton("Show details...");
+        JButton toggle = new JButton(I18n.get("error.show.details"));
         toggle.addActionListener(e -> {
             boolean nowVisible = !detailsPane.isVisible();
             detailsPane.setVisible(nowVisible);
-            toggle.setText(nowVisible ? "Hide details" : "Show details...");
+            toggle.setText(I18n.get(nowVisible ? "error.hide.details" : "error.show.details"));
             Window w = SwingUtilities.getWindowAncestor(panel);
             if (w != null) w.pack();
         });
@@ -75,11 +75,11 @@ public final class ErrorPresenter {
 
     private static @NotNull String friendlyMessage(@NotNull Throwable ex) {
         Throwable root = rootCause(ex);
-        if (root instanceof NoSuchFileException) return "The requested file does not exist.";
-        if (root instanceof AccessDeniedException) return "Access to the file was denied.";
-        if (root instanceof JsonParseException) return "The credits JSON file is not valid.";
-        if (root instanceof IOException) return "A file access error occurred.";
-        return "An unexpected error occurred.";
+        if (root instanceof NoSuchFileException) return I18n.get("error.no.such.file");
+        if (root instanceof AccessDeniedException) return I18n.get("error.access.denied");
+        if (root instanceof JsonParseException) return I18n.get("error.json.invalid");
+        if (root instanceof IOException) return I18n.get("error.io.generic");
+        return I18n.get("error.unexpected");
     }
 
     private static @NotNull Throwable rootCause(@NotNull Throwable ex) {

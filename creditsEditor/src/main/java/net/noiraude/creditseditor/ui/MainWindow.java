@@ -34,7 +34,7 @@ public final class MainWindow extends JFrame {
     private final @NotNull EditorMenuBar menuBar;
 
     public MainWindow(@Nullable String initialPath) {
-        super("GTNH Credits Editor");
+        super(AppInfo.name());
         setIconImages(AppIcons.load());
         setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
         addWindowListener(new WindowAdapter() {
@@ -101,7 +101,7 @@ public final class MainWindow extends JFrame {
         try {
             newSession = EditorSession.open(path);
         } catch (Exception ex) {
-            ErrorPresenter.show(this, "Load error", ex);
+            ErrorPresenter.show(this, I18n.get("dialog.load.error.title"), ex);
             return;
         }
 
@@ -120,7 +120,7 @@ public final class MainWindow extends JFrame {
 
         JFileChooser chooser = new JFileChooser();
         chooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
-        chooser.setDialogTitle(createNew ? "New resource location" : "Open resource");
+        chooser.setDialogTitle(I18n.get(createNew ? "filechooser.new.title" : "filechooser.open.title"));
 
         int result = createNew ? chooser.showSaveDialog(this) : chooser.showOpenDialog(this);
         if (result != JFileChooser.APPROVE_OPTION) return;
@@ -135,7 +135,7 @@ public final class MainWindow extends JFrame {
         try {
             session.save();
         } catch (Exception ex) {
-            ErrorPresenter.show(this, "Save error", ex);
+            ErrorPresenter.show(this, I18n.get("dialog.save.error.title"), ex);
             return;
         }
         updateTitle();
@@ -190,12 +190,16 @@ public final class MainWindow extends JFrame {
     }
 
     private void updateTitle() {
-        String base = "GTNH Credits Editor";
-        if (session != null) {
-            base += " " + session.displayPath();
-            if (session.isDirty()) base += " *";
+        String appName = AppInfo.name();
+        String title;
+        if (session == null) {
+            title = appName;
+        } else if (session.isDirty()) {
+            title = I18n.get("title.session.dirty", appName, session.displayPath());
+        } else {
+            title = I18n.get("title.session", appName, session.displayPath());
         }
-        setTitle(base);
+        setTitle(title);
     }
 
     /**
@@ -208,8 +212,8 @@ public final class MainWindow extends JFrame {
         if (session == null || !session.isDirty()) return false;
         int choice = JOptionPane.showConfirmDialog(
             this,
-            "There are unsaved changes. Discard them?",
-            "Unsaved changes",
+            I18n.get("dialog.unsaved.message"),
+            I18n.get("dialog.unsaved.title"),
             JOptionPane.YES_NO_OPTION,
             JOptionPane.WARNING_MESSAGE);
         return choice != JOptionPane.YES_OPTION;

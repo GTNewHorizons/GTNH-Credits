@@ -115,7 +115,7 @@ Current: 11 test files for 59 production classes. Zero UI tests.
   Move every menu/item label into `messages_en.properties`. Keep current wording exactly.
   Done when: grep for string literals in the class shows none that are user-visible.
 
-- [ ] **4.3 Migrate MainWindow dialog strings to i18n**
+- [x] **4.3 Migrate MainWindow dialog strings to i18n**
   Files: `ui/MainWindow.java`, `ui/ErrorPresenter.java`
   Done when: no user-visible literal remains in these two files.
 
