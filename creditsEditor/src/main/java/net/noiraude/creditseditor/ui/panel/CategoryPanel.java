@@ -68,6 +68,8 @@ public final class CategoryPanel extends ListPanel<Object, List<DocumentCategory
 
         list.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
         list.setCellRenderer(new CategoryCellRenderer());
+        list.getAccessibleContext()
+            .setAccessibleName(I18n.get("panel.categories.list.accessible"));
         list.setDragEnabled(true);
         list.setDropMode(DropMode.INSERT);
         list.setTransferHandler(

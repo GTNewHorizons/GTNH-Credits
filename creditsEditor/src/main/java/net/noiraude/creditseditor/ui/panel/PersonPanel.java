@@ -67,6 +67,8 @@ public final class PersonPanel extends ListPanel<DocumentPerson, List<DocumentPe
         this.bus = bus;
         list.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
         list.setCellRenderer(new PersonCellRenderer());
+        list.getAccessibleContext()
+            .setAccessibleName(I18n.get("panel.persons.list.accessible"));
 
         // Search bar
         searchField.putClientProperty("JTextField.placeholderText", I18n.get("panel.persons.search.placeholder"));

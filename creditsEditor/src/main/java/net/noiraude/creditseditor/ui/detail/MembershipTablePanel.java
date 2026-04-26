@@ -50,6 +50,8 @@ public final class MembershipTablePanel extends JPanel {
     public MembershipTablePanel(@NotNull Runnable onAdd, @NotNull Runnable onRemove) {
         super(new BorderLayout());
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        table.getAccessibleContext()
+            .setAccessibleName(I18n.get("table.membership.accessible"));
         table.getColumnModel()
             .getColumn(0)
             .setPreferredWidth(120);

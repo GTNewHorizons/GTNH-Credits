@@ -145,6 +145,8 @@ public final class RoleListPanel extends JPanel {
 
     private void configureList() {
         roleList.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+        roleList.getAccessibleContext()
+            .setAccessibleName(I18n.get("panel.roles.list.accessible"));
         roleList.setDragEnabled(true);
         roleList.setDropMode(DropMode.INSERT);
         roleList.setTransferHandler(

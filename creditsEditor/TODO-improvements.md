@@ -133,7 +133,7 @@ Current: 11 test files for 59 production classes. Zero UI tests.
   Every color swatch and modifier button gets `setAccessibleName()` and `setToolTipText()` including its shortcut.
   Done when: hovering a toolbar button shows a tooltip; screen reader reads a meaningful name.
 
-- [ ] **4.7 Accessible names on lists**
+- [x] **4.7 Accessible names on lists**
   Files: `ui/panel/CategoryPanel.java`, `ui/panel/PersonPanel.java`, `ui/detail/MembershipTablePanel.java`
   Add `list.getAccessibleContext().setAccessibleName(...)` with localized labels.
   Done when: every `JList` and `JTable` in the app has an accessible name.

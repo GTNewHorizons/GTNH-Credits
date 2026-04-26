@@ -127,6 +127,8 @@ public final class ImportTsvDialog extends JDialog {
         panel.setBorder(BorderFactory.createTitledBorder(I18n.get("dialog.import_tsv.preview.title")));
         JTable previewTable = new JTable(preview.tableModel());
         previewTable.setAutoCreateRowSorter(true);
+        previewTable.getAccessibleContext()
+            .setAccessibleName(I18n.get("dialog.import_tsv.preview.accessible"));
         JScrollPane scroll = new JScrollPane(previewTable);
         scroll.setBorder(BorderFactory.createEtchedBorder());
         panel.add(scroll, BorderLayout.CENTER);
