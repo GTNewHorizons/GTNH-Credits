@@ -61,11 +61,11 @@ final class EditorMenuBar extends JMenuBar {
         Runnable onUndo = editActions.onUndo;
         Runnable onRedo = editActions.onRedo;
         Runnable onAbout = helpActions.onAbout;
-        JMenu fileMenu = new JMenu("File");
-        JMenuItem menuOpen = new JMenuItem("Open Resources…");
-        JMenuItem menuNew = new JMenuItem("New Resources…");
-        menuSave = new JMenuItem("Save Resources");
-        JMenuItem menuQuit = new JMenuItem("Quit");
+        JMenu fileMenu = new JMenu(I18n.get("menu.file"));
+        JMenuItem menuOpen = new JMenuItem(I18n.get("menu.file.open"));
+        JMenuItem menuNew = new JMenuItem(I18n.get("menu.file.new"));
+        menuSave = new JMenuItem(I18n.get("menu.file.save"));
+        JMenuItem menuQuit = new JMenuItem(I18n.get("menu.file.quit"));
 
         menuOpen.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.CTRL_DOWN_MASK));
         menuSave.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK));
@@ -82,10 +82,10 @@ final class EditorMenuBar extends JMenuBar {
         fileMenu.addSeparator();
         fileMenu.add(menuQuit);
 
-        JMenu editMenu = new JMenu("Edit");
+        JMenu editMenu = new JMenu(I18n.get("menu.edit"));
 
-        menuUndo = new JMenuItem("Undo");
-        menuRedo = new JMenuItem("Redo");
+        menuUndo = new JMenuItem(I18n.get("menu.edit.undo"));
+        menuRedo = new JMenuItem(I18n.get("menu.edit.redo"));
 
         menuUndo.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_Z, InputEvent.CTRL_DOWN_MASK));
         menuRedo.setAccelerator(
@@ -97,7 +97,7 @@ final class EditorMenuBar extends JMenuBar {
         editMenu.add(menuUndo);
         editMenu.add(menuRedo);
 
-        JMenu helpMenu = new JMenu("Help");
+        JMenu helpMenu = new JMenu(I18n.get("menu.help"));
         JMenuItem menuAbout = new JMenuItem(I18n.get("menu.help.about", AppInfo.name()));
         menuAbout.addActionListener(e -> onAbout.run());
         helpMenu.add(menuAbout);
@@ -123,8 +123,8 @@ final class EditorMenuBar extends JMenuBar {
         menuRedo.setEnabled(canRedo);
 
         String undoName = loaded ? session.stack.peekUndoName() : null;
-        menuUndo.setText(undoName != null ? "Undo " + undoName : "Undo");
+        menuUndo.setText(undoName != null ? I18n.get("menu.edit.undo.named", undoName) : I18n.get("menu.edit.undo"));
         String redoName = loaded ? session.stack.peekRedoName() : null;
-        menuRedo.setText(redoName != null ? "Redo " + redoName : "Redo");
+        menuRedo.setText(redoName != null ? I18n.get("menu.edit.redo.named", redoName) : I18n.get("menu.edit.redo"));
     }
 }

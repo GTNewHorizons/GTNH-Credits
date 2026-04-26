@@ -110,7 +110,7 @@ Current: 11 test files for 59 production classes. Zero UI tests.
   Create `src/main/resources/messages_en.properties` (empty at first) and `ui/I18n.java` wrapper with `I18n.get(key, args...)`, lazy-loaded for `Locale.getDefault()`, falling back to the key name.
   Done when: the helper exists and is used from one call site as proof of concept.
 
-- [ ] **4.2 Migrate EditorMenuBar strings to i18n**
+- [x] **4.2 Migrate EditorMenuBar strings to i18n**
   File: `ui/EditorMenuBar.java`
   Move every menu/item label into `messages_en.properties`. Keep current wording exactly.
   Done when: grep for string literals in the class shows none that are user-visible.
