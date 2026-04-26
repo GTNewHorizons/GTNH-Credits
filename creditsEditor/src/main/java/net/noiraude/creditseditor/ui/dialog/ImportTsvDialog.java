@@ -33,6 +33,7 @@ import net.noiraude.creditseditor.command.CommandExecutor;
 import net.noiraude.creditseditor.service.TsvImportCommandFactory;
 import net.noiraude.creditseditor.service.TsvImporter;
 import net.noiraude.creditseditor.service.TsvImporter.ImportLine;
+import net.noiraude.creditseditor.ui.I18n;
 import net.noiraude.libcredits.model.DocumentCategory;
 
 import org.jetbrains.annotations.NotNull;
@@ -54,7 +55,7 @@ public final class ImportTsvDialog extends JDialog {
 
     private final @NotNull JTextField fileField = new JTextField();
     private final @NotNull JComboBox<String> categoryCombo = new JComboBox<>();
-    private final @NotNull JButton importButton = new JButton("Import");
+    private final @NotNull JButton importButton = new JButton(I18n.get("button.import"));
     private final @NotNull JLabel statusLabel = new JLabel(" ");
 
     private @Nullable File selectedFile;
@@ -64,7 +65,7 @@ public final class ImportTsvDialog extends JDialog {
      */
     public ImportTsvDialog(@Nullable Frame owner, @NotNull DocumentBus bus, @NotNull CommandExecutor onCommand,
         @Nullable String defaultCategoryId) {
-        super(owner, "Import TSV", true);
+        super(owner, I18n.get("dialog.import_tsv.title"), true);
         this.bus = bus;
         this.onCommand = onCommand;
         this.preview = new TsvPreviewController(bus, this::onPreviewChanged, this::showReadError);
@@ -101,18 +102,18 @@ public final class ImportTsvDialog extends JDialog {
 
         // File row
         lbl.gridy = 0;
-        panel.add(new JLabel("File:"), lbl);
+        panel.add(new JLabel(I18n.get("dialog.import_tsv.file.label")), lbl);
         fld.gridy = 0;
         fileField.setEditable(false);
         panel.add(fileField, fld);
         btn.gridy = 0;
-        JButton browseButton = new JButton("Browse...");
+        JButton browseButton = new JButton(I18n.get("button.browse"));
         browseButton.addActionListener(e -> onBrowse());
         panel.add(browseButton, btn);
 
         // Category row
         lbl.gridy = 1;
-        panel.add(new JLabel("Target category:"), lbl);
+        panel.add(new JLabel(I18n.get("dialog.import_tsv.category.label")), lbl);
         fld.gridy = 1;
         fld.gridwidth = 2;
         categoryCombo.addActionListener(e -> reloadPreview());
@@ -123,7 +124,7 @@ public final class ImportTsvDialog extends JDialog {
 
     private @NotNull JPanel buildPreviewPanel() {
         JPanel panel = new JPanel(new BorderLayout());
-        panel.setBorder(BorderFactory.createTitledBorder("Preview"));
+        panel.setBorder(BorderFactory.createTitledBorder(I18n.get("dialog.import_tsv.preview.title")));
         JTable previewTable = new JTable(preview.tableModel());
         previewTable.setAutoCreateRowSorter(true);
         JScrollPane scroll = new JScrollPane(previewTable);
@@ -138,7 +139,7 @@ public final class ImportTsvDialog extends JDialog {
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         importButton.addActionListener(e -> onImport());
         buttonPanel.add(importButton);
-        JButton cancelButton = new JButton("Cancel");
+        JButton cancelButton = new JButton(I18n.get("button.cancel"));
         cancelButton.addActionListener(e -> dispose());
         buttonPanel.add(cancelButton);
         panel.add(buttonPanel, BorderLayout.EAST);
@@ -151,7 +152,11 @@ public final class ImportTsvDialog extends JDialog {
 
     private void onBrowse() {
         JFileChooser chooser = new JFileChooser();
-        chooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("TSV files", "tsv", "txt"));
+        chooser.setFileFilter(
+            new javax.swing.filechooser.FileNameExtensionFilter(
+                I18n.get("dialog.import_tsv.filter.description"),
+                "tsv",
+                "txt"));
         if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
             selectedFile = chooser.getSelectedFile();
             fileField.setText(selectedFile.getAbsolutePath());
@@ -177,8 +182,8 @@ public final class ImportTsvDialog extends JDialog {
         if (cmd == null) {
             JOptionPane.showMessageDialog(
                 this,
-                "Nothing to import: all entries already present.",
-                "No changes",
+                I18n.get("dialog.import_tsv.no_changes.message"),
+                I18n.get("dialog.import_tsv.no_changes.title"),
                 JOptionPane.INFORMATION_MESSAGE);
             return;
         }
@@ -214,7 +219,11 @@ public final class ImportTsvDialog extends JDialog {
     }
 
     private void showReadError(@NotNull String message) {
-        JOptionPane.showMessageDialog(this, message, "Read error", JOptionPane.ERROR_MESSAGE);
+        JOptionPane.showMessageDialog(
+            this,
+            message,
+            I18n.get("dialog.import_tsv.read_error.title"),
+            JOptionPane.ERROR_MESSAGE);
     }
 
     private void updateImportButton() {
@@ -242,15 +251,6 @@ public final class ImportTsvDialog extends JDialog {
         long noChange = lines.stream()
             .filter(l -> l.action == TsvImporter.Action.NO_CHANGE)
             .count();
-        statusLabel.setText(
-            lines.size() + " lines: "
-                + create
-                + " create, "
-                + add
-                + " add, "
-                + complete
-                + " complete, "
-                + noChange
-                + " unchanged");
+        statusLabel.setText(I18n.get("dialog.import_tsv.status", lines.size(), create, add, complete, noChange));
     }
 }

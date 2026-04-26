@@ -24,6 +24,7 @@ import net.noiraude.creditseditor.command.impl.MoveCategoriesOrderCommand;
 import net.noiraude.creditseditor.command.impl.RemoveCategoryCommand;
 import net.noiraude.creditseditor.mc.McText;
 import net.noiraude.creditseditor.service.KeySanitizer;
+import net.noiraude.creditseditor.ui.I18n;
 import net.noiraude.creditseditor.ui.component.dnd.ListReorderTransferHandler;
 import net.noiraude.libcredits.model.CreditsDocument;
 import net.noiraude.libcredits.model.DocumentCategory;
@@ -62,7 +63,7 @@ public final class CategoryPanel extends ListPanel<Object, List<DocumentCategory
      */
     public CategoryPanel(@NotNull DocumentBus bus, @NotNull CommandExecutor onCommand,
         @NotNull Consumer<List<DocumentCategory>> onSelectionChanged) {
-        super("Categories", onCommand, onSelectionChanged);
+        super(I18n.get("panel.categories.title"), onCommand, onSelectionChanged);
         this.bus = bus;
 
         list.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
@@ -73,8 +74,8 @@ public final class CategoryPanel extends ListPanel<Object, List<DocumentCategory
             new ListReorderTransferHandler<>(list, onCommand, this::createReorderCommand, i -> i > 0, i -> i > 0));
         list.addListSelectionListener(this::enforceSentinelExclusive);
 
-        addButton.setToolTipText("Add category");
-        removeButton.setToolTipText("Remove category");
+        addButton.setToolTipText(I18n.get("panel.categories.add.tooltip"));
+        removeButton.setToolTipText(I18n.get("panel.categories.remove.tooltip"));
 
         addButton.addActionListener(e -> onAdd());
         removeButton.addActionListener(e -> onRemove());
@@ -152,7 +153,11 @@ public final class CategoryPanel extends ListPanel<Object, List<DocumentCategory
     private void onAdd() {
         if (!bus.hasSession()) return;
         CreditsDocument creditsDoc = bus.creditsDoc();
-        String id = JOptionPane.showInputDialog(this, "Category ID:", "Add category", JOptionPane.PLAIN_MESSAGE);
+        String id = JOptionPane.showInputDialog(
+            this,
+            I18n.get("panel.categories.add.prompt"),
+            I18n.get("panel.categories.add.title"),
+            JOptionPane.PLAIN_MESSAGE);
         if (id == null || id.isBlank()) return;
         id = id.strip();
         String finalId = id;
@@ -161,8 +166,8 @@ public final class CategoryPanel extends ListPanel<Object, List<DocumentCategory
         if (exists) {
             JOptionPane.showMessageDialog(
                 this,
-                "A category with id '" + finalId + "' already exists.",
-                "Duplicate id",
+                I18n.get("panel.categories.duplicate.message", finalId),
+                I18n.get("panel.categories.duplicate.title"),
                 JOptionPane.WARNING_MESSAGE);
             return;
         }
@@ -173,13 +178,12 @@ public final class CategoryPanel extends ListPanel<Object, List<DocumentCategory
         List<DocumentCategory> selected = getSelectedCategories();
         if (selected.isEmpty() || !bus.hasSession()) return;
         String message = selected.size() == 1
-            ? "Remove category '" + selected.getFirst().id
-                + "'?\nAll memberships in this category will also be removed."
-            : "Remove " + selected.size() + " categories?\nAll memberships in these categories will also be removed.";
+            ? I18n.get("panel.categories.remove.confirm.single", selected.getFirst().id)
+            : I18n.get("panel.categories.remove.confirm.multiple", selected.size());
         int confirm = JOptionPane.showConfirmDialog(
             this,
             message,
-            "Confirm remove",
+            I18n.get("panel.categories.remove.confirm.title"),
             JOptionPane.OK_CANCEL_OPTION,
             JOptionPane.WARNING_MESSAGE);
         if (confirm != JOptionPane.OK_OPTION) return;
@@ -187,7 +191,8 @@ public final class CategoryPanel extends ListPanel<Object, List<DocumentCategory
         if (selected.size() == 1) {
             onCommand.execute(new RemoveCategoryCommand(bus, selected.getFirst()));
         } else {
-            CompoundCommand.Builder builder = new CompoundCommand.Builder("Remove " + selected.size() + " categories");
+            CompoundCommand.Builder builder = new CompoundCommand.Builder(
+                I18n.get("command.remove.categories", selected.size()));
             for (DocumentCategory cat : selected) {
                 builder.add(new RemoveCategoryCommand(bus, cat));
             }
@@ -262,7 +267,7 @@ public final class CategoryPanel extends ListPanel<Object, List<DocumentCategory
             int index, boolean isSelected, boolean cellHasFocus) {
             JLabel label = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
             if (value == ALL_SENTINEL) {
-                label.setText("All persons");
+                label.setText(I18n.get("panel.categories.all"));
                 label.setFont(
                     label.getFont()
                         .deriveFont(java.awt.Font.ITALIC));
@@ -271,7 +276,7 @@ public final class CategoryPanel extends ListPanel<Object, List<DocumentCategory
                 String displayName = bus.hasSession() ? bus.langDoc()
                     .get(langKey) : null;
                 if (displayName == null || displayName.isEmpty()) {
-                    label.setText("[" + cat.id + "]");
+                    label.setText(I18n.get("panel.categories.cell.untranslated", cat.id));
                 } else {
                     label.setText(McText.strip(displayName));
                 }

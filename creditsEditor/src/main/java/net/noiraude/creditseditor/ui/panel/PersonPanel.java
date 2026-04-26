@@ -28,6 +28,7 @@ import net.noiraude.creditseditor.command.impl.AddPersonCommand;
 import net.noiraude.creditseditor.command.impl.CompoundCommand;
 import net.noiraude.creditseditor.command.impl.RemovePersonCommand;
 import net.noiraude.creditseditor.mc.McText;
+import net.noiraude.creditseditor.ui.I18n;
 import net.noiraude.creditseditor.ui.component.AnyChangeListener;
 import net.noiraude.creditseditor.ui.dialog.ImportTsvDialog;
 import net.noiraude.libcredits.model.DocumentCategory;
@@ -62,29 +63,29 @@ public final class PersonPanel extends ListPanel<DocumentPerson, List<DocumentPe
      */
     public PersonPanel(@NotNull DocumentBus bus, @NotNull CommandExecutor onCommand,
         @NotNull Consumer<List<DocumentPerson>> onSelectionChanged) {
-        super("Persons", onCommand, onSelectionChanged);
+        super(I18n.get("panel.persons.title"), onCommand, onSelectionChanged);
         this.bus = bus;
         list.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
         list.setCellRenderer(new PersonCellRenderer());
 
         // Search bar
-        searchField.putClientProperty("JTextField.placeholderText", "Filter by name...");
+        searchField.putClientProperty("JTextField.placeholderText", I18n.get("panel.persons.search.placeholder"));
         searchField.getDocument()
             .addDocumentListener(new AnyChangeListener(this::applyFilter));
         JPanel searchRow = new JPanel(new BorderLayout(gapSmall, 0));
         searchRow.setBorder(BorderFactory.createEmptyBorder(gapTiny, gapTiny, gapTiny, gapTiny));
-        searchRow.add(new JLabel("Search:"), BorderLayout.WEST);
+        searchRow.add(new JLabel(I18n.get("panel.persons.search.label")), BorderLayout.WEST);
         searchRow.add(searchField, BorderLayout.CENTER);
         add(searchRow, BorderLayout.NORTH);
 
         // Toolbar
-        addButton.setToolTipText("Add person");
-        removeButton.setToolTipText("Remove person");
+        addButton.setToolTipText(I18n.get("panel.persons.add.tooltip"));
+        removeButton.setToolTipText(I18n.get("panel.persons.remove.tooltip"));
         addButton.addActionListener(e -> onAdd());
         removeButton.addActionListener(e -> onRemove());
 
-        JButton importButton = new JButton("Import");
-        importButton.setToolTipText("Import persons from a TSV file");
+        JButton importButton = new JButton(I18n.get("panel.persons.import.button"));
+        importButton.setToolTipText(I18n.get("panel.persons.import.tooltip"));
         importButton.setMinimumSize(importButton.getPreferredSize());
         importButton.addActionListener(e -> onImportTsv());
 
@@ -150,7 +151,11 @@ public final class PersonPanel extends ListPanel<DocumentPerson, List<DocumentPe
 
     private void onAdd() {
         if (!bus.hasSession()) return;
-        String name = JOptionPane.showInputDialog(this, "Person name:", "Add person", JOptionPane.PLAIN_MESSAGE);
+        String name = JOptionPane.showInputDialog(
+            this,
+            I18n.get("panel.persons.add.prompt"),
+            I18n.get("panel.persons.add.title"),
+            JOptionPane.PLAIN_MESSAGE);
         if (name == null || name.isBlank()) return;
         onCommand.execute(new AddPersonCommand(bus, new DocumentPerson(name.strip())));
     }
@@ -159,12 +164,13 @@ public final class PersonPanel extends ListPanel<DocumentPerson, List<DocumentPe
         List<DocumentPerson> selected = list.getSelectedValuesList();
         if (selected.isEmpty() || !bus.hasSession()) return;
 
-        String message = selected.size() == 1 ? "Remove '" + McText.strip(selected.getFirst().name) + "'?"
-            : "Remove " + selected.size() + " person(s)?";
+        String message = selected.size() == 1
+            ? I18n.get("panel.persons.remove.confirm.single", McText.strip(selected.getFirst().name))
+            : I18n.get("panel.persons.remove.confirm.multiple", selected.size());
         int confirm = JOptionPane.showConfirmDialog(
             this,
             message,
-            "Confirm remove",
+            I18n.get("panel.persons.remove.confirm.title"),
             JOptionPane.OK_CANCEL_OPTION,
             JOptionPane.WARNING_MESSAGE);
         if (confirm != JOptionPane.OK_OPTION) return;
@@ -172,7 +178,8 @@ public final class PersonPanel extends ListPanel<DocumentPerson, List<DocumentPe
         if (selected.size() == 1) {
             onCommand.execute(new RemovePersonCommand(bus, selected.getFirst()));
         } else {
-            CompoundCommand.Builder builder = new CompoundCommand.Builder("Remove " + selected.size() + " person(s)");
+            CompoundCommand.Builder builder = new CompoundCommand.Builder(
+                I18n.get("command.remove.persons", selected.size()));
             for (DocumentPerson person : selected) {
                 builder.add(new RemovePersonCommand(bus, person));
             }
@@ -262,7 +269,7 @@ public final class PersonPanel extends ListPanel<DocumentPerson, List<DocumentPe
             JLabel label = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
             if (value instanceof DocumentPerson person) {
                 String display = McText.strip(person.name);
-                label.setText(display.isEmpty() ? "(unnamed)" : display);
+                label.setText(display.isEmpty() ? I18n.get("panel.persons.cell.unnamed") : display);
             }
             return label;
         }

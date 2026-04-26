@@ -119,7 +119,7 @@ Current: 11 test files for 59 production classes. Zero UI tests.
   Files: `ui/MainWindow.java`, `ui/ErrorPresenter.java`
   Done when: no user-visible literal remains in these two files.
 
-- [ ] **4.4 Migrate panel strings to i18n**
+- [x] **4.4 Migrate panel strings to i18n**
   Files: `ui/panel/*.java`, `ui/detail/*.java`, `ui/dialog/*.java`
   Done when: grep finds no hardcoded English user strings in these packages.
 

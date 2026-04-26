@@ -17,6 +17,7 @@ import javax.swing.ListSelectionModel;
 import javax.swing.table.AbstractTableModel;
 import javax.swing.table.JTableHeader;
 
+import net.noiraude.creditseditor.ui.I18n;
 import net.noiraude.libcredits.model.DocumentMembership;
 
 import org.jetbrains.annotations.Contract;
@@ -34,7 +35,8 @@ import org.jetbrains.annotations.Nullable;
  */
 public final class MembershipTablePanel extends JPanel {
 
-    private static final @NotNull String @NotNull [] COLUMNS = { "Category", "Roles" };
+    private static final @NotNull String @NotNull [] COLUMNS = { I18n.get("table.membership.column.category"),
+        I18n.get("table.membership.column.roles") };
 
     private static final int MIN_VISIBLE_ROWS = 2;
 
@@ -63,8 +65,8 @@ public final class MembershipTablePanel extends JPanel {
         add(scroll, BorderLayout.CENTER);
 
         toolbar = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 4));
-        JButton addButton = new JButton("Add");
-        JButton removeButton = new JButton("Remove");
+        JButton addButton = new JButton(I18n.get("button.add"));
+        JButton removeButton = new JButton(I18n.get("button.remove"));
         addButton.addActionListener(e -> onAdd.run());
         removeButton.addActionListener(e -> onRemove.run());
         toolbar.add(addButton);

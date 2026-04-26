@@ -20,6 +20,7 @@ import net.noiraude.creditseditor.command.CommandExecutor;
 import net.noiraude.creditseditor.command.impl.DocumentEditCommand;
 import net.noiraude.creditseditor.command.impl.EditFieldCommand;
 import net.noiraude.creditseditor.service.KeySanitizer;
+import net.noiraude.creditseditor.ui.I18n;
 import net.noiraude.creditseditor.ui.component.MinecraftTextEditor;
 import net.noiraude.libcredits.model.DocumentCategory;
 
@@ -74,25 +75,25 @@ public final class CategoryDetailView extends DetailView<DocumentCategory> {
 
         // Row 0: ID
         label.gridy = 0;
-        add(new JLabel("ID:"), label);
+        add(new JLabel(I18n.get("view.category.id.label")), label);
         field.gridy = 0;
         add(idField, field);
 
         // Row 1: Lang key (derived, read-only)
         label.gridy = 1;
-        add(new JLabel("Lang key:"), label);
+        add(new JLabel(I18n.get("view.category.lang_key.label")), label);
         field.gridy = 1;
         add(langKeyLabel, field);
 
         // Row 2: Display name
         label.gridy = 2;
-        add(new JLabel("Display name:"), label);
+        add(new JLabel(I18n.get("view.category.display_name.label")), label);
         field.gridy = 2;
         add(displayNameEditor, field);
 
         // Row 3: Classes
         label.gridy = 3;
-        add(new JLabel("Display:"), label);
+        add(new JLabel(I18n.get("view.category.classes.label")), label);
         field.gridy = 3;
         add(classSelector, field);
 
@@ -140,7 +141,7 @@ public final class CategoryDetailView extends DetailView<DocumentCategory> {
         });
         displayNameEditor.addUndoableEditListener(e -> {
             if (!loading && current != null) {
-                onCommand.execute(new DocumentEditCommand("Edit display name", e.getEdit()));
+                onCommand.execute(new DocumentEditCommand(I18n.get("command.edit.display_name"), e.getEdit()));
             }
         });
     }
@@ -158,7 +159,7 @@ public final class CategoryDetailView extends DetailView<DocumentCategory> {
         });
         descriptionSection.addUndoableEditListener(e -> {
             if (!loading && current != null) {
-                onCommand.execute(new DocumentEditCommand("Edit details", e.getEdit()));
+                onCommand.execute(new DocumentEditCommand(I18n.get("command.edit.details"), e.getEdit()));
             }
         });
     }
@@ -213,7 +214,7 @@ public final class CategoryDetailView extends DetailView<DocumentCategory> {
         if (selected) newSet.add(cls);
         else newSet.remove(cls);
         if (newSet.equals(cat.classes)) return;
-        onCommand.execute(new EditFieldCommand<>("Edit classes", () -> cat.classes, v -> {
+        onCommand.execute(new EditFieldCommand<>(I18n.get("command.edit.classes"), () -> cat.classes, v -> {
             cat.classes = v;
             bus.fireCategoryChanged(cat);
         }, newSet));

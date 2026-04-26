@@ -33,6 +33,7 @@ import net.noiraude.creditseditor.command.impl.MoveRolesOrderCommand;
 import net.noiraude.creditseditor.command.impl.RemovePersonRoleCommand;
 import net.noiraude.creditseditor.mc.McText;
 import net.noiraude.creditseditor.service.KeySanitizer;
+import net.noiraude.creditseditor.ui.I18n;
 import net.noiraude.creditseditor.ui.component.dnd.ListReorderTransferHandler;
 import net.noiraude.libcredits.model.CreditsDocument;
 import net.noiraude.libcredits.model.DocumentMembership;
@@ -60,8 +61,8 @@ public final class RoleListPanel extends JPanel {
     private final @NotNull JLabel contextLabel = new JLabel();
     private final @NotNull DefaultListModel<String> roleListModel = new DefaultListModel<>();
     private final @NotNull JList<String> roleList = new JList<>(roleListModel);
-    private final @NotNull JButton addButton = new JButton("Add");
-    private final @NotNull JButton deleteButton = new JButton("Delete");
+    private final @NotNull JButton addButton = new JButton(I18n.get("button.add"));
+    private final @NotNull JButton deleteButton = new JButton(I18n.get("button.delete"));
     private @NotNull JScrollPane roleListScroll = new JScrollPane();
     private @NotNull JPanel toolbar = new JPanel();
     private @Nullable Runnable selectionListener;
@@ -237,8 +238,8 @@ public final class RoleListPanel extends JPanel {
         if (currentMembership.roles.contains(role)) {
             JOptionPane.showMessageDialog(
                 this,
-                "Role '" + role + "' is already assigned in this category.",
-                "Duplicate role",
+                I18n.get("panel.roles.duplicate.message", role),
+                I18n.get("panel.roles.duplicate.title"),
                 JOptionPane.WARNING_MESSAGE);
             return;
         }
@@ -250,7 +251,7 @@ public final class RoleListPanel extends JPanel {
         if (selected.isEmpty() || currentMembership == null || currentPerson == null) return;
 
         CompoundCommand.Builder builder = new CompoundCommand.Builder(
-            "Remove " + selected.size() + " role(s) from " + currentMembership.categoryId);
+            I18n.get("command.remove.roles", selected.size(), currentMembership.categoryId));
         for (String role : selected) {
             builder.add(new RemovePersonRoleCommand(bus, currentPerson, currentMembership, role));
         }
@@ -259,7 +260,9 @@ public final class RoleListPanel extends JPanel {
 
     private void updateContextLabel() {
         boolean has = currentMembership != null;
-        contextLabel.setText(has ? "Roles in " + currentMembership.categoryId + ":" : "Select a membership above");
+        contextLabel.setText(
+            has ? I18n.get("panel.roles.context", currentMembership.categoryId)
+                : I18n.get("panel.roles.no_membership"));
         contextLabel.setFont(
             contextLabel.getFont()
                 .deriveFont(has ? Font.PLAIN : Font.ITALIC));

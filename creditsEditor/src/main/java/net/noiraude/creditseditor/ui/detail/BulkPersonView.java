@@ -1,29 +1,10 @@
 package net.noiraude.creditseditor.ui.detail;
 
-import net.noiraude.creditseditor.bus.DocumentBus;
-import net.noiraude.creditseditor.command.CommandExecutor;
-import net.noiraude.creditseditor.command.impl.AddMembershipCommand;
-import net.noiraude.creditseditor.command.impl.AddPersonRoleCommand;
-import net.noiraude.creditseditor.command.impl.CompoundCommand;
-import net.noiraude.creditseditor.command.impl.RemoveMembershipCommand;
-import net.noiraude.creditseditor.command.impl.RemovePersonCommand;
-import net.noiraude.creditseditor.mc.McText;
-import net.noiraude.creditseditor.service.KeySanitizer;
-import net.noiraude.libcredits.model.DocumentCategory;
-import net.noiraude.libcredits.model.DocumentMembership;
-import net.noiraude.libcredits.model.DocumentPerson;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import static net.noiraude.creditseditor.ui.ScaledMetrics.gapHuge;
+import static net.noiraude.creditseditor.ui.ScaledMetrics.gapLarge;
+import static net.noiraude.creditseditor.ui.ScaledMetrics.gapSmall;
+import static net.noiraude.creditseditor.ui.ScaledMetrics.gapXXLarge;
 
-import javax.swing.BorderFactory;
-import javax.swing.Box;
-import javax.swing.BoxLayout;
-import javax.swing.JButton;
-import javax.swing.JComboBox;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.SwingConstants;
 import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Dimension;
@@ -34,10 +15,32 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-import static net.noiraude.creditseditor.ui.ScaledMetrics.gapHuge;
-import static net.noiraude.creditseditor.ui.ScaledMetrics.gapLarge;
-import static net.noiraude.creditseditor.ui.ScaledMetrics.gapSmall;
-import static net.noiraude.creditseditor.ui.ScaledMetrics.gapXXLarge;
+import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.JButton;
+import javax.swing.JComboBox;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.SwingConstants;
+
+import net.noiraude.creditseditor.bus.DocumentBus;
+import net.noiraude.creditseditor.command.CommandExecutor;
+import net.noiraude.creditseditor.command.impl.AddMembershipCommand;
+import net.noiraude.creditseditor.command.impl.AddPersonRoleCommand;
+import net.noiraude.creditseditor.command.impl.CompoundCommand;
+import net.noiraude.creditseditor.command.impl.RemoveMembershipCommand;
+import net.noiraude.creditseditor.command.impl.RemovePersonCommand;
+import net.noiraude.creditseditor.mc.McText;
+import net.noiraude.creditseditor.service.KeySanitizer;
+import net.noiraude.creditseditor.ui.I18n;
+import net.noiraude.libcredits.model.DocumentCategory;
+import net.noiraude.libcredits.model.DocumentMembership;
+import net.noiraude.libcredits.model.DocumentPerson;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Detail panel card shown when multiple persons are selected.
@@ -83,18 +86,18 @@ public final class BulkPersonView extends JPanel {
         buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.Y_AXIS));
         buttonPanel.setBorder(BorderFactory.createEmptyBorder(0, gapHuge, gapHuge, gapHuge));
 
-        JLabel bulkLabel = new JLabel("Bulk operations:");
+        JLabel bulkLabel = new JLabel(I18n.get("view.bulk.label"));
         bulkLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
         bulkLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, gapLarge, 0));
         buttonPanel.add(bulkLabel);
 
-        addActionButton(buttonPanel, "Assign to category...", this::onAssignToCategory);
+        addActionButton(buttonPanel, I18n.get("view.bulk.action.assign"), this::onAssignToCategory);
         buttonPanel.add(Box.createVerticalStrut(gapSmall));
-        addActionButton(buttonPanel, "Add role in category...", this::onAddRoleInCategory);
+        addActionButton(buttonPanel, I18n.get("view.bulk.action.add_role"), this::onAddRoleInCategory);
         buttonPanel.add(Box.createVerticalStrut(gapSmall));
-        addActionButton(buttonPanel, "Remove from category...", this::onRemoveFromCategory);
+        addActionButton(buttonPanel, I18n.get("view.bulk.action.remove"), this::onRemoveFromCategory);
         buttonPanel.add(Box.createVerticalStrut(gapXXLarge));
-        addActionButton(buttonPanel, "Delete all", this::onDeleteAll);
+        addActionButton(buttonPanel, I18n.get("view.bulk.action.delete_all"), this::onDeleteAll);
 
         buttonPanel.add(Box.createVerticalGlue());
         add(buttonPanel, BorderLayout.CENTER);
@@ -110,7 +113,7 @@ public final class BulkPersonView extends JPanel {
     /** Loads the given selection into the view. */
     public void load(@NotNull List<DocumentPerson> persons) {
         this.persons = persons;
-        countLabel.setText(persons.size() + " persons selected");
+        countLabel.setText(I18n.get("view.bulk.count", persons.size()));
     }
 
     private void reresolve() {
@@ -132,11 +135,11 @@ public final class BulkPersonView extends JPanel {
     private void onAssignToCategory() {
         if (persons.isEmpty() || !bus.hasSession()) return;
 
-        DocumentCategory target = pickCategory("Assign to category");
+        DocumentCategory target = pickCategory(I18n.get("view.bulk.assign.title"));
         if (target == null) return;
 
         CompoundCommand.Builder builder = new CompoundCommand.Builder(
-            "Assign " + persons.size() + " person(s) to " + target.id);
+            I18n.get("command.bulk.assign", persons.size(), target.id));
 
         int added = 0;
         for (DocumentPerson person : persons) {
@@ -151,8 +154,8 @@ public final class BulkPersonView extends JPanel {
         if (builder.isEmpty()) {
             JOptionPane.showMessageDialog(
                 this,
-                "All selected persons are already in category '" + target.id + "'.",
-                "No changes",
+                I18n.get("view.bulk.assign.no_changes", target.id),
+                I18n.get("view.bulk.no_changes.title"),
                 JOptionPane.INFORMATION_MESSAGE);
             return;
         }
@@ -160,28 +163,29 @@ public final class BulkPersonView extends JPanel {
         onCommand.execute(builder.build());
         JOptionPane.showMessageDialog(
             this,
-            added + " person(s) added to '" + target.id + "'.",
-            "Assign complete",
+            I18n.get("view.bulk.assign.complete.message", added, target.id),
+            I18n.get("view.bulk.assign.complete.title"),
             JOptionPane.INFORMATION_MESSAGE);
     }
 
     private void onAddRoleInCategory() {
         if (persons.isEmpty() || !bus.hasSession()) return;
 
-        DocumentCategory target = pickCategory("Add role in category");
+        DocumentCategory target = pickCategory(I18n.get("view.bulk.add_role.title"));
         if (target == null) return;
 
         String role = promptForRole(target);
         if (role == null) return;
 
-        CompoundCommand.Builder builder = new CompoundCommand.Builder("Add role '" + role + "' in " + target.id);
+        CompoundCommand.Builder builder = new CompoundCommand.Builder(
+            I18n.get("command.bulk.add_role", role, target.id));
         RoleAddCounts counts = collectRoleAddCommands(builder, target, role);
 
         if (builder.isEmpty()) {
             JOptionPane.showMessageDialog(
                 this,
-                "No changes: all eligible persons already have this role.",
-                "No changes",
+                I18n.get("view.bulk.add_role.no_changes"),
+                I18n.get("view.bulk.no_changes.title"),
                 JOptionPane.INFORMATION_MESSAGE);
             return;
         }
@@ -191,7 +195,7 @@ public final class BulkPersonView extends JPanel {
     }
 
     private @Nullable String promptForRole(@NotNull DocumentCategory target) {
-        String role = JOptionPane.showInputDialog(this, "Role to add in '" + target.id + "':");
+        String role = JOptionPane.showInputDialog(this, I18n.get("view.bulk.add_role.prompt", target.id));
         if (role == null) return null;
         String stripped = role.strip();
         return stripped.isEmpty() ? null : stripped;
@@ -218,11 +222,15 @@ public final class BulkPersonView extends JPanel {
     }
 
     private void showRoleAddSummary(@NotNull RoleAddCounts counts, @NotNull DocumentCategory target) {
-        String message = counts.added() + " person(s) received the role.";
+        String message = I18n.get("view.bulk.add_role.complete.added", counts.added());
         if (counts.skipped() > 0) {
-            message += "\n" + counts.skipped() + " person(s) skipped (not in category '" + target.id + "').";
+            message += I18n.get("view.bulk.add_role.complete.skipped", counts.skipped(), target.id);
         }
-        JOptionPane.showMessageDialog(this, message, "Role added", JOptionPane.INFORMATION_MESSAGE);
+        JOptionPane.showMessageDialog(
+            this,
+            message,
+            I18n.get("view.bulk.add_role.complete.title"),
+            JOptionPane.INFORMATION_MESSAGE);
     }
 
     private record RoleAddCounts(int added, int skipped) {}
@@ -240,8 +248,8 @@ public final class BulkPersonView extends JPanel {
         if (presentIds.isEmpty()) {
             JOptionPane.showMessageDialog(
                 this,
-                "Selected persons have no category memberships.",
-                "Nothing to remove",
+                I18n.get("view.bulk.remove.empty"),
+                I18n.get("view.bulk.remove.empty.title"),
                 JOptionPane.INFORMATION_MESSAGE);
             return;
         }
@@ -249,11 +257,11 @@ public final class BulkPersonView extends JPanel {
         List<DocumentCategory> available = bus.creditsDoc().categories.stream()
             .filter(c -> presentIds.contains(c.id))
             .collect(Collectors.toList());
-        DocumentCategory target = pickFromList(available, "Remove from category");
+        DocumentCategory target = pickFromList(available, I18n.get("view.bulk.remove.title"));
         if (target == null) return;
 
         CompoundCommand.Builder builder = new CompoundCommand.Builder(
-            "Remove " + persons.size() + " person(s) from " + target.id);
+            I18n.get("command.bulk.remove_from_category", persons.size(), target.id));
 
         for (DocumentPerson person : persons) {
             person.memberships.stream()
@@ -271,13 +279,14 @@ public final class BulkPersonView extends JPanel {
 
         int confirm = JOptionPane.showConfirmDialog(
             this,
-            "Delete " + persons.size() + " selected person(s)?\nThis cannot be undone without Ctrl+Z.",
-            "Confirm delete",
+            I18n.get("view.bulk.delete.confirm", persons.size()),
+            I18n.get("view.bulk.delete.confirm.title"),
             JOptionPane.OK_CANCEL_OPTION,
             JOptionPane.WARNING_MESSAGE);
         if (confirm != JOptionPane.OK_OPTION) return;
 
-        CompoundCommand.Builder builder = new CompoundCommand.Builder("Delete " + persons.size() + " person(s)");
+        CompoundCommand.Builder builder = new CompoundCommand.Builder(
+            I18n.get("command.bulk.delete_persons", persons.size()));
         for (DocumentPerson person : persons) {
             builder.add(new RemovePersonCommand(bus, person));
         }
@@ -295,7 +304,8 @@ public final class BulkPersonView extends JPanel {
 
     private @Nullable DocumentCategory pickFromList(@NotNull List<DocumentCategory> categories, @NotNull String title) {
         if (categories.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "No categories available.", title, JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane
+                .showMessageDialog(this, I18n.get("view.bulk.no_categories"), title, JOptionPane.INFORMATION_MESSAGE);
             return null;
         }
 

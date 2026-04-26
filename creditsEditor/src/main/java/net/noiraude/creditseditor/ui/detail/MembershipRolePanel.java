@@ -15,6 +15,7 @@ import javax.swing.JPanel;
 import net.noiraude.creditseditor.bus.DocumentBus;
 import net.noiraude.creditseditor.command.CommandExecutor;
 import net.noiraude.creditseditor.command.impl.DocumentEditCommand;
+import net.noiraude.creditseditor.ui.I18n;
 import net.noiraude.libcredits.model.DocumentMembership;
 import net.noiraude.libcredits.model.DocumentPerson;
 
@@ -40,9 +41,9 @@ public final class MembershipRolePanel extends JPanel {
         this.roleListPanel = new RoleListPanel(bus, onCommand);
         this.roleDetailCard = new RoleDetailCard(
             this::onDisplayNameChanged,
-            e -> onCommand.execute(new DocumentEditCommand("Edit role display name", e.getEdit())));
+            e -> onCommand.execute(new DocumentEditCommand(I18n.get("command.edit.role_display_name"), e.getEdit())));
 
-        setBorder(BorderFactory.createTitledBorder("Roles"));
+        setBorder(BorderFactory.createTitledBorder(I18n.get("panel.memberships.roles.title")));
         setLayout(new GridBagLayout());
         assembleLayout();
 

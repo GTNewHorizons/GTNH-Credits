@@ -5,6 +5,7 @@ import java.beans.PropertyChangeListener;
 import javax.swing.JLabel;
 import javax.swing.event.UndoableEditListener;
 
+import net.noiraude.creditseditor.ui.I18n;
 import net.noiraude.creditseditor.ui.component.MinecraftTextAreaEditor;
 
 import org.jetbrains.annotations.Contract;
@@ -20,7 +21,7 @@ import org.jetbrains.annotations.NotNull;
  */
 public final class CategoryDescriptionSection {
 
-    private final @NotNull JLabel label = new JLabel("Details:");
+    private final @NotNull JLabel label = new JLabel(I18n.get("section.category.details.label"));
     private final @NotNull MinecraftTextAreaEditor editor = new MinecraftTextAreaEditor();
 
     @Contract(pure = true)

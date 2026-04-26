@@ -19,6 +19,7 @@ import javax.swing.SwingConstants;
 import javax.swing.UIManager;
 import javax.swing.event.UndoableEditEvent;
 
+import net.noiraude.creditseditor.ui.I18n;
 import net.noiraude.creditseditor.ui.component.MinecraftTextEditor;
 
 import org.jetbrains.annotations.Contract;
@@ -71,7 +72,7 @@ public final class RoleDetailCard {
     }
 
     private void buildEmptyCard() {
-        JLabel hint = new JLabel("Select a single role to edit its display name");
+        JLabel hint = new JLabel(I18n.get("card.role.empty"));
         hint.setFont(
             hint.getFont()
                 .deriveFont(Font.ITALIC));
@@ -86,18 +87,18 @@ public final class RoleDetailCard {
         GridBagConstraints fld = fieldConstraints();
 
         lbl.gridy = 0;
-        detail.add(new JLabel("Role:"), lbl);
+        detail.add(new JLabel(I18n.get("card.role.role.label")), lbl);
         fld.gridy = 0;
         detail.add(roleValueField, fld);
 
         lbl.gridy = 1;
-        detail.add(new JLabel("Lang key:"), lbl);
+        detail.add(new JLabel(I18n.get("card.role.lang_key.label")), lbl);
         fld.gridy = 1;
         detail.add(langKeyLabel, fld);
 
         lbl.gridy = 2;
         lbl.anchor = GridBagConstraints.NORTHWEST;
-        detail.add(new JLabel("Display name:"), lbl);
+        detail.add(new JLabel(I18n.get("card.role.display_name.label")), lbl);
         fld.gridy = 2;
         detail.add(displayNameEditor, fld);
 

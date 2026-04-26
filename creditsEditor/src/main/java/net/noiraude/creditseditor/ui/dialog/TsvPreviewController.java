@@ -15,6 +15,7 @@ import javax.swing.table.AbstractTableModel;
 import net.noiraude.creditseditor.bus.DocumentBus;
 import net.noiraude.creditseditor.service.TsvImporter;
 import net.noiraude.creditseditor.service.TsvImporter.ImportLine;
+import net.noiraude.creditseditor.ui.I18n;
 
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
@@ -85,7 +86,7 @@ final class TsvPreviewController {
     static @NotNull String causeMessageOf(@NotNull ExecutionException ex) {
         Throwable cause = ex.getCause();
         String msg = cause != null ? cause.getMessage() : ex.getMessage();
-        return msg != null ? msg : "unknown error";
+        return msg != null ? msg : I18n.get("tsv.error.unknown");
     }
 
     private final class ParseWorker extends SwingWorker<List<ImportLine>, Void> {
@@ -117,7 +118,7 @@ final class TsvPreviewController {
                 lines = List.of();
             } catch (ExecutionException ex) {
                 lines = List.of();
-                onError.accept("Failed to read file:\n" + causeMessageOf(ex));
+                onError.accept(I18n.get("tsv.error.read_failed", causeMessageOf(ex)));
             }
             tableModel.setLines(lines);
             onStateChange.run();
@@ -126,7 +127,8 @@ final class TsvPreviewController {
 
     private static final class PreviewTableModel extends AbstractTableModel {
 
-        private static final @NotNull String @NotNull [] COLUMNS = { "Name", "Roles", "Action" };
+        private static final @NotNull String @NotNull [] COLUMNS = { I18n.get("tsv.column.name"),
+            I18n.get("tsv.column.roles"), I18n.get("tsv.column.action") };
         private @NotNull List<ImportLine> lines = List.of();
 
         void setLines(@NotNull List<ImportLine> lines) {

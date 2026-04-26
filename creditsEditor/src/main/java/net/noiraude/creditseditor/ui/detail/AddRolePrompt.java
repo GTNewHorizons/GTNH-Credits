@@ -11,6 +11,7 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 
 import net.noiraude.creditseditor.service.RoleIndex;
+import net.noiraude.creditseditor.ui.I18n;
 import net.noiraude.libcredits.model.CreditsDocument;
 import net.noiraude.libcredits.model.DocumentMembership;
 
@@ -27,7 +28,7 @@ final class AddRolePrompt {
     private final @NotNull DocumentMembership membership;
     private final @Nullable RoleIndex index;
     private final @NotNull JComboBox<String> combo = new JComboBox<>();
-    private final @NotNull JCheckBox showAll = new JCheckBox("Show all roles");
+    private final @NotNull JCheckBox showAll = new JCheckBox(I18n.get("dialog.add_role.show_all"));
     private final @NotNull JPanel content;
 
     AddRolePrompt(@NotNull DocumentMembership membership, @Nullable CreditsDocument creditsDoc) {
@@ -64,7 +65,7 @@ final class AddRolePrompt {
         int result = JOptionPane.showConfirmDialog(
             parent,
             content,
-            "Add role to " + membership.categoryId,
+            I18n.get("dialog.add_role.title", membership.categoryId),
             JOptionPane.OK_CANCEL_OPTION,
             JOptionPane.PLAIN_MESSAGE);
         if (result != JOptionPane.OK_OPTION) return null;

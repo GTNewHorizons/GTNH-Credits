@@ -21,6 +21,7 @@ import net.noiraude.creditseditor.command.impl.DocumentEditCommand;
 import net.noiraude.creditseditor.command.impl.RemoveMembershipCommand;
 import net.noiraude.creditseditor.mc.McText;
 import net.noiraude.creditseditor.service.KeySanitizer;
+import net.noiraude.creditseditor.ui.I18n;
 import net.noiraude.creditseditor.ui.component.MinecraftTextEditor;
 import net.noiraude.libcredits.model.DocumentCategory;
 import net.noiraude.libcredits.model.DocumentMembership;
@@ -66,7 +67,7 @@ public final class PersonDetailView extends DetailView<DocumentPerson> implement
 
         // Row 0: Name
         label.gridy = 0;
-        add(new JLabel("Name:"), label);
+        add(new JLabel(I18n.get("view.person.name.label")), label);
         field.gridy = 0;
         add(nameEditor, field);
 
@@ -75,7 +76,7 @@ public final class PersonDetailView extends DetailView<DocumentPerson> implement
         // row 2 absorbs any extra vertical space.
         label.gridy = 1;
         label.anchor = GridBagConstraints.NORTHWEST;
-        add(new JLabel("Memberships:"), label);
+        add(new JLabel(I18n.get("view.person.memberships.label")), label);
         field.gridy = 1;
         field.fill = GridBagConstraints.BOTH;
         add(membershipPanel, field);
@@ -112,7 +113,7 @@ public final class PersonDetailView extends DetailView<DocumentPerson> implement
         });
         nameEditor.addUndoableEditListener(e -> {
             if (!loading && current != null) {
-                onCommand.execute(new DocumentEditCommand("Edit person name", e.getEdit()));
+                onCommand.execute(new DocumentEditCommand(I18n.get("command.edit.person_name"), e.getEdit()));
             }
         });
     }
@@ -177,8 +178,8 @@ public final class PersonDetailView extends DetailView<DocumentPerson> implement
         if (available.isEmpty()) {
             JOptionPane.showMessageDialog(
                 this,
-                McText.strip(current.name) + " is already a member of all categories.",
-                "No categories available",
+                I18n.get("view.person.no_categories.message", McText.strip(current.name)),
+                I18n.get("view.person.no_categories.title"),
                 JOptionPane.INFORMATION_MESSAGE);
             return;
         }
@@ -191,8 +192,12 @@ public final class PersonDetailView extends DetailView<DocumentPerson> implement
             })
             .toArray(String[]::new);
         JComboBox<String> combo = new JComboBox<>(labels);
-        int result = JOptionPane
-            .showConfirmDialog(this, combo, "Add membership", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+        int result = JOptionPane.showConfirmDialog(
+            this,
+            combo,
+            I18n.get("view.person.add_membership.title"),
+            JOptionPane.OK_CANCEL_OPTION,
+            JOptionPane.PLAIN_MESSAGE);
         if (result != JOptionPane.OK_OPTION) return;
 
         DocumentCategory chosen = available.get(combo.getSelectedIndex());
@@ -205,8 +210,8 @@ public final class PersonDetailView extends DetailView<DocumentPerson> implement
         if (row < 0) {
             JOptionPane.showMessageDialog(
                 this,
-                "Select a membership row to remove.",
-                "Nothing selected",
+                I18n.get("view.person.no_membership.message"),
+                I18n.get("view.person.no_membership.title"),
                 JOptionPane.WARNING_MESSAGE);
             return;
         }

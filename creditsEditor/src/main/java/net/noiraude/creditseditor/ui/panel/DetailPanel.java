@@ -18,6 +18,7 @@ import javax.swing.border.TitledBorder;
 import net.noiraude.creditseditor.bus.DocumentBus;
 import net.noiraude.creditseditor.command.CommandExecutor;
 import net.noiraude.creditseditor.mc.McText;
+import net.noiraude.creditseditor.ui.I18n;
 import net.noiraude.creditseditor.ui.detail.BulkPersonView;
 import net.noiraude.creditseditor.ui.detail.CategoryDetailView;
 import net.noiraude.creditseditor.ui.detail.PersonDetailView;
@@ -55,7 +56,7 @@ public final class DetailPanel extends JPanel {
     }
 
     private final @NotNull DocumentBus bus;
-    private final @NotNull TitledBorder detailBorder = BorderFactory.createTitledBorder("Details");
+    private final @NotNull TitledBorder detailBorder = BorderFactory.createTitledBorder(I18n.get("panel.detail.title"));
     private final @NotNull CardLayout cards = new CardLayout();
     private final @NotNull JPanel cardPanel;
     private final @NotNull CategoryDetailView categoryView;
@@ -77,7 +78,7 @@ public final class DetailPanel extends JPanel {
 
         cardPanel = new JPanel(cards);
 
-        JLabel hint = new JLabel("Select a category or person", SwingConstants.CENTER);
+        JLabel hint = new JLabel(I18n.get("panel.detail.hint"), SwingConstants.CENTER);
         hint.setFont(
             hint.getFont()
                 .deriveFont(Font.ITALIC));
@@ -104,7 +105,7 @@ public final class DetailPanel extends JPanel {
         currentPerson = null;
         categoryView.clear();
         personView.clear();
-        setDetailTitle("Details");
+        setDetailTitle(I18n.get("panel.detail.title"));
         cards.show(cardPanel, CARD_EMPTY);
     }
 
@@ -114,7 +115,7 @@ public final class DetailPanel extends JPanel {
         mode = Mode.CATEGORY;
         currentCategory = category;
         currentPerson = null;
-        setDetailTitle("Category: " + category.id);
+        setDetailTitle(I18n.get("panel.detail.title.category", category.id));
         categoryView.load(category);
         cards.show(cardPanel, CARD_CATEGORY);
     }
@@ -125,7 +126,7 @@ public final class DetailPanel extends JPanel {
         mode = Mode.PERSON;
         currentPerson = person;
         currentCategory = null;
-        setDetailTitle("Person: " + McText.strip(person.name));
+        setDetailTitle(I18n.get("panel.detail.title.person", McText.strip(person.name)));
         personView.load(person);
         cards.show(cardPanel, CARD_PERSON);
     }
@@ -140,7 +141,7 @@ public final class DetailPanel extends JPanel {
     public void showBulkPersons(@NotNull List<DocumentPerson> persons) {
         assert SwingUtilities.isEventDispatchThread();
         mode = Mode.BULK;
-        setDetailTitle(persons.size() + " persons selected");
+        setDetailTitle(I18n.get("panel.detail.title.bulk", persons.size()));
         bulkPersonView.load(persons);
         cards.show(cardPanel, CARD_BULK);
     }
@@ -165,7 +166,7 @@ public final class DetailPanel extends JPanel {
         if (mode != Mode.BULK) return;
         if (remaining.isEmpty()) showEmpty();
         else if (remaining.size() == 1) showPerson(remaining.getFirst());
-        else setDetailTitle(remaining.size() + " persons selected");
+        else setDetailTitle(I18n.get("panel.detail.title.bulk", remaining.size()));
     }
 
     private void setDetailTitle(@NotNull String title) {
