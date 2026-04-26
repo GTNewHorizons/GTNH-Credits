@@ -128,7 +128,7 @@ Current: 11 test files for 59 production classes. Zero UI tests.
   Add `setMnemonic(...)` on each top-level menu and item. Put the mnemonic char into `messages_en.properties` as `menu.file.mnemonic=F`.
   Done when: Alt+F opens File, Alt+E opens Edit, etc.
 
-- [ ] **4.6 Accessible names and tooltips on toolbar**
+- [x] **4.6 Accessible names and tooltips on toolbar**
   File: `ui/component/McFormatToolbar.java`
   Every color swatch and modifier button gets `setAccessibleName()` and `setToolTipText()` including its shortcut.
   Done when: hovering a toolbar button shows a tooltip; screen reader reads a meaningful name.

@@ -17,6 +17,7 @@ import javax.swing.*;
 
 import net.noiraude.creditseditor.mc.McFormatCode;
 import net.noiraude.creditseditor.mc.McSelectionPresence;
+import net.noiraude.creditseditor.ui.I18n;
 
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
@@ -82,6 +83,8 @@ public final class McFormatToolbar extends JPanel {
             final McFormatCode code = McFormatCode.PALETTE[i];
             McColorButton btn = new McColorButton(McPalette.colorOf(code), iconSize);
             btn.setToolTipText(code.displayName());
+            btn.getAccessibleContext()
+                .setAccessibleName(code.displayName());
             colorGroup.add(btn);
             colorButtons[i] = btn;
             add(btn);
@@ -102,6 +105,8 @@ public final class McFormatToolbar extends JPanel {
         resetBtn.setMargin(new Insets(gapHair, gapSmall, gapHair, gapSmall));
         resetBtn.setFocusable(false);
         resetBtn.setToolTipText(McFormatCode.RESET.displayName());
+        resetBtn.getAccessibleContext()
+            .setAccessibleName(McFormatCode.RESET.displayName());
         add(resetBtn);
         return resetBtn;
     }
@@ -254,6 +259,8 @@ public final class McFormatToolbar extends JPanel {
         for (FontStyle s : styles) font = s.apply(font);
         btn.setFont(font);
         btn.setToolTipText(tooltip);
+        btn.getAccessibleContext()
+            .setAccessibleName(tooltip);
         btn.setMargin(new Insets(gapHair, gapSmall, gapHair, gapSmall));
         btn.setFocusable(false);
         return btn;
@@ -310,7 +317,8 @@ public final class McFormatToolbar extends JPanel {
             this.selectedMixed = new NoColorIcon(true, true, iconSize);
             setIcon(unselectedPlain);
             setSelectedIcon(selectedPlain);
-            setToolTipText("Default color (no color attribute)");
+            setToolTipText(I18n.get("toolbar.format.no_color.tooltip"));
+            getAccessibleContext().setAccessibleName(I18n.get("toolbar.format.no_color.accessible"));
             setMargin(new Insets(gapHair, gapHair, gapHair, gapHair));
             setFocusable(false);
         }
