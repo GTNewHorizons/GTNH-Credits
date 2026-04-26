@@ -123,7 +123,7 @@ Current: 11 test files for 59 production classes. Zero UI tests.
   Files: `ui/panel/*.java`, `ui/detail/*.java`, `ui/dialog/*.java`
   Done when: grep finds no hardcoded English user strings in these packages.
 
-- [ ] **4.5 Add mnemonics to EditorMenuBar**
+- [x] **4.5 Add mnemonics to EditorMenuBar**
   File: `ui/EditorMenuBar.java`
   Add `setMnemonic(...)` on each top-level menu and item. Put the mnemonic char into `messages_en.properties` as `menu.file.mnemonic=F`.
   Done when: Alt+F opens File, Alt+E opens Edit, etc.
