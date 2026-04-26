@@ -1,11 +1,8 @@
 package net.noiraude.creditseditor.ui.component;
 
-import net.noiraude.creditseditor.mc.McFormatCode;
-import net.noiraude.creditseditor.mc.McSelectionPresence;
-import net.noiraude.creditseditor.mc.McText;
-import org.jetbrains.annotations.Contract;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
+import java.util.EnumSet;
 
 import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
@@ -14,9 +11,14 @@ import javax.swing.text.Element;
 import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledDocument;
-import java.lang.System.Logger;
-import java.lang.System.Logger.Level;
-import java.util.EnumSet;
+
+import net.noiraude.creditseditor.mc.McFormatCode;
+import net.noiraude.creditseditor.mc.McSelectionPresence;
+import net.noiraude.creditseditor.mc.McText;
+
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Headless model behind {@link McWysiwygPane}: owns a {@link StyledDocument} and a
