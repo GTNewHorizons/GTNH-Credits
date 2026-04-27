@@ -1,23 +1,23 @@
 package net.noiraude.creditseditor.ui.component;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 import java.awt.Component;
 import java.awt.GraphicsEnvironment;
 
 import javax.swing.JToggleButton;
 
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class McFormatToolbarTest {
 
-    @Before
+    @BeforeEach
     public void requireGraphicsEnvironment() {
-        Assume.assumeFalse("Swing toolbar tests require a graphics environment", GraphicsEnvironment.isHeadless());
+        assumeFalse(GraphicsEnvironment.isHeadless(), "Swing toolbar tests require a graphics environment");
     }
 
     @Test
@@ -30,7 +30,7 @@ public class McFormatToolbarTest {
         pane.connectToolbar(toolbar);
 
         JToggleButton bold = findModifierButton(toolbar, "B");
-        assertTrue("BOLD button should light up for a caret sitting in a bold run", bold.isSelected());
+        assertTrue(bold.isSelected(), "BOLD button should light up for a caret sitting in a bold run");
     }
 
     @Test
@@ -43,7 +43,7 @@ public class McFormatToolbarTest {
         pane.connectToolbar(toolbar);
 
         JToggleButton bold = findModifierButton(toolbar, "B");
-        assertFalse("BOLD button should not light up when the caret is in plain text", bold.isSelected());
+        assertFalse(bold.isSelected(), "BOLD button should not light up when the caret is in plain text");
     }
 
     @Test
@@ -57,14 +57,14 @@ public class McFormatToolbarTest {
         pane.connectToolbar(toolbar);
 
         JToggleButton bold = findModifierButton(toolbar, "B");
-        assertFalse("BOLD button must reflect the plain initial caret position", bold.isSelected());
+        assertFalse(bold.isSelected(), "BOLD button must reflect the plain initial caret position");
 
         // Move the caret into the bold run after the toolbar is connected. The toolbar reads
         // the model directly via getCaretStyle, so its button reflects the new position
         // regardless of caret-listener ordering.
         pane.setCaretPosition(3);
 
-        assertTrue("BOLD button must light up after caret moves into the bold run", bold.isSelected());
+        assertTrue(bold.isSelected(), "BOLD button must light up after caret moves into the bold run");
     }
 
     @Test
@@ -77,7 +77,7 @@ public class McFormatToolbarTest {
         pane.connectToolbar(toolbar);
 
         JToggleButton italic = findModifierButton(toolbar, "I");
-        assertTrue("ITALIC button should light up for a caret sitting in an italic run", italic.isSelected());
+        assertTrue(italic.isSelected(), "ITALIC button should light up for a caret sitting in an italic run");
     }
 
     private static JToggleButton findModifierButton(McFormatToolbar toolbar, String label) {

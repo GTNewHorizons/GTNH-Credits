@@ -1,15 +1,15 @@
 package net.noiraude.creditseditor.mc;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 import java.util.Objects;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 @SuppressWarnings({ "SpellCheckingInspection" })
 public class McTextTest {
@@ -114,7 +114,7 @@ public class McTextTest {
         // §l sets bold; §6 (color) should reset it
         List<McText.Segment> segs = McText.parse("§l§6text");
         assertEquals(1, segs.size());
-        assertFalse("colour code must reset bold", segs.getFirst().codes.contains(McFormatCode.BOLD));
+        assertFalse(segs.getFirst().codes.contains(McFormatCode.BOLD), "colour code must reset bold");
         assertEquals(McFormatCode.GOLD, McFormatCode.activeColor(segs.getFirst().codes));
     }
 
@@ -241,7 +241,7 @@ public class McTextTest {
     @Test
     public void palette_allEntriesAreColorCodes() {
         for (int i = 0; i < McFormatCode.PALETTE.length; i++) {
-            assertTrue("PALETTE[" + i + "] is not a colour code", McFormatCode.PALETTE[i].isColor());
+            assertTrue(McFormatCode.PALETTE[i].isColor(), "PALETTE[" + i + "] is not a colour code");
         }
     }
 

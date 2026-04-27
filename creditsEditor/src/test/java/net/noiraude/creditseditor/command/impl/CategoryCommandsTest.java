@@ -1,8 +1,8 @@
 package net.noiraude.creditseditor.command.impl;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import net.noiraude.creditseditor.bus.DocumentBus;
 import net.noiraude.libcredits.lang.LangParser;
@@ -11,8 +11,8 @@ import net.noiraude.libcredits.model.DocumentCategory;
 import net.noiraude.libcredits.model.DocumentMembership;
 import net.noiraude.libcredits.model.DocumentPerson;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class CategoryCommandsTest {
 
@@ -21,7 +21,7 @@ public class CategoryCommandsTest {
     private DocumentCategory team;
     private DocumentCategory dev;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         creditsDoc = CreditsDocument.empty();
         bus = new DocumentBus();

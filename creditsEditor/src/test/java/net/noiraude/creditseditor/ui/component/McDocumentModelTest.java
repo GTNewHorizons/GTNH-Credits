@@ -1,8 +1,8 @@
 package net.noiraude.creditseditor.ui.component;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.EnumSet;
 
@@ -10,7 +10,7 @@ import javax.swing.text.StyledDocument;
 
 import net.noiraude.creditseditor.mc.McFormatCode;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class McDocumentModelTest {
 
@@ -86,8 +86,8 @@ public class McDocumentModelTest {
         model.applyColorReset(0, 0);
 
         EnumSet<McFormatCode> codes = model.getPendingCodes();
-        assertTrue("BOLD modifier survives color reset", codes.contains(McFormatCode.BOLD));
-        assertFalse("RED color cleared by color reset", codes.contains(McFormatCode.RED));
+        assertTrue(codes.contains(McFormatCode.BOLD), "BOLD modifier survives color reset");
+        assertFalse(codes.contains(McFormatCode.RED), "RED color cleared by color reset");
     }
 
     @Test
@@ -100,8 +100,8 @@ public class McDocumentModelTest {
         model.syncPendingFromCaret(5);
 
         EnumSet<McFormatCode> codes = model.getPendingCodes();
-        assertTrue("preceding char 'o' is green", codes.contains(McFormatCode.GREEN));
-        assertFalse("preceding char is not red", codes.contains(McFormatCode.RED));
+        assertTrue(codes.contains(McFormatCode.GREEN), "preceding char 'o' is green");
+        assertFalse(codes.contains(McFormatCode.RED), "preceding char is not red");
     }
 
     @Test
@@ -135,10 +135,10 @@ public class McDocumentModelTest {
         EnumSet<McFormatCode> middle = McSwingStyle.fromAttributes(
             doc.getCharacterElement(2)
                 .getAttributes());
-        assertTrue("middle of selected range carries BOLD", middle.contains(McFormatCode.BOLD));
+        assertTrue(middle.contains(McFormatCode.BOLD), "middle of selected range carries BOLD");
         EnumSet<McFormatCode> outside = McSwingStyle.fromAttributes(
             doc.getCharacterElement(0)
                 .getAttributes());
-        assertFalse("char before selection does not carry BOLD", outside.contains(McFormatCode.BOLD));
+        assertFalse(outside.contains(McFormatCode.BOLD), "char before selection does not carry BOLD");
     }
 }

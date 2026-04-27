@@ -1,23 +1,23 @@
 package net.noiraude.creditseditor.command;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import org.jetbrains.annotations.NotNull;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class CommandStackTest {
 
     private CommandStack stack;
     private List<String> log;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         stack = new CommandStack();
         log = new ArrayList<>();
@@ -149,7 +149,7 @@ public class CommandStackTest {
         stack.undo();
         assertTrue(stack.canRedo());
         stack.execute(cmd("B"));
-        assertFalse("redo stack should be cleared after new execute", stack.canRedo());
+        assertFalse(stack.canRedo(), "redo stack should be cleared after new execute");
     }
 
     @Test
@@ -238,7 +238,7 @@ public class CommandStackTest {
         assertTrue(stack.isDirty());
         // Cannot undo back to clean: clean mark was cleared
         stack.undo(); // undo B
-        assertTrue("clean mark was invalidated, should still be dirty", stack.isDirty());
+        assertTrue(stack.isDirty(), "clean mark was invalidated, should still be dirty");
     }
 
     @Test

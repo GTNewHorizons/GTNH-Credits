@@ -1,8 +1,9 @@
 package net.noiraude.creditseditor.command.impl;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 
@@ -14,7 +15,7 @@ import net.noiraude.libcredits.model.DocumentCategory;
 import net.noiraude.libcredits.model.DocumentMembership;
 import net.noiraude.libcredits.model.DocumentPerson;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class CompoundCommandTest {
 
@@ -28,9 +29,10 @@ public class CompoundCommandTest {
     // Builder
     // -----------------------------------------------------------------------
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void build_empty_throws() {
-        new CompoundCommand.Builder("empty").build();
+        CompoundCommand.Builder builder = new CompoundCommand.Builder("empty");
+        assertThrows(IllegalStateException.class, builder::build);
     }
 
     @Test
@@ -43,7 +45,7 @@ public class CompoundCommandTest {
         Command result = new CompoundCommand.Builder("single").add(single)
             .build();
 
-        assertTrue("single-child build should unwrap", result instanceof AddCategoryCommand);
+        assertTrue(result instanceof AddCategoryCommand, "single-child build should unwrap");
     }
 
     @Test

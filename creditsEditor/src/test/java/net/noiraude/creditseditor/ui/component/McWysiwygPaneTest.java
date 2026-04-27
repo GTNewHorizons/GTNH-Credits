@@ -1,22 +1,22 @@
 package net.noiraude.creditseditor.ui.component;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 import java.awt.GraphicsEnvironment;
 import java.util.EnumSet;
 
 import net.noiraude.creditseditor.mc.McFormatCode;
 
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class McWysiwygPaneTest {
 
-    @Before
+    @BeforeEach
     public void requireGraphicsEnvironment() {
-        Assume.assumeFalse("Swing JTextPane requires a graphics environment", GraphicsEnvironment.isHeadless());
+        assumeFalse(GraphicsEnvironment.isHeadless(), "Swing JTextPane requires a graphics environment");
     }
 
     @Test
@@ -49,6 +49,6 @@ public class McWysiwygPaneTest {
         pane.setCaretPosition(5);
 
         EnumSet<McFormatCode> style = pane.getCaretStyle();
-        assertTrue("preceding char 'o' is green", style.contains(McFormatCode.GREEN));
+        assertTrue(style.contains(McFormatCode.GREEN), "preceding char 'o' is green");
     }
 }

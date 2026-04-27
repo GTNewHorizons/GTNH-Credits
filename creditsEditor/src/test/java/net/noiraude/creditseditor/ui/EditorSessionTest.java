@@ -1,27 +1,25 @@
 package net.noiraude.creditseditor.ui;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
 
 import net.noiraude.libcredits.model.DocumentCategory;
 
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 public class EditorSessionTest {
 
-    @Rule
-    public TemporaryFolder temp = new TemporaryFolder();
+    @TempDir
+    Path temp;
 
     @Test
     public void freshOpenDirectory_loadsEmptyAndNotDirty() throws Exception {
-        Path dir = temp.newFolder("root")
-            .toPath();
+        Path dir = Files.createDirectory(temp.resolve("root"));
 
         EditorSession session = EditorSession.open(dir.toString());
         try {
@@ -35,8 +33,7 @@ public class EditorSessionTest {
 
     @Test
     public void editing_marksDirty_andSaveClearsIt() throws Exception {
-        Path dir = temp.newFolder("root")
-            .toPath();
+        Path dir = Files.createDirectory(temp.resolve("root"));
 
         EditorSession session = EditorSession.open(dir.toString());
         try {
@@ -55,9 +52,7 @@ public class EditorSessionTest {
 
     @Test
     public void openNonExistentZip_createsAndLoadsItEmpty() throws Exception {
-        Path zip = temp.getRoot()
-            .toPath()
-            .resolve("fresh.zip");
+        Path zip = temp.resolve("fresh.zip");
         assertFalse(Files.exists(zip));
 
         EditorSession session = EditorSession.open(zip.toString());
@@ -77,8 +72,7 @@ public class EditorSessionTest {
         // the assets/gtnhcredits subtree during save. Load still succeeds because the
         // target credits.json path does not resolve, so notExists() returns true and
         // an empty document is created in memory.
-        Path dir = temp.newFolder("root")
-            .toPath();
+        Path dir = Files.createDirectory(temp.resolve("root"));
         Files.writeString(dir.resolve("assets"), "blocker");
 
         EditorSession session = EditorSession.open(dir.toString());
@@ -86,14 +80,9 @@ public class EditorSessionTest {
             session.creditsDoc().categories.add(new DocumentCategory("dev"));
             assertTrue(session.isDirty());
 
-            try {
-                session.save();
-                fail("save should fail when assets is a regular file");
-            } catch (Exception expected) {
-                // expected
-            }
+            assertThrows(Exception.class, session::save, "save should fail when assets is a regular file");
 
-            assertTrue("dirty flag must remain set after a failed save", session.isDirty());
+            assertTrue(session.isDirty(), "dirty flag must remain set after a failed save");
         } finally {
             session.close();
         }

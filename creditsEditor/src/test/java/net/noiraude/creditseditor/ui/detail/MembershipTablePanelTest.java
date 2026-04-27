@@ -1,7 +1,8 @@
 package net.noiraude.creditseditor.ui.detail;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 import java.awt.Component;
 import java.awt.Container;
@@ -24,17 +25,16 @@ import net.noiraude.libcredits.model.DocumentMembership;
 import net.noiraude.libcredits.model.DocumentPerson;
 
 import org.jetbrains.annotations.NotNull;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class MembershipTablePanelTest {
 
     private static final Runnable NOOP = () -> {};
 
-    @Before
+    @BeforeEach
     public void requireGraphicsEnvironment() {
-        Assume.assumeFalse("Swing JTable requires a graphics environment", GraphicsEnvironment.isHeadless());
+        assumeFalse(GraphicsEnvironment.isHeadless(), "Swing JTable requires a graphics environment");
     }
 
     @Test
@@ -93,7 +93,7 @@ public class MembershipTablePanelTest {
         panel.setMembershipsPreservingSelection(new ArrayList<>(List.of(dev, team)), "dev");
         assertEquals("dev", table(panel).getValueAt(0, 0));
         assertEquals("team", table(panel).getValueAt(1, 0));
-        assertEquals("selection follows the category id across reorder", 0, panel.getSelectedRow());
+        assertEquals(0, panel.getSelectedRow(), "selection follows the category id across reorder");
     }
 
     @Test
@@ -140,7 +140,7 @@ public class MembershipTablePanelTest {
         stack.undo();
         assertEquals(3, table(panel).getRowCount());
         assertEquals("dev", table(panel).getValueAt(1, 0));
-        assertTrue("undo restores the same membership instance", alice.memberships.get(1) == middle);
+        assertTrue(alice.memberships.get(1) == middle, "undo restores the same membership instance");
     }
 
     private static @NotNull DocumentBus newBus() {

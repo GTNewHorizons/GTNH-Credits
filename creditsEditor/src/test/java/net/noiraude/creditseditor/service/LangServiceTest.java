@@ -1,9 +1,9 @@
 package net.noiraude.creditseditor.service;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -14,7 +14,7 @@ import net.noiraude.libcredits.lang.LangDocument;
 import net.noiraude.libcredits.lang.LangParser;
 import net.noiraude.libcredits.lang.LangSerializer;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class LangServiceTest {
 
@@ -185,7 +185,7 @@ public class LangServiceTest {
         String out = write(doc);
         int guiPos = out.indexOf("gui.button");
         int creditsPos = out.indexOf("credits.category.team");
-        assertTrue("new key should appear after foreign content", creditsPos > guiPos);
+        assertTrue(creditsPos > guiPos, "new key should appear after foreign content");
         assertTrue(out.contains("credits.category.team=Core Team"));
     }
 
@@ -197,7 +197,7 @@ public class LangServiceTest {
         String out = write(doc);
         int devPos = out.indexOf("credits.category.dev");
         int teamPos = out.indexOf("credits.category.team");
-        assertTrue("dev was inserted first, should appear first", devPos < teamPos);
+        assertTrue(devPos < teamPos, "dev was inserted first, should appear first");
     }
 
     @Test
@@ -221,7 +221,7 @@ public class LangServiceTest {
         doc.remove("credits.category.team");
         String out = write(doc);
         // Should not have two consecutive blank lines
-        assertFalse("consecutive blank lines should be collapsed", out.contains("\n\n\n"));
+        assertFalse(out.contains("\n\n\n"), "consecutive blank lines should be collapsed");
         assertTrue(out.contains("gui.a=A"));
         assertTrue(out.contains("gui.b=B"));
     }

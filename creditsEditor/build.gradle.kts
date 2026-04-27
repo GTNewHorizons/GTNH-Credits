@@ -22,7 +22,7 @@ repositories {
 }
 
 val gsonVersion: String by gradle.extra
-val junitVersion: String by gradle.extra
+val junitJupiterVersion: String by gradle.extra
 val flatLafVersion: String by gradle.extra
 
 dependencies {
@@ -32,9 +32,14 @@ dependencies {
     add("runtimeOnly", "com.google.code.gson:gson:$gsonVersion")
     add("testRuntimeOnly", "com.google.code.gson:gson:$gsonVersion")
     add("implementation", "com.formdev:flatlaf:$flatLafVersion")
-    add("testImplementation", "junit:junit:$junitVersion")
+    add("testImplementation", "org.junit.jupiter:junit-jupiter:$junitJupiterVersion")
+    add("testRuntimeOnly", "org.junit.platform:junit-platform-launcher")
     add("compileOnly", "org.jetbrains:annotations:24.1.0")
     add("testCompileOnly", "org.jetbrains:annotations:24.1.0")
+}
+
+tasks.named<Test>("test") {
+    useJUnitPlatform()
 }
 
 java {
