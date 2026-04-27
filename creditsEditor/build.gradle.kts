@@ -1,10 +1,21 @@
+import com.diffplug.blowdryer.Blowdryer
+
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath("com.diffplug:blowdryer:1.7.1")
+    }
+}
+
 plugins {
     `java-library`
     application
     id("com.gradleup.shadow")
 }
 
-apply(from = rootProject.file("gtnhShared/spotless.gradle"))
+apply(from = Blowdryer.file("spotless.gradle"))
 
 repositories {
     mavenCentral()
@@ -15,15 +26,15 @@ val junitVersion: String by gradle.extra
 val flatLafVersion: String by gradle.extra
 
 dependencies {
-    implementation(project(":libCredits"))
+    add("implementation", project(":libCredits"))
     // libCredits declares gson as compileOnly (Minecraft provides it at runtime in the mod);
     // the standalone editor must satisfy that runtime dependency itself, but never imports gson.
-    runtimeOnly("com.google.code.gson:gson:$gsonVersion")
-    testRuntimeOnly("com.google.code.gson:gson:$gsonVersion")
-    implementation("com.formdev:flatlaf:$flatLafVersion")
-    testImplementation("junit:junit:$junitVersion")
-    compileOnly("org.jetbrains:annotations:24.1.0")
-    testCompileOnly("org.jetbrains:annotations:24.1.0")
+    add("runtimeOnly", "com.google.code.gson:gson:$gsonVersion")
+    add("testRuntimeOnly", "com.google.code.gson:gson:$gsonVersion")
+    add("implementation", "com.formdev:flatlaf:$flatLafVersion")
+    add("testImplementation", "junit:junit:$junitVersion")
+    add("compileOnly", "org.jetbrains:annotations:24.1.0")
+    add("testCompileOnly", "org.jetbrains:annotations:24.1.0")
 }
 
 java {
