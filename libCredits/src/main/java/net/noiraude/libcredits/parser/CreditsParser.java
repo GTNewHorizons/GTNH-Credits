@@ -7,19 +7,18 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.regex.Pattern;
 
-import net.noiraude.libcredits.model.CreditsCategory;
-import net.noiraude.libcredits.model.CreditsData;
-import net.noiraude.libcredits.model.CreditsPerson;
+import net.noiraude.libcredits.model.CreditsDocument;
+import net.noiraude.libcredits.model.DocumentCategory;
+import net.noiraude.libcredits.model.DocumentMembership;
+import net.noiraude.libcredits.model.DocumentPerson;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
 
 public final class CreditsParser {
@@ -33,94 +32,89 @@ public final class CreditsParser {
     private CreditsParser() {}
 
     /**
-     * Parses a {@code credits.json} input stream into a {@link CreditsData} object.
+     * Parses a {@code credits.json} input stream into a {@link CreditsDocument}.
      * The caller is responsible for closing the stream.
-     * The returned {@link CreditsData#persons} list is sorted by name, case-insensitively.
+     * The returned document's {@link CreditsDocument#persons} list is sorted by name,
+     * case-insensitively. {@link CreditsDocument#isDirty()} returns {@code false} on
+     * the returned document.
      *
      * @throws IOException           if the stream cannot be read
      * @throws CreditsParseException if the JSON is structurally invalid
      */
-    public static CreditsData parse(InputStream is) throws IOException, CreditsParseException {
+    public static CreditsDocument parse(InputStream is) throws IOException, CreditsParseException {
         try (InputStreamReader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
-            JsonObject root = new JsonParser().parse(reader)
-                .getAsJsonObject();
-            List<CreditsCategory> categories = parseCategories(root);
-            List<CreditsPerson> persons = parsePersons(root);
-            persons.sort(Comparator.comparing(p -> stripFormatting(p.name), String.CASE_INSENSITIVE_ORDER));
-            return new CreditsData(categories, persons);
+            JsonObject root;
+            try {
+                @SuppressWarnings("deprecation") // MC GSON compatible
+                JsonObject parsed = new JsonParser().parse(reader)
+                    .getAsJsonObject();
+                root = parsed;
+            } catch (JsonParseException | IllegalStateException e) {
+                throw new CreditsParseException("malformed credits.json", e);
+            }
+
+            CreditsDocument doc = CreditsDocument.empty();
+
+            for (JsonElement el : root.getAsJsonArray("category")) {
+                doc.categories.add(parseCategory(el.getAsJsonObject()));
+            }
+
+            if (root.has("person")) {
+                for (JsonElement el : root.getAsJsonArray("person")) {
+                    doc.persons.add(parsePerson(el.getAsJsonObject()));
+                }
+                doc.persons.sort(Comparator.comparing(p -> stripFormatting(p.name), String.CASE_INSENSITIVE_ORDER));
+            }
+
+            doc.markClean();
+            return doc;
         }
     }
 
-    private static List<CreditsCategory> parseCategories(JsonObject root) throws CreditsParseException {
-        List<CreditsCategory> categories = new ArrayList<>();
-        for (JsonElement el : root.getAsJsonArray("category")) {
-            categories.add(parseCategory(el.getAsJsonObject()));
+    private static DocumentCategory parseCategory(JsonObject obj) throws CreditsParseException {
+        String id = requireValidKey(
+            obj.get("id")
+                .getAsString(),
+            "category id");
+        DocumentCategory cat = new DocumentCategory(id);
+        if (obj.has("class")) {
+            cat.classes = new LinkedHashSet<>(readStringOrArray(obj.get("class")));
         }
-        return categories;
+        return cat;
     }
 
-    private static CreditsCategory parseCategory(JsonObject obj) throws CreditsParseException {
-        String id = requireValidKey(obj.get("id")
-            .getAsString(), "category id");
-        Set<String> classes = new HashSet<>();
-        if (obj.has("class")) classes.addAll(readStringOrArray(obj.get("class")));
-        return new CreditsCategory(id, Collections.unmodifiableSet(classes));
-    }
-
-    private static List<CreditsPerson> parsePersons(JsonObject root) throws CreditsParseException {
-        List<CreditsPerson> persons = new ArrayList<>();
-        if (!root.has("person")) return persons;
-        for (JsonElement el : root.getAsJsonArray("person")) {
-            persons.add(parsePerson(el.getAsJsonObject()));
-        }
-        return persons;
-    }
-
-    private static CreditsPerson parsePerson(JsonObject obj) throws CreditsParseException {
+    private static DocumentPerson parsePerson(JsonObject obj) throws CreditsParseException {
         String name = obj.get("name")
             .getAsString();
-        Map<String, List<String>> categoryRoles = parseCategoryRoles(obj.get("category"));
-        return new CreditsPerson(name, categoryRoles);
-    }
-
-    private static Map<String, List<String>> parseCategoryRoles(JsonElement catEl) throws CreditsParseException {
-        Map<String, List<String>> result = new LinkedHashMap<>();
+        DocumentPerson person = new DocumentPerson(name);
+        JsonElement catEl = obj.get("category");
         if (catEl.isJsonArray()) {
-            for (JsonElement entry : catEl.getAsJsonArray()) parseCategoryEntry(entry, result);
+            for (JsonElement entry : catEl.getAsJsonArray()) parseMembershipEntry(entry, person);
         } else {
-            parseCategoryEntry(catEl, result);
+            parseMembershipEntry(catEl, person);
         }
-        return result;
+        return person;
     }
 
-    private static void parseCategoryEntry(JsonElement entry, Map<String, List<String>> result)
-        throws CreditsParseException {
+    private static void parseMembershipEntry(JsonElement entry, DocumentPerson person) throws CreditsParseException {
         if (entry.isJsonPrimitive()) {
-            result.put(requireValidKey(entry.getAsString(), "category id"), Collections.emptyList());
+            person.memberships.add(new DocumentMembership(requireValidKey(entry.getAsString(), "category id")));
             return;
         }
         if (entry.isJsonObject()) {
-            parseCategoryEntryFromObject(entry.getAsJsonObject(), result);
+            JsonObject obj = entry.getAsJsonObject();
+            java.util.Map.Entry<String, JsonElement> kv = obj.entrySet()
+                .iterator()
+                .next();
+            String catId = requireValidKey(kv.getKey(), "category id");
+            List<String> roles = new ArrayList<>();
+            for (String role : readStringOrArray(kv.getValue())) {
+                roles.add(requireValidKey(role, "role"));
+            }
+            person.memberships.add(new DocumentMembership(catId, roles));
             return;
         }
         throw new CreditsParseException("person category entry must be a string or object");
-    }
-
-    private static void parseCategoryEntryFromObject(JsonObject obj, Map<String, List<String>> result)
-        throws CreditsParseException {
-        Map.Entry<String, JsonElement> kv = obj.entrySet()
-            .iterator()
-            .next();
-        String catId = requireValidKey(kv.getKey(), "category id");
-        result.put(catId, parseRoles(kv.getValue()));
-    }
-
-    private static List<String> parseRoles(JsonElement rolesEl) throws CreditsParseException {
-        List<String> roles = new ArrayList<>();
-        for (String role : readStringOrArray(rolesEl)) {
-            roles.add(requireValidKey(role, "role"));
-        }
-        return roles;
     }
 
     private static List<String> readStringOrArray(JsonElement el) {
@@ -131,8 +125,10 @@ public final class CreditsParser {
     }
 
     private static String requireValidKey(String s, String field) throws CreditsParseException {
-        if (KEY_PATTERN.matcher(s)
-            .matches()) return s;
+        if (
+            KEY_PATTERN.matcher(s)
+                .matches()
+        ) return s;
         throw new CreditsParseException("invalid " + field + ": \"" + s + "\"");
     }
 

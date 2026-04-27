@@ -1,0 +1,99 @@
+package net.noiraude.creditseditor.ui;
+
+import java.awt.BorderLayout;
+import java.awt.Component;
+import java.awt.Window;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.nio.file.AccessDeniedException;
+import java.nio.file.NoSuchFileException;
+
+import javax.swing.BorderFactory;
+import javax.swing.JButton;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
+import javax.swing.SwingUtilities;
+
+import net.noiraude.libcredits.parser.CreditsParseException;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+/**
+ * Presents exception-driven error dialogs with a user-friendly primary message and an optional
+ * "Details..." toggle that reveals the underlying exception text.
+ *
+ * <p>
+ * The mapping from exception type to friendly message is intentionally narrow: unknown types
+ * fall back to a generic wording so no raw filesystem paths, class names, or stack frames leak
+ * into the primary dialog line. Diagnostic detail is still reachable via the toggle.
+ */
+public final class ErrorPresenter {
+
+    private ErrorPresenter() {}
+
+    /**
+     * Shows a modal error dialog for the given exception.
+     *
+     * @param parent parent component (may be {@code null})
+     * @param title  dialog title
+     * @param ex     the thrown exception
+     */
+    public static void show(@Nullable Component parent, @NotNull String title, @NotNull Throwable ex) {
+        JPanel panel = new JPanel(new BorderLayout(0, ScaledMetrics.gapLarge));
+        panel.add(new JLabel(friendlyMessage(ex)), BorderLayout.NORTH);
+
+        JTextArea details = new JTextArea(10, 60);
+        details.setEditable(false);
+        details.setLineWrap(false);
+        details.setText(detailsText(ex));
+        details.setCaretPosition(0);
+
+        JScrollPane detailsPane = new JScrollPane(details);
+        detailsPane.setBorder(BorderFactory.createEmptyBorder());
+        detailsPane.setVisible(false);
+        panel.add(detailsPane, BorderLayout.CENTER);
+
+        JButton toggle = new JButton(I18n.get("error.show.details"));
+        toggle.addActionListener(e -> {
+            boolean nowVisible = !detailsPane.isVisible();
+            detailsPane.setVisible(nowVisible);
+            toggle.setText(I18n.get(nowVisible ? "error.hide.details" : "error.show.details"));
+            Window w = SwingUtilities.getWindowAncestor(panel);
+            if (w != null) w.pack();
+        });
+        JPanel toggleRow = new JPanel(new BorderLayout());
+        toggleRow.add(toggle, BorderLayout.WEST);
+        panel.add(toggleRow, BorderLayout.SOUTH);
+
+        JOptionPane.showMessageDialog(parent, panel, title, JOptionPane.ERROR_MESSAGE);
+    }
+
+    private static @NotNull String friendlyMessage(@NotNull Throwable ex) {
+        // Walk the cause chain because CreditsParseException is a wrapper around gson errors,
+        // not the deepest cause; root-only matching would miss it.
+        for (Throwable cur = ex; cur != null; cur = (cur.getCause() == cur ? null : cur.getCause())) {
+            if (cur instanceof CreditsParseException) return I18n.get("error.json.invalid");
+            if (cur instanceof NoSuchFileException) return I18n.get("error.no.such.file");
+            if (cur instanceof AccessDeniedException) return I18n.get("error.access.denied");
+        }
+        if (rootCause(ex) instanceof IOException) return I18n.get("error.io.generic");
+        return I18n.get("error.unexpected");
+    }
+
+    private static @NotNull Throwable rootCause(@NotNull Throwable ex) {
+        Throwable cur = ex;
+        while (cur.getCause() != null && cur.getCause() != cur) cur = cur.getCause();
+        return cur;
+    }
+
+    private static @NotNull String detailsText(@NotNull Throwable ex) {
+        StringWriter sw = new StringWriter();
+        ex.printStackTrace(new PrintWriter(sw));
+        return sw.toString();
+    }
+}

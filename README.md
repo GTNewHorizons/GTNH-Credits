@@ -25,7 +25,8 @@ opens the Credits screen when it receives `modid = "gtnhcredits"` and
 Add an entry to the `"buttons"` object in your `mainmenu.json`:
 
 ```json
-"credits": {
+{
+  "credits": {
     "text": "Credits",
     "posX": 0,
     "posY": -160,
@@ -33,17 +34,18 @@ Add an entry to the `"buttons"` object in your `mainmenu.json`:
     "height": 20,
     "alignment": "column_bottom",
     "action": {
-        "type": "sendIMC",
-        "modid": "gtnhcredits",
-        "message": "openCredits"
+      "type": "sendIMC",
+      "modid": "gtnhcredits",
+      "message": "openCredits"
     }
+  }
 }
 ```
 
 Using a lang key for the button label is also valid:
 
 ```json
-"text": "menu.gtnh.credits"
+{ "text": "menu.gtnh.credits" }
 ```
 
 ### Disabling the vanilla button
@@ -74,8 +76,8 @@ resource pack.
 ResourceLocation:
 [`assets/gtnhcredits/credits.json`](src/main/resources/assets/gtnhcredits/credits.json)
 
-Defines the credit categories, credited persons and roles for those
-categories that can be displayed in the credits screen. A category
+Defines the credit categories, credited persons, and roles for those
+categories that can be displayed in the credit screen. A category
 groups persons under a common heading and controls what is rendered
 via its `class` markers. A person belongs to one or more categories
 and may carry one or more roles.
@@ -105,8 +107,8 @@ reference.
 
 #### Category `class` markers
 
-| Value    | Effect                                                 |
-|:---------|:-------------------------------------------------------|
+| Value    | Effect                                                                                                              |
+|:---------|:--------------------------------------------------------------------------------------------------------------------|
 | `detail` | Renders the category description from the lang file; the category name is always shown as a centered title above it |
 | `person` | Renders the list of persons belonging to this category, sorted alphabetically and deduplicated                      |
 | `role`   | Renders persons' role alongside their name                                                                          |
@@ -136,6 +138,29 @@ result is lowercased. For example `"Core Team"` â†’ `core_team`, `"Core.Mod"` â†
 | `gui.credits.filter.hint`               | Placeholder text for the person filter field                                                      |
 
 The two `detail` forms are mutually exclusive per locale: if any `detail.<suffix>` key exists, the plain `detail` key is ignored.
+
+## GTNH Credits Editor
+
+A standalone desktop tool for editing `credits.json` and the associated
+`.lang` files lives in the [`creditsEditor/`](creditsEditor/README.md)
+subproject.
+
+Run it directly from the repository:
+
+```sh
+./gradlew :creditsEditor:run
+```
+
+Install it to `~/.local` (overridable with `-PPREFIX=...`):
+
+```sh
+./gradlew :creditsEditor:install
+```
+
+Once installed, launch it with `gtnh-credits-editor [<path>]`. See the
+[Credits Editor README](creditsEditor/README.md) for full usage,
+installation options, and supported path forms (directory or resource
+pack zip).
 
 ## Build tasks
 
