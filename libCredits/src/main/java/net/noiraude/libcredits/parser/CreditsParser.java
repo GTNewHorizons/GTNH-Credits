@@ -18,6 +18,7 @@ import net.noiraude.libcredits.model.DocumentPerson;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
 
 public final class CreditsParser {
@@ -42,9 +43,15 @@ public final class CreditsParser {
      */
     public static CreditsDocument parse(InputStream is) throws IOException, CreditsParseException {
         try (InputStreamReader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
-            @SuppressWarnings("deprecation") // MC GSON compatible
-            JsonObject root = new JsonParser().parse(reader)
-                .getAsJsonObject();
+            JsonObject root;
+            try {
+                @SuppressWarnings("deprecation") // MC GSON compatible
+                JsonObject parsed = new JsonParser().parse(reader)
+                    .getAsJsonObject();
+                root = parsed;
+            } catch (JsonParseException | IllegalStateException e) {
+                throw new CreditsParseException("malformed credits.json", e);
+            }
 
             CreditsDocument doc = CreditsDocument.empty();
 

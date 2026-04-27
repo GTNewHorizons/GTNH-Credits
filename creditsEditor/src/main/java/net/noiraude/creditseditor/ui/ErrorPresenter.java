@@ -18,10 +18,10 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.SwingUtilities;
 
+import net.noiraude.libcredits.parser.CreditsParseException;
+
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import com.google.gson.JsonParseException;
 
 /**
  * Presents exception-driven error dialogs with a user-friendly primary message and an optional
@@ -74,11 +74,14 @@ public final class ErrorPresenter {
     }
 
     private static @NotNull String friendlyMessage(@NotNull Throwable ex) {
-        Throwable root = rootCause(ex);
-        if (root instanceof NoSuchFileException) return I18n.get("error.no.such.file");
-        if (root instanceof AccessDeniedException) return I18n.get("error.access.denied");
-        if (root instanceof JsonParseException) return I18n.get("error.json.invalid");
-        if (root instanceof IOException) return I18n.get("error.io.generic");
+        // Walk the cause chain because CreditsParseException is a wrapper around gson errors,
+        // not the deepest cause; root-only matching would miss it.
+        for (Throwable cur = ex; cur != null; cur = (cur.getCause() == cur ? null : cur.getCause())) {
+            if (cur instanceof CreditsParseException) return I18n.get("error.json.invalid");
+            if (cur instanceof NoSuchFileException) return I18n.get("error.no.such.file");
+            if (cur instanceof AccessDeniedException) return I18n.get("error.access.denied");
+        }
+        if (rootCause(ex) instanceof IOException) return I18n.get("error.io.generic");
         return I18n.get("error.unexpected");
     }
 

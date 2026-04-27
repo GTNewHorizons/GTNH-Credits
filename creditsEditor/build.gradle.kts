@@ -16,7 +16,10 @@ val flatLafVersion: String by gradle.extra
 
 dependencies {
     implementation(project(":libCredits"))
-    implementation("com.google.code.gson:gson:$gsonVersion")
+    // libCredits declares gson as compileOnly (Minecraft provides it at runtime in the mod);
+    // the standalone editor must satisfy that runtime dependency itself, but never imports gson.
+    runtimeOnly("com.google.code.gson:gson:$gsonVersion")
+    testRuntimeOnly("com.google.code.gson:gson:$gsonVersion")
     implementation("com.formdev:flatlaf:$flatLafVersion")
     testImplementation("junit:junit:$junitVersion")
     compileOnly("org.jetbrains:annotations:24.1.0")
