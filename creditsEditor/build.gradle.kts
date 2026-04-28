@@ -103,6 +103,15 @@ val installPrefix: String =
         ?: System.getenv("PREFIX")
         ?: "${System.getProperty("user.home")}/.local"
 
+val isLinux: Boolean = System.getProperty("os.name").lowercase().contains("linux")
+val desktopIconSizes = listOf(16, 32, 64, 128)
+val desktopAppId = "gtnh-credits-editor"
+
+fun desktopFile(): File = file("$installPrefix/share/applications/$desktopAppId.desktop")
+
+fun desktopIconFile(size: Int): File =
+    file("$installPrefix/share/icons/hicolor/${size}x${size}/apps/$desktopAppId.png")
+
 tasks.register("install") {
     group = "distribution"
     description = $$"Install credits-editor to $PREFIX (default: ~/.local)"
@@ -137,6 +146,35 @@ tasks.register("install") {
         distDir.resolve("lib/credits-editor.jar").copyTo(file("$libDest/gtnh-credits-editor.jar"), overwrite = true)
 
         println("Installed: $binDest/gtnh-credits-editor")
+
+        if (isLinux) {
+            val desktop = desktopFile()
+            desktop.parentFile.mkdirs()
+            desktop.writeText("""
+                [Desktop Entry]
+                Type=Application
+                Version=1.0
+                Name=GTNH Credits Editor
+                GenericName=Credits Editor
+                Comment=Edit credits.json resource packs for the GTNH Credits mod
+                Exec=gtnh-credits-editor %f
+                Icon=$desktopAppId
+                Terminal=false
+                Categories=Development;
+                StartupNotify=true
+            """.trimIndent() + "\n")
+
+            desktopIconSizes.forEach { size ->
+                val src = file("src/main/resources/icons/icon$size.png")
+                val dest = desktopIconFile(size)
+                dest.parentFile.mkdirs()
+                src.copyTo(dest, overwrite = true)
+            }
+
+            println("Installed: $desktop")
+            println("Installed icons under: $installPrefix/share/icons/hicolor/")
+        }
+
         println("Make sure $binDest is on your PATH.")
     }
 }
@@ -146,11 +184,14 @@ tasks.register("uninstall") {
     description = $$"Remove gtnh-credits-editor installed under $PREFIX (default: ~/.local)"
     doLast {
         val removed = mutableListOf<String>()
-        listOf(
+        val targets = mutableListOf(
             file("$installPrefix/bin/gtnh-credits-editor"),
             file("$installPrefix/bin/gtnh-credits-editor.bat"),
-            file("$installPrefix/lib/gtnh-credits-editor.jar")
-        ).forEach {
+            file("$installPrefix/lib/gtnh-credits-editor.jar"),
+            desktopFile()
+        )
+        desktopIconSizes.mapTo(targets, ::desktopIconFile)
+        targets.forEach {
             if (it.exists()) {
                 it.delete()
                 removed += it.path

@@ -155,7 +155,7 @@ Current: 11 test files for 59 production classes. Zero UI tests.
   Swap dependency to `org.junit.jupiter:junit-jupiter:5.10.x`, add `useJUnitPlatform()` in the test task, rewrite imports and annotations. Verify banned-deps rule still respected (no jackson, no networknt).
   Done when: all tests pass under JUnit 5.
 
-- [ ] **5.3 Install task writes a Linux `.desktop` file**
+- [x] **5.3 Install task writes a Linux `.desktop` file**
   File: `creditsEditor/build.gradle.kts:86-122`
   On Linux, also write `$PREFIX/share/applications/gtnh-credits-editor.desktop` and mirror icons to `$PREFIX/share/icons/hicolor/<size>/apps/gtnh-credits-editor.png`.
   Done when: after install, the app appears in the GNOME/KDE app launcher.
