@@ -187,15 +187,37 @@ Current: 11 test files for 59 production classes. Zero UI tests.
   Done when: JVM window and Windows taskbar show a sharp icon up to 128px;
   Linux and macOS desktop environments use the SVG directly.
 
-- [ ] **5.5 Add jpackage-based native installer task**
+- [ ] **5.5 Per-platform native package tasks (jpackage + AppImage)**
   File: `creditsEditor/build.gradle.kts`
-  New `nativePackage` task using JDK 21 `jpackage` to produce `.msi`, `.dmg`, `.deb` artifacts (each on its matching host OS).
-  Done when: `./gradlew :creditsEditor:nativePackage` on Linux produces a `.deb`.
+
+  The previous wording asked for a single `nativePackage` task producing `.msi`, `.dmg`, and `.deb`. Two reasons to revise it:
+  1. Our CI runs on Ubuntu (`.github/workflows/build-and-test.yml` delegates to `GTNewHorizons/GTNH-Actions-Workflows`). `jpackage` cannot produce `.msi` on Linux (needs WiX on Windows) or `.dmg` on Linux (needs `hdiutil` on macOS). Cross-OS outputs require a CI matrix, not a single task.
+  2. `.deb` is Debian/Ubuntu-only. AppImage is the conventional self-contained Linux distribution format and works across Fedora, Arch, openSUSE, NixOS, etc.
+
+  **Per-package tasks** (each depends on `shadowJar`, gated to its host OS, prints a clear "skipped" message otherwise):
+  - `packageAppImage` (Linux): `jpackage --type app-image` into `build/jpackage/credits-editor/`, drop in `AppRun`, top-level `.desktop`, and top-level icon (SVG plus 256px PNG fallback), then run `appimagetool` to produce `build/dist/credits-editor-${version}-x86_64.AppImage`. Bootstrap `appimagetool` into `build/tools/` if not on PATH.
+  - `packageMsi` (Windows): `jpackage --type msi` into `build/dist/`.
+  - `packageDmg` (macOS): `jpackage --type dmg` into `build/dist/`.
+
+  **Aggregator tasks**:
+  - `package`: depends on whichever per-package task matches the current host OS. Single entry point for "produce my native package".
+  - `install` (rewrite): depends on `package`. On Linux, copies the AppImage to `$PREFIX/lib/gtnh-credits-editor/gtnh-credits-editor.AppImage` and creates a `$PREFIX/bin/gtnh-credits-editor` symlink to it (so the command line uses the short name without the `.AppImage` suffix). The `.desktop` `Exec` uses the symlink target. Icons mirror under `$PREFIX/share/icons/hicolor/` as today. Drops the shadow-distribution script rewriting. On Windows and macOS, prints a notice pointing at `build/dist/`.
+  - `uninstall` (update): remove the `$PREFIX/bin/gtnh-credits-editor` symlink and the `$PREFIX/lib/gtnh-credits-editor/` directory; keep desktop and hicolor icon removal; drop the script + bat + jar removals.
+  - `publish`: depends on all three per-package tasks. Only one runs on any single host (the others skip), so it is meaningful only across a CI matrix.
+
+  Done when:
+  - `./gradlew :creditsEditor:packageAppImage` on Linux produces a runnable AppImage under `build/dist/`.
+  - `./gradlew :creditsEditor:install` on Linux puts the AppImage in `$PREFIX/lib/gtnh-credits-editor/`, a working `gtnh-credits-editor` symlink in `$PREFIX/bin/`, and the existing desktop+icons under `$PREFIX/share/`. Typing `gtnh-credits-editor` launches the editor.
+  - `./gradlew :creditsEditor:uninstall` removes everything `install` wrote.
+  - `./gradlew :creditsEditor:publish` on Linux runs `packageAppImage` and cleanly skips `packageMsi` / `packageDmg`.
+  - `./gradlew spotlessApply :creditsEditor:test :creditsEditor:build` stays green.
 
 - [ ] **5.6 CI step for creditsEditor**
-  File: `.github/workflows/build-and-test.yml`
-  Add an explicit job or step that runs `./gradlew :creditsEditor:test :creditsEditor:shadowJar` so PR status reflects the editor subproject specifically.
-  Done when: new CI check appears on PRs and fails on a broken editor build.
+  File: `.github/workflows/build-and-test.yml`, `.github/workflows/release-tags.yml`
+  Two parts:
+  1. PR validation: add an explicit job/step that runs `./gradlew :creditsEditor:test :creditsEditor:shadowJar` so PR status reflects the editor subproject specifically.
+  2. Release distribution: add a matrix job (`{ubuntu-latest, windows-latest, macos-latest}`) on tag push that invokes `./gradlew :creditsEditor:package` on each runner and uploads the resulting `.AppImage` / `.msi` / `.dmg` to the GitHub release. This is the only way to produce all three native installers from this repo, since the reusable Ubuntu-only workflow cannot.
+  Done when: a new CI check appears on PRs and fails on a broken editor build, and a release tag triggers the matrix job that publishes all three native installers as release assets.
 
 ## P6 UX polish
 
