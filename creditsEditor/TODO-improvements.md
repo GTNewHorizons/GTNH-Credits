@@ -160,10 +160,32 @@ Current: 11 test files for 59 production classes. Zero UI tests.
   On Linux, also write `$PREFIX/share/applications/gtnh-credits-editor.desktop` and mirror icons to `$PREFIX/share/icons/hicolor/<size>/apps/gtnh-credits-editor.png`.
   Done when: after install, the app appears in the GNOME/KDE app launcher.
 
-- [ ] **5.4 Add higher-resolution icons (256, 512)**
-  Folder: `creditsEditor/src/main/resources/icons/`
-  Add `icon256.png` and `icon512.png`; update `AppIcons.java` to include them in the image list.
-  Done when: HiDPI taskbar and macOS dock use a sharp icon.
+- [x] **5.4 SVG as master icon source**
+
+  Master SVG: `assets/GTNH-credits.svg` (GTNH-Credits root, do not copy).
+
+  **Raster PNG for `setIconImages`** (JVM window decoration + Windows taskbar):
+  Run from anywhere inside the repo:
+
+  ```sh
+  base=$(git rev-parse --show-toplevel)
+  icon_base=$base/creditsEditor/src/main/resources/icons
+  for size in 16 32 64 128; do
+    icon_png=$icon_base/icon$size.png
+    inkscape "$base/assets/GTNH-credits.svg" \
+      --export-type=png \
+      --export-width="$size" \
+      --export-filename="$icon_png" 2>/dev/null &&
+    optipng -o7 -silent "$icon_png" 2>/dev/null
+  done
+   ```
+  Update `AppIcons.java` to include all four sizes in `setIconImages(...)`.
+
+  **SVG for desktop environments** (KDE, GNOME, macOS dock/launcher):
+  Point `.desktop` / app bundle at `assets/GTNH-credits.svg`.
+
+  Done when: JVM window and Windows taskbar show a sharp icon up to 128px;
+  Linux and macOS desktop environments use the SVG directly.
 
 - [ ] **5.5 Add jpackage-based native installer task**
   File: `creditsEditor/build.gradle.kts`

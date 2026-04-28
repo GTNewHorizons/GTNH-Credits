@@ -112,6 +112,9 @@ fun desktopFile(): File = file("$installPrefix/share/applications/$desktopAppId.
 fun desktopIconFile(size: Int): File =
     file("$installPrefix/share/icons/hicolor/${size}x${size}/apps/$desktopAppId.png")
 
+fun desktopScalableIconFile(): File =
+    file("$installPrefix/share/icons/hicolor/scalable/apps/$desktopAppId.svg")
+
 tasks.register("install") {
     group = "distribution"
     description = $$"Install credits-editor to $PREFIX (default: ~/.local)"
@@ -171,6 +174,11 @@ tasks.register("install") {
                 src.copyTo(dest, overwrite = true)
             }
 
+            val scalableSrc = rootProject.file("assets/GTNH-credits.svg")
+            val scalableDest = desktopScalableIconFile()
+            scalableDest.parentFile.mkdirs()
+            scalableSrc.copyTo(scalableDest, overwrite = true)
+
             println("Installed: $desktop")
             println("Installed icons under: $installPrefix/share/icons/hicolor/")
         }
@@ -188,7 +196,8 @@ tasks.register("uninstall") {
             file("$installPrefix/bin/gtnh-credits-editor"),
             file("$installPrefix/bin/gtnh-credits-editor.bat"),
             file("$installPrefix/lib/gtnh-credits-editor.jar"),
-            desktopFile()
+            desktopFile(),
+            desktopScalableIconFile()
         )
         desktopIconSizes.mapTo(targets, ::desktopIconFile)
         targets.forEach {
