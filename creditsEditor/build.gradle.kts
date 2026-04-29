@@ -1,4 +1,5 @@
 import com.diffplug.blowdryer.Blowdryer
+import java.net.URI
 
 buildscript {
     repositories {
@@ -219,13 +220,28 @@ tasks.register("uninstall") {
 // the existing PNG icons, no external tool required) into a temp directory,
 // then invokes makensis on src/dist/installer.nsi.
 //
-// makensis is required on the build host. If missing, ensureWindowsInstallerTools
-// detects the local package manager (pacman, apt-get, dnf, zypper, brew) and
-// runs sudo to install nsis. If the install attempt fails, the task aborts
-// with a clear instruction to install nsis manually.
+// NSIS is provisioned project-locally into build/tools/nsis/ by extracting
+// pinned .deb files from snapshot.debian.org. No sudo, no system install,
+// no user prompts; safe for headless CI. The makensis binary is a Linux
+// ELF executable that emits Windows .exe artifacts.
+//
+// Currently supports Linux x86_64 build hosts only. macOS and Windows
+// builders should install NSIS through their native package manager and
+// ensure 'makensis' is on PATH; the task then uses that instead.
 // ---------------------------------------------------------------------------
 
 val isWindows: Boolean = System.getProperty("os.name").lowercase().contains("windows")
+val isMac: Boolean = System.getProperty("os.name").lowercase().contains("mac")
+
+val nsisDebVersion = "3.08-3"
+val nsisDebSnapshot = "20240601T000000Z"
+val nsisDebs: List<String> = listOf(
+    "nsis_${nsisDebVersion}_amd64.deb",
+    "nsis-common_${nsisDebVersion}_all.deb"
+)
+val nsisToolDir: File = layout.buildDirectory.dir("tools/nsis").get().asFile
+val nsisMakensis: File = nsisToolDir.resolve("usr/bin/makensis")
+val nsisShareDir: File = nsisToolDir.resolve("usr/share/nsis")
 
 fun hasCommand(cmd: String): Boolean {
     val probe = if (isWindows) listOf("where", cmd) else listOf("sh", "-c", "command -v $cmd")
@@ -240,37 +256,88 @@ fun hasCommand(cmd: String): Boolean {
     }
 }
 
-data class PkgManager(val probe: String, val install: List<String>, val nsisPkg: String)
+// Parse a Debian .deb (which is a GNU ar archive) and extract the data.tar.*
+// payload alongside; then unpack it with the system tar (which transparently
+// handles xz / gz / zst). Pure-JVM ar parsing avoids depending on the system
+// `ar` binary; we still rely on `tar` because reimplementing xz decompression
+// in build.gradle.kts is not worthwhile.
+fun extractDeb(debFile: File, destDir: File) {
+    val bytes = debFile.readBytes()
+    require(bytes.size > 8 && String(bytes, 0, 8, Charsets.US_ASCII) == "!<arch>\n") {
+        "${debFile.name} is not a valid ar archive"
+    }
+    var pos = 8
+    while (pos + 60 <= bytes.size) {
+        val name = String(bytes, pos, 16, Charsets.US_ASCII).trimEnd().trimEnd('/')
+        val size = String(bytes, pos + 48, 10, Charsets.US_ASCII).trim().toLong()
+        pos += 60
+        if (name.startsWith("data.tar")) {
+            val ext = name.removePrefix("data.tar")
+            val tarFile = destDir.resolve("__data.tar$ext")
+            tarFile.outputStream().use { it.write(bytes, pos, size.toInt()) }
+            val rc = ProcessBuilder("tar", "-xf", tarFile.name)
+                .directory(destDir)
+                .inheritIO()
+                .start()
+                .waitFor()
+            tarFile.delete()
+            if (rc != 0) {
+                throw GradleException(
+                    "tar -xf failed for data payload of ${debFile.name} (exit $rc). " +
+                    "Ensure 'tar' (with xz support) is installed."
+                )
+            }
+            return
+        }
+        pos += size.toInt()
+        if (size % 2L == 1L) pos += 1
+    }
+    throw GradleException("data.tar.* entry not found in ${debFile.name}")
+}
 
-val pkgManagers: List<PkgManager> = listOf(
-    PkgManager("pacman",  listOf("sudo", "pacman", "-S", "--noconfirm", "--needed"), "nsis"),
-    PkgManager("apt-get", listOf("sudo", "apt-get", "install", "-y"),                "nsis"),
-    PkgManager("dnf",     listOf("sudo", "dnf", "install", "-y"),                    "mingw32-nsis"),
-    PkgManager("zypper",  listOf("sudo", "zypper", "--non-interactive", "install"),  "mingw-nsis"),
-    PkgManager("brew",    listOf("brew", "install"),                                 "makensis")
-)
+fun provisionLocalNsis() {
+    if (nsisMakensis.exists() && nsisMakensis.canExecute() && nsisShareDir.isDirectory) return
 
-fun ensureMakensis() {
-    if (hasCommand("makensis")) return
-    if (isWindows) {
+    if (isWindows || isMac) {
+        if (hasCommand("makensis")) return
+        val installHint = if (isMac) "Install NSIS with 'brew install nsis'."
+                          else "Install NSIS from https://nsis.sourceforge.io/ and ensure it is on PATH."
         throw GradleException(
-            "makensis was not found. Install NSIS from https://nsis.sourceforge.io/ and ensure it is on PATH."
+            "windowsInstaller provisions a project-local NSIS only on Linux x86_64. " +
+            "On this host, makensis was not found on PATH. $installHint"
         )
     }
-    val pm = pkgManagers.firstOrNull { hasCommand(it.probe) }
-        ?: throw GradleException(
-            "makensis is required but not installed, and no supported package manager " +
-            "(pacman, apt-get, dnf, zypper, brew) was detected. Install NSIS manually."
-        )
-    val cmd = pm.install + pm.nsisPkg
-    println("makensis not found. Running: ${cmd.joinToString(" ")}")
-    val rc = ProcessBuilder(cmd).inheritIO().start().waitFor()
-    if (rc != 0 || !hasCommand("makensis")) {
+
+    val arch = System.getProperty("os.arch")
+    if (arch != "amd64" && arch != "x86_64") {
         throw GradleException(
-            "Automatic install of NSIS failed (exit code $rc). " +
-            "Install it manually with: ${cmd.joinToString(" ")}"
+            "Project-local NSIS download supports Linux x86_64 only; detected arch=$arch. " +
+            "Install nsis through your distribution's package manager and ensure makensis is on PATH."
         )
     }
+    if (!hasCommand("tar")) {
+        throw GradleException("'tar' is required to unpack NSIS .deb payloads but was not found on PATH.")
+    }
+
+    delete(nsisToolDir)
+    nsisToolDir.mkdirs()
+
+    nsisDebs.forEach { debName ->
+        val url = "https://snapshot.debian.org/archive/debian/$nsisDebSnapshot/pool/main/n/nsis/$debName"
+        val debFile = nsisToolDir.resolve(debName)
+        logger.lifecycle("Downloading $url")
+        URI(url).toURL().openStream().use { input ->
+            debFile.outputStream().use { it.write(input.readAllBytes()) }
+        }
+        extractDeb(debFile, nsisToolDir)
+        debFile.delete()
+    }
+
+    if (!nsisMakensis.exists()) {
+        throw GradleException("Local NSIS provisioning failed: ${nsisMakensis} was not produced.")
+    }
+    nsisMakensis.setExecutable(true)
+    logger.lifecycle("Provisioned local NSIS at $nsisMakensis")
 }
 
 fun pngDimensions(png: File): Pair<Int, Int> {
@@ -325,8 +392,8 @@ fun writeIcoFromPngs(pngs: List<File>, output: File) {
 
 tasks.register("ensureWindowsInstallerTools") {
     group = "distribution"
-    description = "Verify makensis is on PATH; install nsis via the local package manager if missing."
-    doLast { ensureMakensis() }
+    description = "Provision a project-local NSIS toolchain under build/tools/nsis (Linux x86_64); on macOS/Windows, verify makensis is on PATH."
+    doLast { provisionLocalNsis() }
 }
 
 tasks.register("windowsInstaller") {
@@ -362,12 +429,22 @@ tasks.register("windowsInstaller") {
         nsiSrc.copyTo(stagingDir.resolve("installer.nsi"), overwrite = true)
         writeIcoFromPngs(iconPngs, stagingDir.resolve("gtnh-credits-editor.ico"))
 
-        val rc = ProcessBuilder(
-            "makensis",
+        // Prefer the project-local makensis when present; otherwise fall back to PATH (macOS/Windows).
+        val makensisCmd: String =
+            if (nsisMakensis.exists()) nsisMakensis.absolutePath else "makensis"
+        val pb = ProcessBuilder(
+            makensisCmd,
             "-DVERSION=${rootProject.version}",
             "-DOUTFILE=$outName",
             "installer.nsi"
-        ).directory(stagingDir).inheritIO().start().waitFor()
+        ).directory(stagingDir).inheritIO()
+        // makensis hard-codes its data path at compile time; when running the
+        // project-local binary, NSISDIR must point at the matching share dir
+        // so it can locate Stubs, Include, Plugins, and Contrib.
+        if (nsisMakensis.exists() && nsisShareDir.isDirectory) {
+            pb.environment()["NSISDIR"] = nsisShareDir.absolutePath
+        }
+        val rc = pb.start().waitFor()
         if (rc != 0) throw GradleException("makensis failed with exit code $rc")
 
         stagingDir.resolve(outName).copyTo(outFile, overwrite = true)
