@@ -1,25 +1,23 @@
 package net.noiraude.creditseditor.ui;
 
+import net.noiraude.creditseditor.bus.DocumentBus;
+import net.noiraude.creditseditor.command.CommandExecutor;
+import net.noiraude.creditseditor.ui.dialog.AboutDialog;
+import net.noiraude.creditseditor.ui.dialog.ProgressDialog;
+import net.noiraude.creditseditor.ui.dialog.ShortcutsDialog;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import javax.swing.JFileChooser;
+import javax.swing.JFrame;
+import javax.swing.JOptionPane;
+import javax.swing.SwingWorker;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.Insets;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.util.concurrent.ExecutionException;
-
-import javax.swing.JFileChooser;
-import javax.swing.JFrame;
-import javax.swing.JOptionPane;
-import javax.swing.SwingWorker;
-
-import net.noiraude.creditseditor.bus.DocumentBus;
-import net.noiraude.creditseditor.command.CommandExecutor;
-import net.noiraude.creditseditor.ui.dialog.AboutDialog;
-import net.noiraude.creditseditor.ui.dialog.ProgressDialog;
-import net.noiraude.creditseditor.ui.dialog.ShortcutsDialog;
-
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * Main application window for the GTNH Credits Editor.
@@ -29,13 +27,16 @@ import org.jetbrains.annotations.Nullable;
  * and undo/redo dispatch. Panel layout and selection coordination are delegated to
  * {@link EditorView}; session state is held in {@link EditorSession}. All widgets subscribe
  * to a single application-wide {@link DocumentBus}; refresh is entirely event-driven.
+ *
+ * <p>
+ * Implements {@link EditorActions.Handlers} directly so menu activations dispatch to
+ * named methods on this class rather than to an inline anonymous adapter.
  */
-public final class MainWindow extends JFrame {
+public final class MainWindow extends JFrame implements EditorActions.Handlers {
 
     private @Nullable EditorSession session; // null when no resource is open
 
     private final @NotNull DocumentBus bus = new DocumentBus();
-    private final @NotNull EditorMenuBar menuBar;
 
     public MainWindow(@Nullable String initialPath) {
         super(AppInfo.name());
@@ -45,7 +46,7 @@ public final class MainWindow extends JFrame {
 
             @Override
             public void windowClosing(@NotNull WindowEvent e) {
-                handleQuit();
+                onQuit();
             }
         });
 
@@ -61,14 +62,8 @@ public final class MainWindow extends JFrame {
         setLayout(new BorderLayout());
         add(editorView, BorderLayout.CENTER);
 
-        menuBar = new EditorMenuBar(
-            new EditorMenuBar.FileActions(
-                () -> handleOpen(false),
-                () -> handleOpen(true),
-                this::handleSave,
-                this::handleQuit),
-            new EditorMenuBar.EditActions(this::handleUndo, this::handleRedo),
-            new EditorMenuBar.HelpActions(this::handleShortcuts, this::handleAbout));
+        EditorActions actions = new EditorActions(this, bus, () -> session);
+        EditorMenuBar menuBar = new EditorMenuBar(actions);
         setJMenuBar(menuBar);
 
         // Realize the peer so getInsets() returns real chrome sizes, then force the frame's
@@ -91,7 +86,6 @@ public final class MainWindow extends JFrame {
         if (initialPath != null) {
             loadResource(initialPath);
         } else {
-            menuBar.refresh(null);
             updateTitle();
         }
     }
@@ -134,11 +128,10 @@ public final class MainWindow extends JFrame {
         session = newSession;
 
         bus.setSession(session.creditsDoc(), session.langDoc());
-        menuBar.refresh(session);
         updateTitle();
     }
 
-    private void handleOpen(boolean createNew) {
+    private void doOpen(boolean createNew) {
         if (shouldAbort()) return;
 
         JFileChooser chooser = new JFileChooser();
@@ -153,7 +146,22 @@ public final class MainWindow extends JFrame {
                 .getAbsolutePath());
     }
 
-    private void handleSave() {
+    // -----------------------------------------------------------------------
+    // EditorActions.Handlers implementation
+    // -----------------------------------------------------------------------
+
+    @Override
+    public void onOpen() {
+        doOpen(false);
+    }
+
+    @Override
+    public void onNew() {
+        doOpen(true);
+    }
+
+    @Override
+    public void onSave() {
         if (session == null) return;
         try {
             session.save();
@@ -164,42 +172,35 @@ public final class MainWindow extends JFrame {
         updateTitle();
     }
 
-    // -----------------------------------------------------------------------
-    // Undo / redo
-    // -----------------------------------------------------------------------
-
-    private void handleUndo() {
-        if (session == null || !session.stack.canUndo()) return;
-        session.stack.undo();
-        afterCommand();
-    }
-
-    private void handleRedo() {
-        if (session == null || !session.stack.canRedo()) return;
-        session.stack.redo();
-        afterCommand();
-    }
-
-    // -----------------------------------------------------------------------
-    // Quit
-    // -----------------------------------------------------------------------
-
-    private void handleQuit() {
+    @Override
+    public void onQuit() {
         if (shouldAbort()) return;
         if (session != null) session.close();
         System.exit(0);
     }
 
-    // -----------------------------------------------------------------------
-    // Help
-    // -----------------------------------------------------------------------
-
-    private void handleAbout() {
-        new AboutDialog(this).setVisible(true);
+    @Override
+    public void onUndo() {
+        if (session == null || !session.stack.canUndo()) return;
+        session.stack.undo();
+        afterCommand();
     }
 
-    private void handleShortcuts() {
+    @Override
+    public void onRedo() {
+        if (session == null || !session.stack.canRedo()) return;
+        session.stack.redo();
+        afterCommand();
+    }
+
+    @Override
+    public void onShortcuts() {
         new ShortcutsDialog(this).setVisible(true);
+    }
+
+    @Override
+    public void onAbout() {
+        new AboutDialog(this).setVisible(true);
     }
 
     // -----------------------------------------------------------------------
@@ -208,11 +209,11 @@ public final class MainWindow extends JFrame {
 
     /**
      * Post-command/undo/redo housekeeping. Document-driven UI updates are published on the
-     * bus by the commands themselves; this method only touches frame-level state (menu
-     * enablement and window title).
+     * bus by the commands themselves; this method forwards command-stack state to the bus
+     * (so {@link EditorActions} updates Save/Undo/Redo) and refreshes the window title.
      */
     private void afterCommand() {
-        menuBar.refresh(session);
+        bus.fireCommandStackChanged();
         updateTitle();
     }
 

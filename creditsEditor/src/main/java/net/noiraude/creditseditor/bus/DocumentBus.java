@@ -48,6 +48,13 @@ public final class DocumentBus {
     /** A lang key changed. {@code newValue} is the key. */
     public static final @NotNull String TOPIC_LANG = "lang";
 
+    /**
+     * The undo/redo stack state changed (a command was executed, undone, or redone).
+     * Subscribers should re-read {@code canUndo}, {@code canRedo}, and the peek names
+     * from whatever {@link net.noiraude.creditseditor.command.CommandStack} they hold.
+     */
+    public static final @NotNull String TOPIC_COMMAND_STACK = "commandStack";
+
     private final @NotNull PropertyChangeSupport pcs = new PropertyChangeSupport(this);
 
     private @Nullable CreditsDocument creditsDoc;
@@ -99,6 +106,14 @@ public final class DocumentBus {
 
     public void fireLangChanged(@NotNull String key) {
         pcs.firePropertyChange(TOPIC_LANG, null, key);
+    }
+
+    /**
+     * Fires {@link #TOPIC_COMMAND_STACK}. Call after every {@code execute}, {@code undo},
+     * or {@code redo} on the active command stack.
+     */
+    public void fireCommandStackChanged() {
+        pcs.firePropertyChange(TOPIC_COMMAND_STACK, null, Boolean.TRUE);
     }
 
     /** Subscribes {@code listener} to events on {@code topic}. */
