@@ -204,7 +204,7 @@ Current: 11 test files for 59 production classes. Zero UI tests.
 
 ## P6 UX polish
 
-- [ ] **6.1 Progress dialog for large resource loads**
+- [x] **6.1 Progress dialog for large resource loads**
   File: `ui/EditorSession.java`, `src/main/java/net/noiraude/creditseditor/ResourceManager.java`
   Wrap the load in a `SwingWorker` driven by a modal indeterminate progress dialog. Keep a synchronous API for tests.
   Done when: opening a 50-MB zip does not freeze the UI.

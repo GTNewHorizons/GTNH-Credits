@@ -5,14 +5,17 @@ import java.awt.Dimension;
 import java.awt.Insets;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.util.concurrent.ExecutionException;
 
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
+import javax.swing.SwingWorker;
 
 import net.noiraude.creditseditor.bus.DocumentBus;
 import net.noiraude.creditseditor.command.CommandExecutor;
 import net.noiraude.creditseditor.ui.dialog.AboutDialog;
+import net.noiraude.creditseditor.ui.dialog.ProgressDialog;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -97,11 +100,30 @@ public final class MainWindow extends JFrame {
     // -----------------------------------------------------------------------
 
     private void loadResource(@NotNull String path) {
+        SwingWorker<EditorSession, Void> worker = new SwingWorker<>() {
+
+            @Override
+            protected EditorSession doInBackground() throws Exception {
+                return EditorSession.open(path);
+            }
+        };
+        ProgressDialog.runWith(
+            this,
+            I18n.get("dialog.load.progress.title"),
+            I18n.get("dialog.load.progress.message", path),
+            worker);
+
         EditorSession newSession;
         try {
-            newSession = EditorSession.open(path);
-        } catch (Exception ex) {
+            newSession = worker.get();
+        } catch (InterruptedException ex) {
+            Thread.currentThread()
+                .interrupt();
             ErrorPresenter.show(this, I18n.get("dialog.load.error.title"), ex);
+            return;
+        } catch (ExecutionException ex) {
+            Throwable cause = ex.getCause() != null ? ex.getCause() : ex;
+            ErrorPresenter.show(this, I18n.get("dialog.load.error.title"), cause);
             return;
         }
 
