@@ -187,7 +187,7 @@ Current: 11 test files for 59 production classes. Zero UI tests.
   Done when: JVM window and Windows taskbar show a sharp icon up to 128 px;
   Linux and macOS desktop environments use the SVG directly.
 
-- [ ] **5.5 Add Windows installer**
+- [x] **5.5 Add Windows installer**
   Files:
   - `creditsEditor/src/dist/gtnh-credits-editor.bat` — Windows launcher,
     resolves fat jar relative to script location and invokes `java -jar`
