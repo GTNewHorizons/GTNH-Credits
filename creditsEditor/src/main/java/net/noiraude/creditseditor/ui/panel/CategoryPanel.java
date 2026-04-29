@@ -1,5 +1,7 @@
 package net.noiraude.creditseditor.ui.panel;
 
+import static net.noiraude.creditseditor.ui.ScaledMetrics.gapSmall;
+
 import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.FlowLayout;
@@ -7,12 +9,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
+import javax.swing.BorderFactory;
 import javax.swing.DefaultListCellRenderer;
 import javax.swing.DropMode;
 import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
 import javax.swing.event.ListSelectionEvent;
 
@@ -25,6 +29,7 @@ import net.noiraude.creditseditor.command.impl.RemoveCategoryCommand;
 import net.noiraude.creditseditor.mc.McText;
 import net.noiraude.creditseditor.service.KeySanitizer;
 import net.noiraude.creditseditor.ui.I18n;
+import net.noiraude.creditseditor.ui.component.KeyHintLabel;
 import net.noiraude.creditseditor.ui.component.dnd.ListReorderTransferHandler;
 import net.noiraude.libcredits.model.CreditsDocument;
 import net.noiraude.libcredits.model.DocumentCategory;
@@ -155,11 +160,24 @@ public final class CategoryPanel extends ListPanel<Object, List<DocumentCategory
     private void onAdd() {
         if (!bus.hasSession()) return;
         CreditsDocument creditsDoc = bus.creditsDoc();
-        String id = JOptionPane.showInputDialog(
+
+        JTextField idField = new JTextField(20);
+        KeyHintLabel hint = new KeyHintLabel(idField);
+        JPanel panel = new JPanel(new BorderLayout(0, gapSmall));
+        panel.setBorder(BorderFactory.createEmptyBorder(0, 0, gapSmall, 0));
+        panel.add(new JLabel(I18n.get("panel.categories.add.prompt")), BorderLayout.NORTH);
+        panel.add(idField, BorderLayout.CENTER);
+        panel.add(hint, BorderLayout.SOUTH);
+
+        int result = JOptionPane.showConfirmDialog(
             this,
-            I18n.get("panel.categories.add.prompt"),
+            panel,
             I18n.get("panel.categories.add.title"),
+            JOptionPane.OK_CANCEL_OPTION,
             JOptionPane.PLAIN_MESSAGE);
+        if (result != JOptionPane.OK_OPTION) return;
+
+        String id = idField.getText();
         if (id == null || id.isBlank()) return;
         id = id.strip();
         String finalId = id;

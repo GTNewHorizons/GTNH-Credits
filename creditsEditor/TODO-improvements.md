@@ -209,7 +209,7 @@ Current: 11 test files for 59 production classes. Zero UI tests.
   Wrap the load in a `SwingWorker` driven by a modal indeterminate progress dialog. Keep a synchronous API for tests.
   Done when: opening a 50-MB zip does not freeze the UI.
 
-- [ ] **6.2 Inline validation feedback in name fields**
+- [x] **6.2 Inline validation feedback in name fields**
   File: `service/KeySanitizer.java` + consumers in detail views
   Current: invalid characters are stripped silently. Add a small warning label under the field explaining which characters were removed, or show a toast with an undo hint.
   Done when: typing a space or dot into a name field produces visible feedback rather than silent mutation.

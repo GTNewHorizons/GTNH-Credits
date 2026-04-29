@@ -5,13 +5,18 @@ import static net.noiraude.creditseditor.ui.ScaledMetrics.gapSmall;
 import java.awt.BorderLayout;
 import java.awt.Component;
 
+import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.text.JTextComponent;
 
 import net.noiraude.creditseditor.service.RoleIndex;
 import net.noiraude.creditseditor.ui.I18n;
+import net.noiraude.creditseditor.ui.component.KeyHintLabel;
 import net.noiraude.libcredits.model.CreditsDocument;
 import net.noiraude.libcredits.model.DocumentMembership;
 
@@ -35,9 +40,22 @@ final class AddRolePrompt {
         this.membership = membership;
         this.index = creditsDoc != null ? RoleIndex.build(creditsDoc) : null;
         combo.setEditable(true);
+
+        JPanel below = new JPanel();
+        below.setLayout(new BoxLayout(below, BoxLayout.Y_AXIS));
+        below.setBorder(BorderFactory.createEmptyBorder(gapSmall, 0, 0, 0));
+        if (
+            combo.getEditor()
+                .getEditorComponent() instanceof JTextComponent editor
+        ) {
+            below.add(new KeyHintLabel(editor));
+            below.add(Box.createVerticalStrut(gapSmall));
+        }
+        below.add(showAll);
+
         content = new JPanel(new BorderLayout(0, gapSmall));
         content.add(combo, BorderLayout.CENTER);
-        content.add(showAll, BorderLayout.SOUTH);
+        content.add(below, BorderLayout.SOUTH);
         populate();
         showAll.addActionListener(e -> populate());
     }
