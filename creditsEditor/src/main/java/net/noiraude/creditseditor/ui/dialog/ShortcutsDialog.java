@@ -1,19 +1,11 @@
 package net.noiraude.creditseditor.ui.dialog;
 
 import static net.noiraude.creditseditor.ui.ScaledMetrics.gapHuge;
-import static net.noiraude.creditseditor.ui.ScaledMetrics.gapLarge;
-import static net.noiraude.creditseditor.ui.ScaledMetrics.gapMedium;
-import static net.noiraude.creditseditor.ui.ScaledMetrics.gapSmall;
 import static net.noiraude.creditseditor.ui.ScaledMetrics.gapXXLarge;
 
 import java.awt.BorderLayout;
-import java.awt.Component;
 import java.awt.FlowLayout;
-import java.awt.Font;
 import java.awt.Frame;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
 import java.awt.event.KeyEvent;
 import java.util.List;
 
@@ -25,7 +17,6 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JRootPane;
 import javax.swing.KeyStroke;
-import javax.swing.UIManager;
 
 import net.noiraude.creditseditor.ui.I18n;
 
@@ -36,69 +27,64 @@ import org.jetbrains.annotations.Nullable;
  * Modal dialog listing the keyboard shortcuts available in the editor.
  *
  * <p>
- * The shortcut catalogue is hand-maintained against the actual accelerators wired in
- * {@link net.noiraude.creditseditor.ui.EditorMenuBar} and the editing keys provided by
- * Swing's standard text actions; new accelerators must be added here so users can discover
- * them. Closes on the Close button, the window close icon, or the Escape key.
+ * The shortcut catalogue is hand-maintained against the accelerators wired in
+ * {@link net.noiraude.creditseditor.ui.EditorMenuBar} and the standard text-editing keys
+ * provided by Swing; new accelerators must be added here so users can discover them.
+ *
+ * <p>
+ * Rows are rendered as a single HTML table inside one {@link JLabel}, which gives consistent
+ * column alignment without per-row layout bookkeeping.
  */
 public final class ShortcutsDialog extends JDialog {
 
-    private record Shortcut(@NotNull String keys, @NotNull String description) {
+    private record Shortcut(@NotNull String keys, @NotNull String description) {}
 
-    }
-
-    private record Section(@NotNull String title, @NotNull List<Shortcut> shortcuts) {
-
-    }
+    private record Section(@NotNull String title, @NotNull List<Shortcut> shortcuts) {}
 
     public ShortcutsDialog(@Nullable Frame owner) {
         super(owner, I18n.get("dialog.shortcuts.title"), true);
 
         JPanel content = new JPanel(new BorderLayout(0, gapXXLarge));
         content.setBorder(BorderFactory.createEmptyBorder(gapHuge, gapHuge, gapXXLarge, gapHuge));
-        content.add(buildShortcutsPanel(), BorderLayout.CENTER);
+        content.add(buildShortcutsLabel(), BorderLayout.CENTER);
         content.add(buildButtonPanel(), BorderLayout.SOUTH);
 
         setContentPane(content);
         installCloseOnEscape();
-        getRootPane().setDefaultButton(findCloseButton(content));
 
         pack();
         setResizable(false);
         setLocationRelativeTo(owner);
     }
 
-    private @NotNull JComponent buildShortcutsPanel() {
-        JPanel grid = new JPanel(new GridBagLayout());
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        gbc.anchor = GridBagConstraints.WEST;
-        gbc.insets = new Insets(0, 0, gapSmall, gapLarge);
-
+    private static @NotNull JComponent buildShortcutsLabel() {
+        StringBuilder html = new StringBuilder("<html><table cellpadding='2' cellspacing='0'>");
+        boolean firstSection = true;
         for (Section section : sections()) {
-            gbc.gridwidth = 2;
-            gbc.insets = new Insets(gapMedium, 0, gapSmall, 0);
-            JLabel header = new JLabel(section.title);
-            Font base = header.getFont();
-            header.setFont(base.deriveFont(Font.BOLD));
-            grid.add(header, gbc);
-            gbc.gridy++;
-            gbc.gridwidth = 1;
-
+            if (!firstSection) {
+                html.append("<tr><td colspan='2'>&nbsp;</td></tr>");
+            }
+            firstSection = false;
+            html.append("<tr><th colspan='2' align='left'>")
+                .append(escape(section.title))
+                .append("</th></tr>");
             for (Shortcut s : section.shortcuts) {
-                gbc.gridx = 0;
-                gbc.insets = new Insets(0, gapLarge, gapSmall, gapMedium);
-                JLabel keysLabel = new JLabel(s.keys);
-                keysLabel.setFont(UIManager.getFont("Label.font"));
-                grid.add(keysLabel, gbc);
-                gbc.gridx = 1;
-                gbc.insets = new Insets(0, 0, gapSmall, 0);
-                grid.add(new JLabel(s.description), gbc);
-                gbc.gridy++;
+                html.append("<tr><td><tt>")
+                    .append(escape(s.keys))
+                    .append("</tt></td>");
+                html.append("<td>&nbsp;&nbsp;")
+                    .append(escape(s.description))
+                    .append("</td></tr>");
             }
         }
-        return grid;
+        html.append("</table></html>");
+        return new JLabel(html.toString());
+    }
+
+    private static @NotNull String escape(@NotNull String text) {
+        return text.replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;");
     }
 
     private static @NotNull List<Section> sections() {
@@ -116,13 +102,7 @@ public final class ShortcutsDialog extends JDialog {
                     new Shortcut("Ctrl+X", I18n.get("dialog.shortcuts.edit.cut")),
                     new Shortcut("Ctrl+C", I18n.get("dialog.shortcuts.edit.copy")),
                     new Shortcut("Ctrl+V", I18n.get("dialog.shortcuts.edit.paste")),
-                    new Shortcut("Ctrl+A", I18n.get("dialog.shortcuts.edit.select_all")))),
-            new Section(
-                I18n.get("dialog.shortcuts.section.format"),
-                List.of(
-                    new Shortcut(
-                        I18n.get("dialog.shortcuts.format.toolbar.keys"),
-                        I18n.get("dialog.shortcuts.format.toolbar.desc")))));
+                    new Shortcut("Ctrl+A", I18n.get("dialog.shortcuts.edit.select_all")))));
     }
 
     private @NotNull JComponent buildButtonPanel() {
@@ -130,6 +110,7 @@ public final class ShortcutsDialog extends JDialog {
         JButton closeButton = new JButton(I18n.get("button.close"));
         closeButton.addActionListener(e -> dispose());
         panel.add(closeButton);
+        getRootPane().setDefaultButton(closeButton);
         return panel;
     }
 
@@ -139,16 +120,5 @@ public final class ShortcutsDialog extends JDialog {
             e -> dispose(),
             KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0),
             JComponent.WHEN_IN_FOCUSED_WINDOW);
-    }
-
-    private static @Nullable JButton findCloseButton(@NotNull JComponent root) {
-        for (Component c : root.getComponents()) {
-            if (c instanceof JButton b) return b;
-            if (c instanceof JComponent cc) {
-                JButton found = findCloseButton(cc);
-                if (found != null) return found;
-            }
-        }
-        return null;
     }
 }
