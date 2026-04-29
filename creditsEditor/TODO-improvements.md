@@ -214,7 +214,7 @@ Current: 11 test files for 59 production classes. Zero UI tests.
   Current: invalid characters are stripped silently. Add a small warning label under the field explaining which characters were removed, or show a toast with an undo hint.
   Done when: typing a space or dot into a name field produces visible feedback rather than silent mutation.
 
-- [ ] **6.3 Keyboard shortcut help entry**
+- [x] **6.3 Keyboard shortcut help entry**
   File: `ui/dialog/AboutDialog.java` or new `ui/dialog/ShortcutsDialog.java`
   Add a Help menu entry listing all keyboard shortcuts.
   Done when: Help > Keyboard Shortcuts opens a dialog listing File, Edit, Format shortcuts.

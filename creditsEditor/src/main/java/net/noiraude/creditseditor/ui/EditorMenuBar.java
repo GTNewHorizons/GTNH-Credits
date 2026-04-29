@@ -41,9 +41,9 @@ final class EditorMenuBar extends JMenuBar {
     }
 
     /**
-     * Help-menu callbacks: about.
+     * Help-menu callbacks: shortcuts, about.
      */
-    record HelpActions(@NotNull Runnable onAbout) {
+    record HelpActions(@NotNull Runnable onShortcuts, @NotNull Runnable onAbout) {
 
         @Contract(pure = true)
         HelpActions {}
@@ -61,6 +61,7 @@ final class EditorMenuBar extends JMenuBar {
         Runnable onQuit = fileActions.onQuit;
         Runnable onUndo = editActions.onUndo;
         Runnable onRedo = editActions.onRedo;
+        Runnable onShortcuts = helpActions.onShortcuts;
         Runnable onAbout = helpActions.onAbout;
         JMenu fileMenu = new JMenu(I18n.get("menu.file"));
         applyMnemonic(fileMenu, "menu.file.mnemonic");
@@ -108,9 +109,14 @@ final class EditorMenuBar extends JMenuBar {
 
         JMenu helpMenu = new JMenu(I18n.get("menu.help"));
         applyMnemonic(helpMenu, "menu.help.mnemonic");
+        JMenuItem menuShortcuts = new JMenuItem(I18n.get("menu.help.shortcuts"));
+        applyMnemonic(menuShortcuts, "menu.help.shortcuts.mnemonic");
+        menuShortcuts.addActionListener(e -> onShortcuts.run());
         JMenuItem menuAbout = new JMenuItem(I18n.get("menu.help.about", AppInfo.name()));
         applyMnemonic(menuAbout, "menu.help.about.mnemonic");
         menuAbout.addActionListener(e -> onAbout.run());
+        helpMenu.add(menuShortcuts);
+        helpMenu.addSeparator();
         helpMenu.add(menuAbout);
 
         add(fileMenu);

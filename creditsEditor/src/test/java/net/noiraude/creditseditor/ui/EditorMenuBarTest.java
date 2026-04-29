@@ -125,7 +125,7 @@ public class EditorMenuBarTest {
         return new EditorMenuBar(
             new FileActions(NOOP, NOOP, NOOP, NOOP),
             new EditActions(NOOP, NOOP),
-            new HelpActions(NOOP));
+            new HelpActions(NOOP, NOOP));
     }
 
     private @NotNull EditorSession newSession() throws Exception {

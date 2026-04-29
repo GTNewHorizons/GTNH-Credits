@@ -16,6 +16,7 @@ import net.noiraude.creditseditor.bus.DocumentBus;
 import net.noiraude.creditseditor.command.CommandExecutor;
 import net.noiraude.creditseditor.ui.dialog.AboutDialog;
 import net.noiraude.creditseditor.ui.dialog.ProgressDialog;
+import net.noiraude.creditseditor.ui.dialog.ShortcutsDialog;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -67,7 +68,7 @@ public final class MainWindow extends JFrame {
                 this::handleSave,
                 this::handleQuit),
             new EditorMenuBar.EditActions(this::handleUndo, this::handleRedo),
-            new EditorMenuBar.HelpActions(this::handleAbout));
+            new EditorMenuBar.HelpActions(this::handleShortcuts, this::handleAbout));
         setJMenuBar(menuBar);
 
         // Realize the peer so getInsets() returns real chrome sizes, then force the frame's
@@ -195,6 +196,10 @@ public final class MainWindow extends JFrame {
 
     private void handleAbout() {
         new AboutDialog(this).setVisible(true);
+    }
+
+    private void handleShortcuts() {
+        new ShortcutsDialog(this).setVisible(true);
     }
 
     // -----------------------------------------------------------------------
