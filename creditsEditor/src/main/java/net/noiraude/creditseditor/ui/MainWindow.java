@@ -1,19 +1,5 @@
 package net.noiraude.creditseditor.ui;
 
-import net.noiraude.creditseditor.bus.DocumentBus;
-import net.noiraude.creditseditor.command.CommandExecutor;
-import net.noiraude.creditseditor.ui.dialog.AboutDialog;
-import net.noiraude.creditseditor.ui.dialog.ProgressDialog;
-import net.noiraude.creditseditor.ui.dialog.ShortcutsDialog;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
-import javax.swing.JFileChooser;
-import javax.swing.JFrame;
-import javax.swing.JOptionPane;
-import javax.swing.SwingWorker;
-import javax.swing.filechooser.FileFilter;
-import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.Insets;
@@ -26,6 +12,22 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.concurrent.ExecutionException;
+
+import javax.swing.JFileChooser;
+import javax.swing.JFrame;
+import javax.swing.JOptionPane;
+import javax.swing.SwingWorker;
+import javax.swing.filechooser.FileFilter;
+import javax.swing.filechooser.FileNameExtensionFilter;
+
+import net.noiraude.creditseditor.bus.DocumentBus;
+import net.noiraude.creditseditor.command.CommandExecutor;
+import net.noiraude.creditseditor.ui.dialog.AboutDialog;
+import net.noiraude.creditseditor.ui.dialog.ProgressDialog;
+import net.noiraude.creditseditor.ui.dialog.ShortcutsDialog;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Main application window for the GTNH Credits Editor.
