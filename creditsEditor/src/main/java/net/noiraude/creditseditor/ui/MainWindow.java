@@ -1,5 +1,19 @@
 package net.noiraude.creditseditor.ui;
 
+import net.noiraude.creditseditor.bus.DocumentBus;
+import net.noiraude.creditseditor.command.CommandExecutor;
+import net.noiraude.creditseditor.ui.dialog.AboutDialog;
+import net.noiraude.creditseditor.ui.dialog.ProgressDialog;
+import net.noiraude.creditseditor.ui.dialog.ShortcutsDialog;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import javax.swing.JFileChooser;
+import javax.swing.JFrame;
+import javax.swing.JOptionPane;
+import javax.swing.SwingWorker;
+import javax.swing.filechooser.FileFilter;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.Insets;
@@ -12,22 +26,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.concurrent.ExecutionException;
-
-import javax.swing.JFileChooser;
-import javax.swing.JFrame;
-import javax.swing.JOptionPane;
-import javax.swing.SwingWorker;
-import javax.swing.filechooser.FileFilter;
-import javax.swing.filechooser.FileNameExtensionFilter;
-
-import net.noiraude.creditseditor.bus.DocumentBus;
-import net.noiraude.creditseditor.command.CommandExecutor;
-import net.noiraude.creditseditor.ui.dialog.AboutDialog;
-import net.noiraude.creditseditor.ui.dialog.ProgressDialog;
-import net.noiraude.creditseditor.ui.dialog.ShortcutsDialog;
-
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * Main application window for the GTNH Credits Editor.
@@ -172,14 +170,19 @@ public final class MainWindow extends JFrame implements EditorActions.Handlers {
 
     @Override
     public void onSave() {
-        if (session == null) return;
+        doSave();
+    }
+
+    private boolean doSave() {
+        if (session == null) return false;
         try {
             session.save();
         } catch (Exception ex) {
             ErrorPresenter.show(this, I18n.get("dialog.save.error.title"), ex);
-            return;
+            return false;
         }
         updateTitle();
+        return true;
     }
 
     @Override
@@ -318,17 +321,30 @@ public final class MainWindow extends JFrame implements EditorActions.Handlers {
     /**
      * Shows an "unsaved changes" confirmation dialog if needed.
      *
-     * @return {@code true} if the caller should abort (no session, dirty and user declined),
-     *         {@code false} if the caller may proceed
+     * <p>
+     * Offers Save, Discard, and Cancel. Save runs {@link #doSave()} and only allows the
+     * caller to proceed when the save succeeds; Discard always allows it; Cancel and any
+     * other dismissal abort the caller.
+     *
+     * @return {@code true} if the caller should abort, {@code false} if it may proceed
      */
     private boolean shouldAbort() {
         if (session == null || !session.isDirty()) return false;
-        int choice = JOptionPane.showConfirmDialog(
+        Object[] options = { I18n.get("dialog.unsaved.button.save"), I18n.get("dialog.unsaved.button.discard"),
+            I18n.get("button.cancel") };
+        int choice = JOptionPane.showOptionDialog(
             this,
             I18n.get("dialog.unsaved.message"),
             I18n.get("dialog.unsaved.title"),
-            JOptionPane.YES_NO_OPTION,
-            JOptionPane.WARNING_MESSAGE);
-        return choice != JOptionPane.YES_OPTION;
+            JOptionPane.YES_NO_CANCEL_OPTION,
+            JOptionPane.WARNING_MESSAGE,
+            null,
+            options,
+            options[0]);
+        return switch (choice) {
+            case 0 -> !doSave();
+            case 1 -> false;
+            default -> true;
+        };
     }
 }
