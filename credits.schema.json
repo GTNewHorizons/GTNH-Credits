@@ -103,7 +103,7 @@
       "properties": {
         "name": {
           "$comment": "Display name. Full printable UTF-8; no control characters. May be visually truncated if it exceeds the available display width.",
-          "x-constraints": "Printable UTF-8, 1–80 chars, no control characters",
+          "x-constraints": "Printable UTF-8, 1-80 chars, no control characters",
           "type": "string",
           "minLength": 1,
           "maxLength": 80,

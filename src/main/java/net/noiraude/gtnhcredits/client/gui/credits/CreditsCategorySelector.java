@@ -3,7 +3,7 @@ package net.noiraude.gtnhcredits.client.gui.credits;
 import java.util.List;
 
 import net.noiraude.gtnhcredits.repository.CreditsController;
-import net.noiraude.libcredits.model.CreditsCategory;
+import net.noiraude.libcredits.model.DocumentCategory;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -28,7 +28,7 @@ class CreditsCategorySelector extends ListWidget<IWidget, CreditsCategorySelecto
     CreditsCategorySelector(int width, CreditsController controller) {
         width(width);
         heightRel(1f);
-        List<CreditsCategory> categories = controller.getCategories();
+        List<DocumentCategory> categories = controller.getCategories();
         for (int i = 0; i < categories.size(); i++) {
             child(new CategoryButton(controller, i));
         }
