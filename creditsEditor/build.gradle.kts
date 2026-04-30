@@ -41,6 +41,8 @@ dependencies {
 
 tasks.named<Test>("test") {
     useJUnitPlatform()
+    systemProperty("user.language", "en")
+    systemProperty("user.country", "US")
 }
 
 java {

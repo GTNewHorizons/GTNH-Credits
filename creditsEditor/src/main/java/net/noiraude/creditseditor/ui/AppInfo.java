@@ -46,10 +46,6 @@ public final class AppInfo {
         return get("copyright", "");
     }
 
-    public static @NotNull String description() {
-        return get("description", "");
-    }
-
     public static @NotNull String url() {
         return get("url", "");
     }

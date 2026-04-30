@@ -87,7 +87,7 @@ public final class AboutDialog extends JDialog {
         panel.add(Box.createVerticalStrut(gapMedium));
         panel.add(leftLabel(I18n.get("dialog.about.version", AppInfo.version())));
 
-        String description = AppInfo.description();
+        String description = I18n.get("about.description");
         String license = AppInfo.license();
         if (!description.isEmpty() || !license.isEmpty()) {
             panel.add(Box.createVerticalStrut(gapXLarge));

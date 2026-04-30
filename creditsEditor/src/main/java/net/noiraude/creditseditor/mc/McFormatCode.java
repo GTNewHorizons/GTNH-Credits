@@ -91,26 +91,6 @@ public enum McFormatCode {
         return rgb;
     }
 
-    /**
-     * Returns a human-readable display name derived from the enum constant name, e.g.
-     * {@code DARK_BLUE} to {@code "Dark Blue (§1)"}, {@code BOLD} to {@code "Bold (§l)"}.
-     */
-    public @NotNull String displayName() {
-        String[] parts = name().split("_");
-        StringBuilder sb = new StringBuilder();
-        for (String part : parts) {
-            if (!sb.isEmpty()) sb.append(' ');
-            sb.append(Character.toUpperCase(part.charAt(0)));
-            sb.append(
-                part.substring(1)
-                    .toLowerCase());
-        }
-        sb.append(" (§")
-            .append(code)
-            .append(')');
-        return sb.toString();
-    }
-
     /** Appends the {@code §x} escape sequence for this code to {@code sb}. */
     public void appendTo(@NotNull StringBuilder sb) {
         sb.append('§')

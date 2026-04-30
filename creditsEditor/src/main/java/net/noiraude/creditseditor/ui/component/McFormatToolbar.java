@@ -11,6 +11,7 @@ import java.awt.font.TextAttribute;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.EnumSet;
+import java.util.Locale;
 import java.util.Map;
 
 import javax.swing.*;
@@ -64,27 +65,35 @@ public final class McFormatToolbar extends JPanel {
 
     private static @NotNull EnumMap<@NotNull McFormatCode, @NotNull MixedStateToggleButton> buildModifierButtons() {
         EnumMap<McFormatCode, MixedStateToggleButton> buttons = new EnumMap<>(McFormatCode.class);
-        buttons.put(McFormatCode.BOLD, modBtn("B", McFormatCode.BOLD.displayName(), EnumSet.of(FontStyle.BOLD)));
-        buttons.put(McFormatCode.ITALIC, modBtn("I", McFormatCode.ITALIC.displayName(), EnumSet.of(FontStyle.ITALIC)));
+        buttons.put(McFormatCode.BOLD, modBtn("B", tooltipFor(McFormatCode.BOLD), EnumSet.of(FontStyle.BOLD)));
+        buttons.put(McFormatCode.ITALIC, modBtn("I", tooltipFor(McFormatCode.ITALIC), EnumSet.of(FontStyle.ITALIC)));
         buttons.put(
             McFormatCode.UNDERLINE,
-            modBtn("U", McFormatCode.UNDERLINE.displayName(), EnumSet.of(FontStyle.UNDERLINE)));
+            modBtn("U", tooltipFor(McFormatCode.UNDERLINE), EnumSet.of(FontStyle.UNDERLINE)));
         buttons.put(
             McFormatCode.STRIKETHROUGH,
-            modBtn("S", McFormatCode.STRIKETHROUGH.displayName(), EnumSet.of(FontStyle.STRIKETHROUGH)));
+            modBtn("S", tooltipFor(McFormatCode.STRIKETHROUGH), EnumSet.of(FontStyle.STRIKETHROUGH)));
         buttons.put(
             McFormatCode.OBFUSCATED,
-            modBtn("K", McFormatCode.OBFUSCATED.displayName(), EnumSet.noneOf(FontStyle.class)));
+            modBtn("K", tooltipFor(McFormatCode.OBFUSCATED), EnumSet.noneOf(FontStyle.class)));
         return buttons;
+    }
+
+    private static @NotNull String tooltipFor(@NotNull McFormatCode code) {
+        String name = I18n.get(
+            "mcformat." + code.name()
+                .toLowerCase(Locale.ROOT));
+        return name + " (§" + code.code + ")";
     }
 
     private @NotNull JButton buildColorSwatches(int iconSize) {
         for (int i = 0; i < 16; i++) {
             final McFormatCode code = McFormatCode.PALETTE[i];
             McColorButton btn = new McColorButton(McPalette.colorOf(code), iconSize);
-            btn.setToolTipText(code.displayName());
+            String tooltip = tooltipFor(code);
+            btn.setToolTipText(tooltip);
             btn.getAccessibleContext()
-                .setAccessibleName(code.displayName());
+                .setAccessibleName(tooltip);
             colorGroup.add(btn);
             colorButtons[i] = btn;
             add(btn);
@@ -104,9 +113,10 @@ public final class McFormatToolbar extends JPanel {
         JButton resetBtn = new JButton("§r");
         resetBtn.setMargin(new Insets(gapHair, gapSmall, gapHair, gapSmall));
         resetBtn.setFocusable(false);
-        resetBtn.setToolTipText(McFormatCode.RESET.displayName());
+        String resetTooltip = tooltipFor(McFormatCode.RESET);
+        resetBtn.setToolTipText(resetTooltip);
         resetBtn.getAccessibleContext()
-            .setAccessibleName(McFormatCode.RESET.displayName());
+            .setAccessibleName(resetTooltip);
         add(resetBtn);
         return resetBtn;
     }
