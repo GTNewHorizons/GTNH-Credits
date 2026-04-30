@@ -1,0 +1,65 @@
+package net.noiraude.creditseditor.command.impl;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+import net.noiraude.creditseditor.bus.DocumentBus;
+import net.noiraude.libcredits.model.DocumentMembership;
+import net.noiraude.libcredits.model.DocumentPerson;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+/**
+ * Moves one or more roles to a new position within a membership's role list, preserving
+ * their relative order.
+ *
+ * <p>
+ * {@code fromIndices} are the source positions and {@code dropIndex} is the insertion point
+ * as reported by a {@link javax.swing.DropMode#INSERT} drop location (i.e., the index in the
+ * original list before any drag item is removed). When the selection is discontinuous, the
+ * dragged items are reinserted as a contiguous block at the computed drop position and keep
+ * their original relative order.
+ */
+public final class MoveRolesOrderCommand extends AbstractCommand {
+
+    private final @NotNull DocumentBus bus;
+    private final @NotNull DocumentPerson person;
+    private final @NotNull DocumentMembership membership;
+    private final int @NotNull [] fromIndices;
+    private final int dropIndex;
+    private @Nullable List<String> originalOrder;
+
+    public MoveRolesOrderCommand(@NotNull DocumentBus bus, @NotNull DocumentPerson person,
+        @NotNull DocumentMembership membership, int @NotNull [] fromIndices, int dropIndex) {
+        this.bus = bus;
+        this.person = person;
+        this.membership = membership;
+        int[] sorted = fromIndices.clone();
+        Arrays.sort(sorted);
+        this.fromIndices = sorted;
+        this.dropIndex = dropIndex;
+    }
+
+    @Override
+    public void execute() {
+        originalOrder = new ArrayList<>(membership.roles);
+        ListReorderHelper.move(membership.roles, fromIndices, dropIndex);
+        bus.firePersonChanged(person);
+    }
+
+    @Override
+    public void undo() {
+        if (originalOrder == null) return;
+        membership.roles.clear();
+        membership.roles.addAll(originalOrder);
+        bus.firePersonChanged(person);
+    }
+
+    @Override
+    public @NotNull String getDisplayName() {
+        return fromIndices.length == 1 ? "Move role in " + membership.categoryId
+            : "Move " + fromIndices.length + " roles in " + membership.categoryId;
+    }
+}

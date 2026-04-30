@@ -33,17 +33,13 @@
  *
  * For more details, see https://docs.gradle.org/8.0.1/userguide/java_library_plugin.html#sec:java_library_configurations_graph
  */
-val annotationsVersion: String by gradle.extra
-val modularUI2Version: String by gradle.extra
-val customMainMenuVersion: String by gradle.extra
-val junitVersion: String by gradle.extra
-val jsonSchemaValidatorVersion: String by gradle.extra
 
+final def gradleExt = gradle.extensions.extraProperties
 dependencies {
-    add("api", project(":libCredits"))
-    add("compileOnly", "org.jetbrains:annotations:$annotationsVersion")
-    add("api", "com.github.GTNewHorizons:ModularUI2:$modularUI2Version:dev")
-    add("compileOnly", "com.github.GTNewHorizons:Custom-Main-Menu:$customMainMenuVersion:dev")
-    add("testImplementation", "junit:junit:$junitVersion")
-    add("testImplementation", "com.networknt:json-schema-validator:$jsonSchemaValidatorVersion")
+    api project(':libCredits')
+    compileOnly "org.jetbrains:annotations:${gradleExt.get('annotationsVersion')}"
+    api "com.github.GTNewHorizons:ModularUI2:${gradleExt.get('modularUI2Version')}:dev"
+    compileOnly "com.github.GTNewHorizons:Custom-Main-Menu:${gradleExt.get('customMainMenuVersion')}:dev"
+    testImplementation "junit:junit:${gradleExt.get('junitVersion')}"
+    testImplementation "com.networknt:json-schema-validator:${gradleExt.get('jsonSchemaValidatorVersion')}"
 }
