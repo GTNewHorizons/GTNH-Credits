@@ -43,7 +43,7 @@ An entry in the person array, representing a single credited individual.
 
 | Property | Type | Required | Constraints | Description |
 |---|---|---|---|---|
-| `name` | `string` | yes | Printable UTF-8, 1–80 chars, no control characters | Display name. Full printable UTF-8; no control characters. May be visually truncated if it exceeds the available display width. |
+| `name` | `string` | yes | Printable UTF-8, 1-80 chars, no control characters | Display name. Full printable UTF-8; no control characters. May be visually truncated if it exceeds the available display width. |
 | `category` | [`PersonCategoryEntry`](#personcategoryentry) or `PersonCategoryEntry[]` | yes | Non-empty; each id must match a defined category *(build-enforced)* | One or more category memberships for this person. Each entry is either a plain category key (no roles) or a single-property object whose key is the category id and whose value is one or more role keys for that category. Category id uniqueness within the list and cross-reference validity are enforced by the build tooling. |
 
 ---

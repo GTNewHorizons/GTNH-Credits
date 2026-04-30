@@ -1,0 +1,3 @@
+// Stub: spotless is configured at the parent project level.
+// This file exists so the isolated creditsEditor build does not fail
+// when applying rootProject.file("gtnhShared/spotless.gradle").

@@ -1,5 +1,4 @@
 {
-  "$schema": "https://raw.githubusercontent.com/GTNewHorizons/GTNH-Credits/master/credits.schema.json",
   "version": 2,
   "category": [
     {
@@ -41,71 +40,18 @@
     {
       "id": "Indexed Detail",
       "class": "detail"
+    },
+    {
+      "id": "NewCat"
+    },
+    {
+      "id": "Mod authors",
+      "class": ["detail", "person", "role"]
     }
   ],
   "person": [
     {
-      "name": "§cDreamMaster§f§lXXL",
-      "category": [{ "team": "gtnh-creator" }, { "dev": "gtnh-creator" }]
-    },
-    {
-      "name": "Technovangelist",
-      "category": [{ "team": ["dev", "infra"] }, { "dev": ["dev", "infra"] }]
-    },
-    {
-      "name": "Lea",
-      "category": { "dev": "dev" }
-    },
-    {
-      "name": "Glease",
-      "category": { "dev": ["dev", "core-mods"] }
-    },
-    {
-      "name": "Blood Asp",
-      "category": [{ "dev": "dev" }, "contrib"]
-    },
-    {
-      "name": "Steelux",
-      "category": "contrib"
-    },
-    {
-      "name": "Steelux",
-      "category": "contrib"
-    },
-    {
-      "name": "Albert",
-      "category": "contrib"
-    },
-    {
-      "name": "Marie",
-      "category": "contrib"
-    },
-    {
-      "name": "D2R2",
-      "category": "contrib"
-    },
-    {
-      "name": "Marvein",
-      "category": "contrib"
-    },
-    {
-      "name": "Skynet",
-      "category": "contrib"
-    },
-    {
-      "name": "Woper",
-      "category": "contrib"
-    },
-    {
-      "name": "Mother",
-      "category": "contrib"
-    },
-    {
-      "name": "Albert Einstein",
-      "category": "contrib"
-    },
-    {
-      "name": "Max Planck",
+      "name": "Ada Lovelace",
       "category": "contrib"
     },
     {
@@ -113,7 +59,346 @@
       "category": "contrib"
     },
     {
-      "name": "Ada Lovelace",
+      "name": "Albert",
+      "category": "contrib"
+    },
+    {
+      "name": "Albert Einstein",
+      "category": "contrib"
+    },
+    {
+      "name": "Amazing Sponsor",
+      "category": "support"
+    },
+    {
+      "name": "Anachronist",
+      "category": {
+        "contrib": "recipes"
+      }
+    },
+    {
+      "name": "Arcratus",
+      "category": {
+        "Mod authors": "BloodArsenal"
+      }
+    },
+    {
+      "name": "AtomicStryker",
+      "category": {
+        "Mod authors": "Infernal-Mobs"
+      }
+    },
+    {
+      "name": "Benimatic (Ben Mazur)",
+      "category": {
+        "Mod authors": "twilightforest"
+      }
+    },
+    {
+      "name": "Blood Asp",
+      "category": [
+        {
+          "dev": "dev"
+        },
+        "contrib",
+        {
+          "Mod authors": "GT5-Unofficial.backup"
+        }
+      ]
+    },
+    {
+      "name": "ChickenBones",
+      "category": {
+        "Mod authors": "ForgeMultipart"
+      }
+    },
+    {
+      "name": "cpw",
+      "category": {
+        "Mod authors": "ironchest"
+      }
+    },
+    {
+      "name": "crazypants",
+      "category": {
+        "Mod authors": "EnderZoo"
+      }
+    },
+    {
+      "name": "D2R2",
+      "category": "contrib"
+    },
+    {
+      "name": "Darkhax",
+      "category": {
+        "Mod authors": "WAWLA"
+      }
+    },
+    {
+      "name": "dmillerw",
+      "category": {
+        "Mod authors": "TooMuchLoot"
+      }
+    },
+    {
+      "name": "§cDreamMaster§f§lXXL",
+      "category": [
+        {
+          "team": "gtnh-creator"
+        },
+        {
+          "dev": "gtnh-creator"
+        }
+      ]
+    },
+    {
+      "name": "Dries007",
+      "category": {
+        "Mod authors": "HoloInventory"
+      }
+    },
+    {
+      "name": "Eydamos",
+      "category": {
+        "Mod authors": "Minecraft-Backpack-Mod"
+      }
+    },
+    {
+      "name": "Fallback Cat Person",
+      "category": "No-Trans Cat"
+    },
+    {
+      "name": "Fallback Role Person",
+      "category": {
+        "Key Test": "No.Trans Role"
+      }
+    },
+    {
+      "name": "Flaxbeard",
+      "category": {
+        "Mod authors": "Thaumic_Exploration"
+      }
+    },
+    {
+      "name": "Friendly Patron",
+      "category": "support"
+    },
+    {
+      "name": "fuj1n",
+      "category": {
+        "Mod authors": "TinkersMechworks"
+      }
+    },
+    {
+      "name": "Generous Giver",
+      "category": "support"
+    },
+    {
+      "name": "Glease",
+      "category": {
+        "dev": ["dev", "core-mods"]
+      }
+    },
+    {
+      "name": "Greg Ewing",
+      "category": {
+        "Mod authors": ["ProjectBlue", "ArchitectureCraft", "SGCraft"]
+      }
+    },
+    {
+      "name": "Gregorius Techneticies",
+      "category": {
+        "Mod authors": "GT5-Unofficial.backup"
+      }
+    },
+    {
+      "name": "GTNH Team",
+      "category": {
+        "Mod authors": "Thaumic_Exploration"
+      }
+    },
+    {
+      "name": "Helpful Backer",
+      "category": "support"
+    },
+    {
+      "name": "hilburn",
+      "category": {
+        "Mod authors": ["AdvancedSystemsManager", "StevesAddons"]
+      }
+    },
+    {
+      "name": "hilburn",
+      "category": {
+        "Mod authors": "StevesAddons"
+      }
+    },
+    {
+      "name": "jaquadro",
+      "category": {
+        "Mod authors": "StorageDrawers"
+      }
+    },
+    {
+      "name": "Jimeo Wan",
+      "category": {
+        "Mod authors": "inventory-tweaks"
+      }
+    },
+    {
+      "name": "Kentington",
+      "category": {
+        "Mod authors": "ThaumicHorizons"
+      }
+    },
+    {
+      "name": "Keridos",
+      "category": {
+        "Mod authors": "OpenModularTurrets"
+      }
+    },
+    {
+      "name": "Kind Donator",
+      "category": "support"
+    },
+    {
+      "name": "Kobata",
+      "category": {
+        "Mod authors": "inventory-tweaks"
+      }
+    },
+    {
+      "name": "KryptonCaptain",
+      "category": {
+        "Mod authors": "Thaumic_Exploration"
+      }
+    },
+    {
+      "name": "Lea",
+      "category": {
+        "dev": "dev"
+      }
+    },
+    {
+      "name": "Lisa Meitner",
+      "category": "contrib"
+    },
+    {
+      "name": "Loyal Fan",
+      "category": "support"
+    },
+    {
+      "name": "Marie",
+      "category": "contrib"
+    },
+    {
+      "name": "Marvein",
+      "category": "contrib"
+    },
+    {
+      "name": "Max Planck",
+      "category": "contrib"
+    },
+    {
+      "name": "mDiyo",
+      "category": {
+        "Mod authors": ["Mantle", "Natura", "TinkersMechworks"]
+      }
+    },
+    {
+      "name": "Mother",
+      "category": "contrib"
+    },
+    {
+      "name": "MysteriousAges",
+      "category": {
+        "Mod authors": "MagicBees"
+      }
+    },
+    {
+      "name": "Namikon",
+      "category": {
+        "Mod authors": "TooMuchLoot"
+      }
+    },
+    {
+      "name": "nekosune",
+      "category": {
+        "Mod authors": "ThaumicTinkerer"
+      }
+    },
+    {
+      "name": "Paul Dirac",
+      "category": "contrib"
+    },
+    {
+      "name": "pharaun666",
+      "category": {
+        "Mod authors": "Gregtania"
+      }
+    },
+    {
+      "name": "Pillbox",
+      "category": {
+        "Mod authors": "TinkersMechworks"
+      }
+    },
+    {
+      "name": "pixlepix",
+      "category": {
+        "Mod authors": "ThaumicTinkerer"
+      }
+    },
+    {
+      "name": "Poenjabiesous",
+      "category": {
+        "Mod authors": "OpenModularTurrets"
+      }
+    },
+    {
+      "name": "ProfMobius",
+      "category": {
+        "Mod authors": ["Opis", "waila"]
+      }
+    },
+    {
+      "name": "progWML6",
+      "category": {
+        "Mod authors": "Mantle"
+      }
+    },
+    {
+      "name": "Rfctksxk",
+      "category": "thanks"
+    },
+    {
+      "name": "RoyCurtis",
+      "category": {
+        "Mod authors": "Opis"
+      }
+    },
+    {
+      "name": "Shukaro",
+      "category": {
+        "Mod authors": ["Nodal-Mechanics", "WarpTheory"]
+      }
+    },
+    {
+      "name": "Skynet",
+      "category": "contrib"
+    },
+    {
+      "name": "Slime Knights",
+      "category": {
+        "Mod authors": "Natura"
+      }
+    },
+    {
+      "name": "Steelux",
+      "category": "contrib"
+    },
+    {
+      "name": "Steelux",
       "category": "contrib"
     },
     {
@@ -121,64 +406,69 @@
       "category": "contrib"
     },
     {
-      "name": "Lisa Meitner",
-      "category": "contrib"
-    },
-    {
-      "name": "Yuri Gagarin",
-      "category": "contrib"
-    },
-    {
-      "name": "Paul Dirac",
-      "category": "contrib"
-    },
-    {
-      "name": "Anachronist",
-      "category": { "contrib": "recipes" }
+      "name": "Sunstrike",
+      "category": {
+        "Mod authors": ["Mantle", "TinkersMechworks"]
+      }
     },
     {
       "name": "Supporter McSupportface",
       "category": "support"
     },
     {
-      "name": "Generous Giver",
-      "category": "support"
+      "name": "Technovangelist",
+      "category": [
+        {
+          "team": ["dev", "infra", "bogo"]
+        },
+        {
+          "dev": ["core-mods", "dev"]
+        }
+      ]
     },
     {
-      "name": "Friendly Patron",
-      "category": "support"
-    },
-    {
-      "name": "Kind Donator",
-      "category": "support"
-    },
-    {
-      "name": "Helpful Backer",
-      "category": "support"
-    },
-    {
-      "name": "Loyal Fan",
-      "category": "support"
-    },
-    {
-      "name": "Amazing Sponsor",
-      "category": "support"
-    },
-    {
-      "name": "Rfctksxk",
-      "category": "thanks"
+      "name": "thegreatunclean",
+      "category": {
+        "Mod authors": "WarpTheory"
+      }
     },
     {
       "name": "Translated Person",
-      "category": { "Key Test": ["Test-Role", "Core.Mod"] }
+      "category": {
+        "Key Test": ["Test-Role", "Core.Mod"]
+      }
     },
     {
-      "name": "Fallback Role Person",
-      "category": { "Key Test": "No.Trans Role" }
+      "name": "UntouchedWagons",
+      "category": {
+        "Mod authors": "OpenModularTurrets"
+      }
     },
     {
-      "name": "Fallback Cat Person",
-      "category": "No-Trans Cat"
+      "name": "Uristqwerty",
+      "category": {
+        "Mod authors": "CraftGuide"
+      }
+    },
+    {
+      "name": "Vexatos",
+      "category": {
+        "Mod authors": "TinkersGregworks"
+      }
+    },
+    {
+      "name": "Vswe",
+      "category": {
+        "Mod authors": "Steve-s-Factory-Manager"
+      }
+    },
+    {
+      "name": "Woper",
+      "category": "contrib"
+    },
+    {
+      "name": "Yuri Gagarin",
+      "category": "contrib"
     }
   ]
 }

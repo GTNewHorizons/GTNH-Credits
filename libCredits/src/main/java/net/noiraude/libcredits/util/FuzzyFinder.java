@@ -7,32 +7,32 @@ import java.util.stream.Collectors;
 /**
  * Helper class for use in "Fuzzy-Finding" Strings for use in a search bar
  * within the Credits screen
- *
- * Algorithm Explonation:
- *
+ * <p>
+ * Algorithm Explanation:
+ * <p>
  * This algorithm can be broken down into 4 "Phases" as detailed below:
- *
+ * <p>
  * - Exact Match: If the search term exactly matches a username, it gets a perfect score (0)
- *
+ * <p>
  * - Prefix Match: If the first n characters of a search term match the first n characters
  * of any username, it is given a score of PREFIX_DEFAULT + EXTRA_CHAR * (remaining_chars_of_username)
- *
+ * <p>
  * - Substring Match: If the search term exists as a substring anywhere in a given username, it is scored as
  * SUBSTRING_DEFAULT + (substring_start_index * SUBSTRING_INDEX_COST) +
  * (EXTRA_CHAR * remaining_chars_of_username)
- *
+ * <p>
  * - Failing all of these match types, the "fallback" scoring is as follows:
  * FUZZY_COST + prefix_distance * FUZZY_PREFIX_COST + full_distance * FUZZY_FULL_COST
  * Where prefix/full_distance are the Damerau-Levenshtein (D-L) distances
  * between the search term and the username
- *
- * In short, the D-L distance can be summarised as "How many character changes need to be made for the strings to
+ * <p>
+ * In short, the D-L distance can be summarized as "How many character changes need to be made for the strings to
  * match".
  * Valid changes are:
  * - Deletion
  * - Replacement
  * - Addition
- * - Transposition (i.e. swap character placements adjacently)
+ * - Transposition (i.e., swap character placements adjacently)
  *
  */
 public class FuzzyFinder {
@@ -73,7 +73,7 @@ public class FuzzyFinder {
         // Matrix to store distances
         int[][] distance = new int[sourceLength + 1][targetLength + 1];
 
-        // Initialise first column/row of distance matrix
+        // Initialize first column/row of distance matrix
         for (int i = 0; i <= sourceLength; i++) {
             distance[i][0] = i;
         }
@@ -107,7 +107,7 @@ public class FuzzyFinder {
 
     /**
      * Finds the closest matching usernames to the search term using "smart scoring"
-     * based on Damerau-Levenshtein distances, and returns matches meeting score
+     * based on Damerau-Levenshtein distances and returns matches meeting a score
      * threshold.
      *
      * @param usernames   List of usernames to find matches from
@@ -118,7 +118,7 @@ public class FuzzyFinder {
      */
     public static List<String> findMatchesWithThreshold(List<String> usernames, String searchTerm, double maxDistance) {
 
-        // Normalise search string
+        // Normalize search string
         String lowerSearch = searchTerm.toLowerCase();
 
         return usernames.stream()
@@ -130,15 +130,15 @@ public class FuzzyFinder {
     }
 
     /**
-     * Calculates a "smart score" that prioritises prefix and substring matches.
+     * Calculates a "smart score" that prioritizes prefix and substring matches.
      * Lower score = Better match
-     *
+     * <p>
      * Priority of calculation:
-     * - Perfect match : score = 0
-     * - Prefix match : score = prefix cost + (Extra char cost * extra char count)
-     * - Substring match : score = substring cost + (substring start index *
-     * substring index cost) + same extra char cost
-     * - No match : score = fuzzy cost + (prefix D-L distance * prefix weight) +
+     * - Perfect match: score = 0
+     * - Prefix match: score = prefix cost + (Extra char cost * extra char count)
+     * - Substring match: score = substring cost + (substring start index *
+     * substring index cost) + the same extra char cost
+     * - No match: score = fuzzy cost + (prefix D-L distance * prefix weight) +
      * (full D-L distance * full weight)
      */
     public static double calculateSmartScore(String username, String searchTerm) {
@@ -151,15 +151,15 @@ public class FuzzyFinder {
         }
 
         // Prefix matching
+        final double v = (username.length() - searchTerm.length()) * EXTRA_CHAR_COST;
         if (usernameLower.startsWith(searchLower)) {
-            return PREFIX_DEFAULT_COST + (username.length() - searchTerm.length()) * EXTRA_CHAR_COST;
+            return PREFIX_DEFAULT_COST + v;
         }
 
         // Substring matching
         int substringIndex = usernameLower.indexOf(searchLower);
         if (substringIndex != -1) {
-            return SUBSTRING_DEFAULT_COST + substringIndex * SUBSTRING_INDEX_COST
-                + (username.length() - searchTerm.length()) * EXTRA_CHAR_COST;
+            return SUBSTRING_DEFAULT_COST + substringIndex * SUBSTRING_INDEX_COST + v;
         }
 
         // Calculate distance only on relevant prefix
@@ -172,17 +172,17 @@ public class FuzzyFinder {
         int prefixDistance = damerauLevenshteinDist(usernamePrefix, searchLower);
         int fullDistance = damerauLevenshteinDist(usernameLower, searchLower);
 
-        // Weighted score favouring prefix matching, full distance for added context
+        // Weighted score favoring prefix matching, full distance for added context
         return FUZZY_COST + (prefixDistance * FUZZY_PREFIX_COST) + (fullDistance * FUZZY_FULL_COST);
     }
 
     /**
      * Helper method to determine whether two characters make a "transposition
-     * pair", i.e. they are the same two characters, but in different adjacent
-     * positions in source vs. target
+     * pair", i.e., they are the same two characters, but in different adjacent
+     * positions in a source vs. target
      *
-     * @param sourceIndex Index of source string being checked
-     * @param targetIndex Index of target string being checked
+     * @param sourceIndex Index of the source string being checked
+     * @param targetIndex Index of the target string being checked
      * @param source      The source string to compare
      * @param target      The target string to compare against
      *
@@ -192,12 +192,11 @@ public class FuzzyFinder {
     private static boolean isTranspositionPair(int sourceIndex, int targetIndex, String source, String target) {
         if (sourceIndex <= 1) return false;
         if (targetIndex <= 1) return false;
-        // Checks for transposition pairs such as:
+        // Checks for transposition pairs such as
         // source substring = "ie"
         // target substring = "ei"
         if (source.charAt(sourceIndex - 1) != target.charAt(targetIndex - 2)) return false;
-        if (source.charAt(sourceIndex - 2) != target.charAt(targetIndex - 1)) return false;
-        return true;
+        return source.charAt(sourceIndex - 2) == target.charAt(targetIndex - 1);
     }
 
     /**
