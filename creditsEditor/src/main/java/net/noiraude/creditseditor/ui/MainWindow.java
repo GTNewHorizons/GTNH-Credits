@@ -1,23 +1,33 @@
 package net.noiraude.creditseditor.ui;
 
-import net.noiraude.creditseditor.bus.DocumentBus;
-import net.noiraude.creditseditor.command.CommandExecutor;
-import net.noiraude.creditseditor.ui.dialog.AboutDialog;
-import net.noiraude.creditseditor.ui.dialog.ProgressDialog;
-import net.noiraude.creditseditor.ui.dialog.ShortcutsDialog;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
-import javax.swing.JFileChooser;
-import javax.swing.JFrame;
-import javax.swing.JOptionPane;
-import javax.swing.SwingWorker;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.Insets;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.concurrent.ExecutionException;
+
+import javax.swing.JFileChooser;
+import javax.swing.JFrame;
+import javax.swing.JOptionPane;
+import javax.swing.SwingWorker;
+import javax.swing.filechooser.FileFilter;
+import javax.swing.filechooser.FileNameExtensionFilter;
+
+import net.noiraude.creditseditor.bus.DocumentBus;
+import net.noiraude.creditseditor.command.CommandExecutor;
+import net.noiraude.creditseditor.ui.dialog.AboutDialog;
+import net.noiraude.creditseditor.ui.dialog.ProgressDialog;
+import net.noiraude.creditseditor.ui.dialog.ShortcutsDialog;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Main application window for the GTNH Credits Editor.
@@ -170,6 +180,81 @@ public final class MainWindow extends JFrame implements EditorActions.Handlers {
             return;
         }
         updateTitle();
+    }
+
+    @Override
+    public void onSaveAs() {
+        if (session == null) return;
+
+        JFileChooser chooser = new JFileChooser();
+        chooser.setDialogTitle(I18n.get("filechooser.save_as.title"));
+        chooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
+        chooser.setAcceptAllFileFilterUsed(false);
+        FileNameExtensionFilter zipFilter = new FileNameExtensionFilter(
+            I18n.get("filechooser.save_as.filter.zip"),
+            "zip");
+        FileFilter dirFilter = new FileFilter() {
+
+            @Override
+            public boolean accept(File f) {
+                return f.isDirectory();
+            }
+
+            @Override
+            public String getDescription() {
+                return I18n.get("filechooser.save_as.filter.dir");
+            }
+        };
+        chooser.addChoosableFileFilter(zipFilter);
+        chooser.addChoosableFileFilter(dirFilter);
+        chooser.setFileFilter(zipFilter);
+
+        if (chooser.showSaveDialog(this) != JFileChooser.APPROVE_OPTION) return;
+
+        File selected = chooser.getSelectedFile();
+        if (
+            chooser.getFileFilter() == zipFilter && !selected.getName()
+                .toLowerCase()
+                .endsWith(".zip")
+        ) {
+            selected = new File(selected.getAbsolutePath() + ".zip");
+        }
+        Path target = Paths.get(selected.getAbsolutePath());
+
+        if (isNonEmptyTarget(target) && !confirmOverwrite(target)) return;
+
+        try {
+            session.saveAs(target.toString());
+        } catch (Exception ex) {
+            ErrorPresenter.show(this, I18n.get("dialog.save_as.error.title"), ex);
+            return;
+        }
+        updateTitle();
+    }
+
+    private static boolean isNonEmptyTarget(@NotNull Path target) {
+        if (!Files.exists(target)) return false;
+        if (Files.isRegularFile(target)) return true;
+        if (!Files.isDirectory(target)) return false;
+        try (DirectoryStream<Path> entries = Files.newDirectoryStream(target)) {
+            return entries.iterator()
+                .hasNext();
+        } catch (IOException ex) {
+            return true;
+        }
+    }
+
+    private boolean confirmOverwrite(@NotNull Path target) {
+        int choice = JOptionPane.showConfirmDialog(
+            this,
+            I18n.get(
+                "dialog.save_as.confirm.message",
+                target.getFileName()
+                    .toString()),
+            I18n.get("dialog.save_as.confirm.title"),
+            JOptionPane.YES_NO_OPTION,
+            JOptionPane.WARNING_MESSAGE);
+        return choice == JOptionPane.YES_OPTION;
     }
 
     @Override

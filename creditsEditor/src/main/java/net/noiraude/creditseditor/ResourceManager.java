@@ -130,6 +130,16 @@ public final class ResourceManager implements Closeable {
         }
     }
 
+    /**
+     * Seeds this manager with already-loaded documents in lieu of {@link #loadDocuments()}.
+     * Intended for the Save As flow, which writes existing in-memory documents to a freshly
+     * opened destination without parsing whatever is already there.
+     */
+    public void adoptDocuments(@NotNull CreditsDocument credits, @NotNull LangDocument lang) {
+        this.creditsDoc = credits;
+        this.langDoc = lang;
+    }
+
     /** Returns the mutable credits document loaded by {@link #loadDocuments()}. */
     @Contract(pure = true)
     public @NotNull CreditsDocument getCreditsDoc() {

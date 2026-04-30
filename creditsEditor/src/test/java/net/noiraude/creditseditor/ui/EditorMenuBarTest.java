@@ -34,6 +34,9 @@ public class EditorMenuBarTest {
         public void onSave() {}
 
         @Override
+        public void onSaveAs() {}
+
+        @Override
         public void onQuit() {}
 
         @Override

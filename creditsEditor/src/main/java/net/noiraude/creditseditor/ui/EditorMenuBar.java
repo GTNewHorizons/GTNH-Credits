@@ -18,6 +18,7 @@ final class EditorMenuBar extends JMenuBar {
         fileMenu.add(actions.newDoc);
         fileMenu.addSeparator();
         fileMenu.add(actions.save);
+        fileMenu.add(actions.saveAs);
         fileMenu.addSeparator();
         fileMenu.add(actions.quit);
 

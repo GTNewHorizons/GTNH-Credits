@@ -1,5 +1,6 @@
 package net.noiraude.creditseditor.ui;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -63,6 +64,71 @@ public class EditorSessionTest {
             assertFalse(session.isDirty());
         } finally {
             session.close();
+        }
+    }
+
+    @Test
+    public void saveAs_dirToZip_writesPackAndRetargetsSession() throws Exception {
+        Path sourceDir = Files.createDirectory(temp.resolve("source"));
+        Path destZip = temp.resolve("fork.zip");
+
+        EditorSession session = EditorSession.open(sourceDir.toString());
+        session.creditsDoc().categories.add(new DocumentCategory("dev"));
+        assertTrue(session.isDirty());
+
+        session.saveAs(destZip.toString());
+
+        assertTrue(Files.exists(destZip), "destination zip must be created");
+        assertFalse(session.isDirty(), "dirty flag must clear after Save As");
+        assertEquals("fork.zip", session.displayPath(), "session must retarget to the new path");
+
+        // Subsequent save() writes to the new destination, not the old directory.
+        session.creditsDoc().categories.add(new DocumentCategory("art"));
+        assertTrue(session.isDirty());
+        session.save();
+        assertFalse(session.isDirty());
+        session.close();
+
+        // Original directory must remain untouched by the saveAs (no credits.json written there).
+        assertFalse(
+            Files.exists(sourceDir.resolve("assets/gtnhcredits/credits.json")),
+            "Save As must not write to the original directory");
+
+        // Reopen the destination zip and verify both edits are present.
+        EditorSession reopened = EditorSession.open(destZip.toString());
+        try {
+            assertEquals(2, reopened.creditsDoc().categories.size());
+        } finally {
+            reopened.close();
+        }
+    }
+
+    @Test
+    public void saveAs_zipToDir_writesPackAndRetargetsSession() throws Exception {
+        Path sourceZip = temp.resolve("source.zip");
+        Path destDir = temp.resolve("fork");
+
+        EditorSession session = EditorSession.open(sourceZip.toString());
+        session.creditsDoc().categories.add(new DocumentCategory("dev"));
+        assertTrue(session.isDirty());
+
+        session.saveAs(destDir.toString());
+
+        assertTrue(
+            Files.exists(destDir.resolve("assets/gtnhcredits/credits.json")),
+            "destination directory must contain credits.json");
+        assertFalse(session.isDirty(), "dirty flag must clear after Save As");
+        assertEquals("fork", session.displayPath(), "session must retarget to the new path");
+
+        session.creditsDoc().categories.add(new DocumentCategory("art"));
+        session.save();
+        session.close();
+
+        EditorSession reopened = EditorSession.open(destDir.toString());
+        try {
+            assertEquals(2, reopened.creditsDoc().categories.size());
+        } finally {
+            reopened.close();
         }
     }
 

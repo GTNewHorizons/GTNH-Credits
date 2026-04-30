@@ -3,6 +3,8 @@ package net.noiraude.creditseditor.ui;
 import java.io.IOException;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import net.noiraude.creditseditor.ResourceManager;
 import net.noiraude.creditseditor.command.CommandStack;
@@ -33,7 +35,7 @@ final class EditorSession {
 
     private static final Logger LOG = System.getLogger(EditorSession.class.getName());
 
-    private final @NotNull ResourceManager resourceManager;
+    private @NotNull ResourceManager resourceManager;
     final @NotNull CommandStack stack = new CommandStack();
 
     @Contract(pure = true)
@@ -122,6 +124,58 @@ final class EditorSession {
         if (langDoc.isDirty()) {
             resourceManager.writeLang();
             langDoc.markClean();
+        }
+    }
+
+    /**
+     * Writes the current documents to a fresh destination (directory or zip) and retargets
+     * this session at it; subsequent {@link #save()} calls write to the new location.
+     *
+     * <p>
+     * If {@code pathArg} resolves to the same on-disk location as the current target, this
+     * method delegates to {@link #save()} to avoid reopening the same zip filesystem twice.
+     *
+     * @throws Exception if the destination cannot be opened, or if writing fails. On failure
+     *                   the original target stays active so the user can retry.
+     */
+    void saveAs(@NotNull String pathArg) throws Exception {
+        Path newPath = Paths.get(pathArg)
+            .toAbsolutePath()
+            .normalize();
+        Path curPath = resourceManager.getDiskPath()
+            .toAbsolutePath()
+            .normalize();
+        if (newPath.equals(curPath)) {
+            save();
+            return;
+        }
+
+        CreditsDocument credits = resourceManager.getCreditsDoc();
+        LangDocument lang = resourceManager.getLangDoc();
+
+        ResourceManager newRm = ResourceManager.open(pathArg);
+        try {
+            newRm.adoptDocuments(credits, lang);
+            newRm.writeCredits();
+            newRm.writeLang();
+        } catch (Exception ex) {
+            try {
+                newRm.close();
+            } catch (IOException suppressed) {
+                ex.addSuppressed(suppressed);
+            }
+            throw ex;
+        }
+
+        credits.markClean();
+        lang.markClean();
+
+        ResourceManager old = resourceManager;
+        resourceManager = newRm;
+        try {
+            old.close();
+        } catch (IOException ex) {
+            LOG.log(Level.WARNING, "Failed to close previous resource manager after Save As", ex);
         }
     }
 

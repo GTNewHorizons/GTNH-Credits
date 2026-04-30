@@ -93,7 +93,8 @@ public final class ShortcutsDialog extends JDialog {
                 I18n.get("dialog.shortcuts.section.file"),
                 List.of(
                     new Shortcut("Ctrl+O", I18n.get("dialog.shortcuts.file.open")),
-                    new Shortcut("Ctrl+S", I18n.get("dialog.shortcuts.file.save")))),
+                    new Shortcut("Ctrl+S", I18n.get("dialog.shortcuts.file.save")),
+                    new Shortcut("Ctrl+Shift+S", I18n.get("dialog.shortcuts.file.save_as")))),
             new Section(
                 I18n.get("dialog.shortcuts.section.edit"),
                 List.of(

@@ -219,7 +219,7 @@ Current: 11 test files for 59 production classes. Zero UI tests.
   Add a Help menu entry listing all keyboard shortcuts.
   Done when: Help > Keyboard Shortcuts opens a dialog listing File, Edit, Format shortcuts.
 
-- [ ] **6.4 Add "Save As..." menu to write the loaded document to a new directory or zip**
+- [x] **6.4 Add "Save As..." menu to write the loaded document to a new directory or zip**
   Files: `ui/EditorMenuBar.java`, `ui/MainWindow.java`, `ui/EditorSession.java`, `src/main/java/net/noiraude/creditseditor/ResourceManager.java`, `src/main/resources/messages_en.properties`
   Current: only `Save` exists, which always writes back to the originally opened directory or zip. There is no way to fork the loaded document into a fresh resource pack without leaving the editor.
   Action: add a `File > Save As...` menu item (mnemonic `A`, accelerator `Ctrl+Shift+S`, enabled only when a document is loaded). Opening it shows a file chooser with two filters: `Resource pack (.zip)` and `Resource directory`. On confirmation, build a new `ResourceManager` targeting the chosen destination (creating `pack.mcmeta` via `libCredits/pack/PackMcmeta` for fresh zips, mirroring the new-file flow), write the in-memory `credits.json` and every loaded lang file there, then retarget the current `EditorSession` to the new location so subsequent `Save` writes to the new destination. Refuse overwriting an existing non-empty target unless the user confirms. Clear the dirty flag on success and update the window title. Reuse `ErrorPresenter` for failures.

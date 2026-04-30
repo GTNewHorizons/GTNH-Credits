@@ -41,6 +41,8 @@ final class EditorActions {
 
         void onSave();
 
+        void onSaveAs();
+
         void onQuit();
 
         void onUndo();
@@ -55,6 +57,7 @@ final class EditorActions {
     final @NotNull Action open;
     final @NotNull Action newDoc;
     final @NotNull Action save;
+    final @NotNull Action saveAs;
     final @NotNull Action quit;
     final @NotNull Action undo;
     final @NotNull Action redo;
@@ -78,6 +81,11 @@ final class EditorActions {
             I18n.get("menu.file.save.mnemonic"),
             KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK),
             h::onSave);
+        saveAs = make(
+            I18n.get("menu.file.save_as"),
+            I18n.get("menu.file.save_as.mnemonic"),
+            KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK),
+            h::onSaveAs);
         quit = make(I18n.get("menu.file.quit"), I18n.get("menu.file.quit.mnemonic"), null, h::onQuit);
         undo = make(
             I18n.get("menu.edit.undo"),
@@ -114,6 +122,7 @@ final class EditorActions {
         EditorSession session = sessionSupplier.get();
         boolean loaded = session != null;
         save.setEnabled(loaded);
+        saveAs.setEnabled(loaded);
 
         boolean canUndo = loaded && session.stack.canUndo();
         boolean canRedo = loaded && session.stack.canRedo();
