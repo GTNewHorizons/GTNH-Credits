@@ -22,7 +22,8 @@ plugins {
 }
 
 include("libCredits")
+include("creditsEditor")
 
 val buildProps = java.util.Properties()
 settingsDir.resolve("build.properties").inputStream().use(buildProps::load)
-buildProps.forEach { key, value -> gradle.extra[key as String] = value as String }
+buildProps.forEach { (key, value) -> gradle.extra[key as String] = value as String }
