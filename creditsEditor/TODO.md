@@ -86,7 +86,7 @@ reference and cannot be removed.
 
 ## Phase A: Data layer (no UI change)
 
-- [ ] **A.1 Multi-locale ResourceManager** (`ResourceManager.java`)
+- [x] **A.1 Multi-locale ResourceManager** (`ResourceManager.java`)
   Replace the single `langDoc` field with `Map<String, LangDocument>` keyed
   by lang file basename (`en_US`, `fr_FR`, ...). `loadDocuments()`
   enumerates every `*.lang` under `assets/gtnhcredits/lang/` and parses each.

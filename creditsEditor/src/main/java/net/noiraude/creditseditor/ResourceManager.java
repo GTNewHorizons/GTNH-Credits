@@ -14,9 +14,14 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Stream;
 
 import net.noiraude.creditseditor.ui.AppInfo;
 import net.noiraude.libcredits.lang.LangDocument;
@@ -46,8 +51,17 @@ public final class ResourceManager implements Closeable {
     /** Relative path of the credits JSON inside the resource root. */
     public static final @NotNull String CREDITS_PATH = "assets/gtnhcredits/credits.json";
 
+    /** Relative directory holding all per-locale lang files inside the resource root. */
+    public static final @NotNull String LANG_DIR = "assets/gtnhcredits/lang";
+
+    /** Filename suffix for Minecraft lang files. */
+    public static final @NotNull String LANG_EXT = ".lang";
+
+    /** Reference locale tag. English is always present and never removed. */
+    public static final @NotNull String DEFAULT_LOCALE = "en_US";
+
     /** Relative path of the English lang file inside the resource root. */
-    public static final @NotNull String LANG_PATH = "assets/gtnhcredits/lang/en_US.lang";
+    public static final @NotNull String LANG_PATH = LANG_DIR + "/" + DEFAULT_LOCALE + LANG_EXT;
 
     private final @NotNull Path diskPath;
     private final @Nullable FileSystem zipFs; // null for directory-mode instances
@@ -56,7 +70,13 @@ public final class ResourceManager implements Closeable {
     private final @NotNull Path resourceRoot;
 
     private @Nullable CreditsDocument creditsDoc;
-    private @Nullable LangDocument langDoc;
+
+    /**
+     * All loaded lang documents keyed by locale tag (lang file basename without
+     * {@value #LANG_EXT}). Always contains {@link #DEFAULT_LOCALE} after a successful
+     * {@link #loadDocuments()} call, even when the on-disk lang directory is missing.
+     */
+    private final @NotNull Map<String, LangDocument> langDocs = new LinkedHashMap<>();
 
     private ResourceManager(@NotNull Path diskPath, @Nullable FileSystem zipFs) {
         this.diskPath = diskPath;
@@ -105,9 +125,15 @@ public final class ResourceManager implements Closeable {
     }
 
     /**
-     * Parses the credits JSON and lang file from the resource root and stores the resulting
-     * documents internally. Must be called once before {@link #getCreditsDoc()},
-     * {@link #getLangDoc()}, or {@link #isDirty()} are meaningful.
+     * Parses the credits JSON and every {@code *.lang} file under {@link #LANG_DIR} and
+     * stores the resulting documents internally. Must be called once before
+     * {@link #getCreditsDoc()}, {@link #getLangDoc()}, {@link #langDoc(String)},
+     * {@link #availableLocales()}, or {@link #isDirty()} are meaningful.
+     *
+     * <p>
+     * If no {@value #DEFAULT_LOCALE} lang file is present on disk, an empty in-memory
+     * document is seeded for it so {@link #getLangDoc()} always succeeds; the file is
+     * not created on disk until the next save.
      *
      * @throws IOException           if a file exists but cannot be read
      * @throws CreditsParseException if the credits JSON is structurally invalid
@@ -121,12 +147,30 @@ public final class ResourceManager implements Closeable {
             }
         }
 
-        if (notExists(LANG_PATH)) {
-            langDoc = LangParser.empty();
-        } else {
-            try (InputStream in = openRead(LANG_PATH)) {
-                langDoc = LangParser.parse(in);
+        langDocs.clear();
+        Path langDir = resourceRoot.resolve(LANG_DIR);
+        if (Files.isDirectory(langDir)) {
+            List<Path> langFiles;
+            try (Stream<Path> entries = Files.list(langDir)) {
+                langFiles = entries.filter(Files::isRegularFile)
+                    .filter(
+                        p -> p.getFileName()
+                            .toString()
+                            .endsWith(LANG_EXT))
+                    .sorted()
+                    .toList();
             }
+            for (Path langFile : langFiles) {
+                String basename = langFile.getFileName()
+                    .toString();
+                String locale = basename.substring(0, basename.length() - LANG_EXT.length());
+                try (InputStream in = Files.newInputStream(langFile)) {
+                    langDocs.put(locale, LangParser.parse(in));
+                }
+            }
+        }
+        if (!langDocs.containsKey(DEFAULT_LOCALE)) {
+            langDocs.put(DEFAULT_LOCALE, LangParser.empty());
         }
     }
 
@@ -134,10 +178,16 @@ public final class ResourceManager implements Closeable {
      * Seeds this manager with already-loaded documents in lieu of {@link #loadDocuments()}.
      * Intended for the Save As flow, which writes existing in-memory documents to a freshly
      * opened destination without parsing whatever is already there.
+     *
+     * <p>
+     * The supplied lang document is registered under {@link #DEFAULT_LOCALE}. Callers that
+     * need to transfer additional locales should use {@link #addLocale(String)} after this
+     * call (multi-locale Save As is wired in a later phase).
      */
     public void adoptDocuments(@NotNull CreditsDocument credits, @NotNull LangDocument lang) {
         this.creditsDoc = credits;
-        this.langDoc = lang;
+        this.langDocs.clear();
+        this.langDocs.put(DEFAULT_LOCALE, lang);
     }
 
     /** Returns the mutable credits document loaded by {@link #loadDocuments()}. */
@@ -146,10 +196,46 @@ public final class ResourceManager implements Closeable {
         return Objects.requireNonNull(creditsDoc, "call loadDocuments() first");
     }
 
-    /** Returns the mutable lang document loaded by {@link #loadDocuments()}. */
+    /**
+     * Returns the {@link #DEFAULT_LOCALE} lang document loaded by {@link #loadDocuments()}.
+     * Equivalent to {@code langDoc(DEFAULT_LOCALE)} but never returns {@code null}.
+     */
     @Contract(pure = true)
     public @NotNull LangDocument getLangDoc() {
-        return Objects.requireNonNull(langDoc, "call loadDocuments() first");
+        LangDocument doc = langDocs.get(DEFAULT_LOCALE);
+        return Objects.requireNonNull(doc, "call loadDocuments() first");
+    }
+
+    /** Returns the lang document for {@code locale}, or {@code null} if not loaded. */
+    @Contract(pure = true)
+    public @Nullable LangDocument langDoc(@NotNull String locale) {
+        return langDocs.get(locale);
+    }
+
+    /**
+     * Returns the locale tags currently loaded in memory, in insertion order
+     * ({@link #DEFAULT_LOCALE} first when it was seeded by {@link #loadDocuments()}).
+     */
+    @Contract(pure = true)
+    public @NotNull Set<String> availableLocales() {
+        return Collections.unmodifiableSet(langDocs.keySet());
+    }
+
+    /**
+     * Adds an empty lang document for {@code locale} if absent and returns the document
+     * registered for it. The new locale's file is not created on disk until the next save.
+     */
+    public @NotNull LangDocument addLocale(@NotNull String locale) {
+        return langDocs.computeIfAbsent(locale, k -> LangParser.empty());
+    }
+
+    /**
+     * Removes the in-memory lang document for {@code locale} and returns it, or
+     * {@code null} if the locale was not loaded. The corresponding file is deleted from
+     * disk by the next save.
+     */
+    public @Nullable LangDocument removeLocale(@NotNull String locale) {
+        return langDocs.remove(locale);
     }
 
     /**
@@ -158,8 +244,12 @@ public final class ResourceManager implements Closeable {
      */
     @Contract(pure = true)
     public boolean isDirty() {
-        if (creditsDoc == null || langDoc == null) return false;
-        return creditsDoc.isDirty() || langDoc.isDirty();
+        if (creditsDoc == null) return false;
+        if (creditsDoc.isDirty()) return true;
+        for (LangDocument doc : langDocs.values()) {
+            if (doc.isDirty()) return true;
+        }
+        return false;
     }
 
     /** Returns the on-disk path of the directory or zip file. */
@@ -217,12 +307,12 @@ public final class ResourceManager implements Closeable {
     }
 
     /**
-     * Saves the lang document to {@code lang/en_US.lang}.
+     * Saves the {@link #DEFAULT_LOCALE} lang document to {@link #LANG_PATH}.
      *
      * @throws IOException if the file cannot be written
      */
     public void writeLang() throws IOException {
-        LangDocument doc = Objects.requireNonNull(langDoc, "call loadDocuments() first");
+        LangDocument doc = Objects.requireNonNull(langDocs.get(DEFAULT_LOCALE), "call loadDocuments() first");
         try (OutputStream out = openWrite(LANG_PATH)) {
             LangSerializer.write(doc, out);
         }

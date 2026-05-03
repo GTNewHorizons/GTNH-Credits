@@ -1,6 +1,10 @@
 package net.noiraude.creditseditor;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.net.URI;
@@ -10,6 +14,9 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
+import java.util.Set;
+
+import net.noiraude.libcredits.lang.LangDocument;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -88,6 +95,69 @@ public class ResourceManagerTest {
         try (ResourceManager rm = ResourceManager.open(dir.toString())) {
             rm.loadDocuments();
             assertTrue(Files.isDirectory(dir));
+        }
+    }
+
+    @Test
+    public void directoryMode_loadsAllLangFiles() throws Exception {
+        Path dir = Files.createDirectory(temp.resolve("root"));
+        Path langDir = dir.resolve(ResourceManager.LANG_DIR);
+        Files.createDirectories(langDir);
+        Files.writeString(langDir.resolve("en_US.lang"), "credits.category.team=Team\n", StandardCharsets.UTF_8);
+        Files.writeString(langDir.resolve("fr_FR.lang"), "credits.category.team=Equipe\n", StandardCharsets.UTF_8);
+
+        try (ResourceManager rm = ResourceManager.open(dir.toString())) {
+            rm.loadDocuments();
+
+            assertEquals(Set.of("en_US", "fr_FR"), rm.availableLocales());
+
+            LangDocument en = rm.langDoc("en_US");
+            LangDocument fr = rm.langDoc("fr_FR");
+            assertNotNull(en);
+            assertNotNull(fr);
+            assertEquals("Team", en.get("credits.category.team"));
+            assertEquals("Equipe", fr.get("credits.category.team"));
+            assertSame(en, rm.getLangDoc(), "no-arg getLangDoc() must return the en_US document");
+
+            assertNull(rm.langDoc("de_DE"));
+            assertFalse(rm.isDirty(), "freshly loaded documents must not be dirty");
+        }
+    }
+
+    @Test
+    public void addLocale_seedsEmptyDocumentAndIsIdempotent() throws Exception {
+        Path dir = Files.createDirectory(temp.resolve("root"));
+
+        try (ResourceManager rm = ResourceManager.open(dir.toString())) {
+            rm.loadDocuments();
+            assertEquals(Set.of("en_US"), rm.availableLocales());
+
+            LangDocument added = rm.addLocale("de_DE");
+            assertNotNull(added);
+            assertFalse(added.contains("credits.category.team"));
+            assertEquals(Set.of("en_US", "de_DE"), rm.availableLocales());
+
+            assertSame(added, rm.addLocale("de_DE"), "addLocale must be idempotent");
+        }
+    }
+
+    @Test
+    public void removeLocale_dropsDocumentFromMemory() throws Exception {
+        Path dir = Files.createDirectory(temp.resolve("root"));
+        Path langDir = dir.resolve(ResourceManager.LANG_DIR);
+        Files.createDirectories(langDir);
+        Files.writeString(langDir.resolve("en_US.lang"), "", StandardCharsets.UTF_8);
+        Files.writeString(langDir.resolve("fr_FR.lang"), "credits.category.team=Equipe\n", StandardCharsets.UTF_8);
+
+        try (ResourceManager rm = ResourceManager.open(dir.toString())) {
+            rm.loadDocuments();
+            LangDocument removed = rm.removeLocale("fr_FR");
+
+            assertNotNull(removed);
+            assertEquals("Equipe", removed.get("credits.category.team"));
+            assertEquals(Set.of("en_US"), rm.availableLocales());
+            assertNull(rm.langDoc("fr_FR"));
+            assertNull(rm.removeLocale("fr_FR"), "second removeLocale returns null");
         }
     }
 }
