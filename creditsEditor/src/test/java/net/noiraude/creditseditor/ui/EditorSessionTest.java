@@ -5,10 +5,13 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+import net.noiraude.libcredits.lang.LangDocument;
 import net.noiraude.libcredits.model.DocumentCategory;
+import net.noiraude.libcredits.pack.CreditsLayout;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -127,6 +130,81 @@ public class EditorSessionTest {
         EditorSession reopened = EditorSession.open(destDir.toString());
         try {
             assertEquals(2, reopened.creditsDoc().categories.size());
+        } finally {
+            reopened.close();
+        }
+    }
+
+    @Test
+    public void saveAs_preservesNonEnglishLocale() throws Exception {
+        Path sourceDir = Files.createDirectory(temp.resolve("source"));
+        Path langDir = sourceDir.resolve(CreditsLayout.LANG_DIR.get());
+        Files.createDirectories(langDir);
+        Files.writeString(langDir.resolve("en_US.lang"), "credits.category.team=Team\n", StandardCharsets.UTF_8);
+        Files.writeString(langDir.resolve("fr_FR.lang"), "credits.category.team=Equipe\n", StandardCharsets.UTF_8);
+
+        Path destZip = temp.resolve("fork.zip");
+
+        EditorSession session = EditorSession.open(sourceDir.toString());
+        session.saveAs(destZip.toString());
+        session.close();
+
+        EditorSession reopened = EditorSession.open(destZip.toString());
+        try {
+            LangDocument fr = reopened.langDoc("fr_FR");
+            assertTrue(
+                reopened.availableLocales()
+                    .contains("fr_FR"),
+                "fr_FR must survive Save As to a fresh zip");
+            assertEquals("Equipe", fr.get("credits.category.team"));
+        } finally {
+            reopened.close();
+        }
+    }
+
+    @Test
+    public void saveAs_overExistingZip_preservesUnrelatedContent() throws Exception {
+        Path destZip = temp.resolve("dest.zip");
+
+        // Seed an existing destination zip with content ResourceManager does not manage:
+        // a texture and another mod's lang file. Save As must preserve both.
+        try (java.io.OutputStream ignored = java.nio.file.Files.newOutputStream(destZip)) {
+            // create empty file then immediately remove so the zip filesystem can create it.
+        }
+        java.nio.file.Files.delete(destZip);
+        java.net.URI uri = java.net.URI.create("jar:" + destZip.toUri());
+        java.util.Map<String, String> env = new java.util.HashMap<>();
+        env.put("create", "true");
+        try (java.nio.file.FileSystem fs = java.nio.file.FileSystems.newFileSystem(uri, env)) {
+            java.nio.file.Path texture = fs.getPath("/assets/gtnhcredits/textures/foo.png");
+            java.nio.file.Files.createDirectories(texture.getParent());
+            java.nio.file.Files.writeString(texture, "fake-png-bytes", StandardCharsets.UTF_8);
+            java.nio.file.Path foreignLang = fs.getPath("/assets/othermod/lang/en_US.lang");
+            java.nio.file.Files.createDirectories(foreignLang.getParent());
+            java.nio.file.Files.writeString(foreignLang, "othermod.title=Other\n", StandardCharsets.UTF_8);
+        }
+
+        // Save a different project over the existing zip.
+        Path freshSource = Files.createDirectory(temp.resolve("fresh"));
+        EditorSession session = EditorSession.open(freshSource.toString());
+        session.creditsDoc().categories.add(new DocumentCategory("dev"));
+        session.saveAs(destZip.toString());
+        session.close();
+
+        try (java.nio.file.FileSystem fs = java.nio.file.FileSystems
+            .newFileSystem(uri, java.util.Map.<String, String>of())) {
+            java.nio.file.Path texture = fs.getPath("/assets/gtnhcredits/textures/foo.png");
+            assertTrue(Files.exists(texture), "Save As must not erase unrelated textures inside the destination zip");
+            assertEquals("fake-png-bytes", java.nio.file.Files.readString(texture, StandardCharsets.UTF_8));
+
+            java.nio.file.Path foreignLang = fs.getPath("/assets/othermod/lang/en_US.lang");
+            assertTrue(Files.exists(foreignLang), "Save As must not erase another mod's lang files");
+        }
+
+        EditorSession reopened = EditorSession.open(destZip.toString());
+        try {
+            assertEquals(1, reopened.creditsDoc().categories.size(), "Save As must replace credits.json content");
+            assertEquals("dev", reopened.creditsDoc().categories.get(0).id);
         } finally {
             reopened.close();
         }
