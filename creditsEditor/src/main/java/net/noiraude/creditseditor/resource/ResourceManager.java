@@ -261,22 +261,24 @@ public final class ResourceManager implements Closeable {
     }
 
     /**
-     * Saves every dirty lang document and deletes the on-disk file of every locale that
-     * was removed via {@link #removeLocale(String)} since the last successful save.
+     * Saves every dirty lang document by merging its credits-owned keys onto the
+     * destination file's existing content. Foreign keys (other mods', GUI strings, etc.)
+     * are preserved exactly. Locales removed via {@link #removeLocale(String)} since the
+     * last successful save have their owned keys stripped from the on-disk file; the file
+     * is left in place so unrelated content survives.
      *
-     * @throws IOException if any file cannot be written or deleted
+     * @throws IOException if any file cannot be read or written
      */
     public void writeLang() throws IOException {
         writeLang(false);
     }
 
     /**
-     * Saves every loaded lang document unconditionally and deletes the on-disk file of
-     * every locale that was removed via {@link #removeLocale(String)} since the last
-     * successful save. Intended for the Save As flow, where the destination is fresh and
-     * the dirty bits (relative to the previous storage) do not apply.
+     * Like {@link #writeLang()} but writes every loaded locale unconditionally. Intended
+     * for the Save As flow, where the destination's dirty bits (relative to the previous
+     * storage) do not apply but foreign content at the destination must still be preserved.
      *
-     * @throws IOException if any file cannot be written or deleted
+     * @throws IOException if any file cannot be read or written
      */
     public void writeAllLang() throws IOException {
         writeLang(true);
@@ -285,17 +287,33 @@ public final class ResourceManager implements Closeable {
     private void writeLang(boolean force) throws IOException {
         Objects.requireNonNull(creditsDoc, "call loadDocuments() first");
         for (Map.Entry<String, LangDocument> entry : langDocs.entrySet()) {
-            LangDocument doc = entry.getValue();
-            if (force || doc.isDirty()) {
-                try (OutputStream out = storage.openWrite(CreditsLayout.getLangPath(entry.getKey()))) {
-                    LangSerializer.write(doc, out);
+            LangDocument inMemory = entry.getValue();
+            if (force || inMemory.isDirty()) {
+                String langPath = CreditsLayout.getLangPath(entry.getKey());
+                LangDocument onDisk = readOnDiskLang(langPath);
+                onDisk.applyOwnedKeysFrom(inMemory);
+                try (OutputStream out = storage.openWrite(langPath)) {
+                    LangSerializer.write(onDisk, out);
                 }
             }
         }
         for (String locale : pendingDeletions) {
-            storage.delete(CreditsLayout.getLangPath(locale));
+            String langPath = CreditsLayout.getLangPath(locale);
+            if (!storage.hasFile(langPath)) continue;
+            LangDocument onDisk = readOnDiskLang(langPath);
+            onDisk.applyOwnedKeysFrom(LangParser.empty());
+            try (OutputStream out = storage.openWrite(langPath)) {
+                LangSerializer.write(onDisk, out);
+            }
         }
         pendingDeletions.clear();
+    }
+
+    private @NotNull LangDocument readOnDiskLang(@NotNull String langPath) throws IOException {
+        if (!storage.hasFile(langPath)) return LangParser.empty();
+        try (InputStream in = storage.openRead(langPath)) {
+            return LangParser.parse(in);
+        }
     }
 
     /** Closes the underlying storage. */

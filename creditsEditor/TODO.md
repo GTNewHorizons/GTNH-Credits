@@ -106,12 +106,15 @@ reference and cannot be removed.
   Done when: a unit test exercises all three fallback tiers, including the
   empty-string vs missing-key distinction.
 
-- [ ] **A.3 Atomic multi-locale save** (`ResourceManager.writeLang()`,
+- [x] **A.3 Atomic multi-locale save** (`ResourceManager.writeLang()`,
   `ui/EditorSession.java`)
   Iterate over every entry in the locale map and write each `<locale>.lang`
-  whose `LangDocument.isDirty()` is true. Removed locales delete their file.
-  `EditorSession.save()` keeps a single entry point; the iteration lives
-  inside `ResourceManager`.
+  whose `LangDocument.isDirty()` is true. Each write merges only owned-prefix
+  keys onto the destination file's existing content, so foreign keys (other
+  mods', GUI strings) are preserved exactly. Removed locales have their owned
+  keys stripped from the on-disk file but the file is left in place when it
+  carries any foreign content. `EditorSession.save()` keeps a single entry
+  point; the iteration lives inside `ResourceManager`.
   Done when: an integration test mutates two locales, calls save, reopens,
   and observes both files updated and the dirty bits cleared.
 

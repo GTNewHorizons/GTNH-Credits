@@ -15,10 +15,13 @@ import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
 import net.noiraude.libcredits.lang.LangDocument;
+import net.noiraude.libcredits.lang.LangParser;
+import net.noiraude.libcredits.model.CreditsDocument;
 import net.noiraude.libcredits.pack.CreditsLayout;
 
 import org.junit.jupiter.api.Test;
@@ -187,12 +190,15 @@ public class ResourceManagerTest {
     }
 
     @Test
-    public void removeLocale_dropsDocumentFromMemoryAndDeletesFileOnSave() throws Exception {
+    public void removeLocale_dropsDocumentFromMemoryAndStripsOwnedKeysOnSave() throws Exception {
         Path dir = Files.createDirectory(temp.resolve("root"));
         Path langDir = dir.resolve(CreditsLayout.LANG_DIR.get());
         Files.createDirectories(langDir);
         Files.writeString(langDir.resolve("en_US.lang"), "", StandardCharsets.UTF_8);
-        Files.writeString(langDir.resolve("fr_FR.lang"), "credits.category.team=Equipe\n", StandardCharsets.UTF_8);
+        Files.writeString(
+            langDir.resolve("fr_FR.lang"),
+            "gui.credits.title=Credits\ncredits.category.team=Equipe\ncredits.person.role.dev=Developpeur\n",
+            StandardCharsets.UTF_8);
 
         try (ResourceManager rm = ResourceManager.open(dir.toString())) {
             rm.loadDocuments();
@@ -206,7 +212,116 @@ public class ResourceManagerTest {
 
             assertTrue(rm.isDirty(), "pending deletion must mark the manager dirty");
             rm.writeLang();
-            assertFalse(Files.exists(langDir.resolve("fr_FR.lang")), "writeLang must delete removed locale's file");
+
+            Path frPath = langDir.resolve("fr_FR.lang");
+            assertTrue(Files.exists(frPath), "writeLang must keep the file when foreign keys remain");
+            String written = Files.readString(frPath, StandardCharsets.UTF_8);
+            assertTrue(written.contains("gui.credits.title=Credits"), "foreign key must survive locale removal");
+            assertFalse(written.contains("credits.category.team"), "owned category key must be stripped");
+            assertFalse(written.contains("credits.person.role.dev"), "owned role key must be stripped");
+        }
+    }
+
+    @Test
+    public void removeLocale_writeLang_isNoOpWhenFileMissing() throws Exception {
+        Path dir = Files.createDirectory(temp.resolve("root"));
+
+        try (ResourceManager rm = ResourceManager.open(dir.toString())) {
+            rm.loadDocuments();
+            rm.addLocale("fr_FR")
+                .set("credits.category.team", "Equipe");
+            rm.removeLocale("fr_FR");
+
+            rm.writeLang();
+
+            Path langDir = dir.resolve(CreditsLayout.LANG_DIR.get());
+            assertFalse(
+                Files.exists(langDir.resolve("fr_FR.lang")),
+                "no file should be created for a locale that was never persisted");
+        }
+    }
+
+    @Test
+    public void writeLang_preservesForeignKeysAtDestination() throws Exception {
+        Path dir = Files.createDirectory(temp.resolve("root"));
+        Path langDir = dir.resolve(CreditsLayout.LANG_DIR.get());
+        Files.createDirectories(langDir);
+        Files.writeString(
+            langDir.resolve("en_US.lang"),
+            "gui.credits.title=Credits\ncredits.category.team=Old\n",
+            StandardCharsets.UTF_8);
+
+        try (ResourceManager rm = ResourceManager.open(dir.toString())) {
+            rm.loadDocuments();
+            LangDocument en = rm.getLangDoc();
+            en.set("credits.category.team", "New");
+
+            rm.writeLang();
+
+            String written = Files.readString(langDir.resolve("en_US.lang"), StandardCharsets.UTF_8);
+            assertTrue(written.contains("gui.credits.title=Credits"), "foreign key must remain");
+            assertTrue(written.contains("credits.category.team=New"), "owned key must reflect the new value");
+            assertFalse(written.contains("credits.category.team=Old"), "old owned value must be gone");
+        }
+    }
+
+    @Test
+    public void writeAllLang_overExistingDestination_preservesForeignKeys() throws Exception {
+        Path destDir = Files.createDirectory(temp.resolve("dest"));
+        Path destLangDir = destDir.resolve(CreditsLayout.LANG_DIR.get());
+        Files.createDirectories(destLangDir);
+        Files.writeString(
+            destLangDir.resolve("en_US.lang"),
+            "gui.credits.title=Credits\ncredits.category.team=DestOld\n",
+            StandardCharsets.UTF_8);
+
+        LangDocument sourceEn = LangParser.empty();
+        sourceEn.set("credits.category.team", "FromSource");
+        Map<String, LangDocument> sourceLangs = new LinkedHashMap<>();
+        sourceLangs.put("en_US", sourceEn);
+
+        try (ResourceManager dest = ResourceManager.open(destDir.toString())) {
+            dest.adoptDocuments(CreditsDocument.empty(), sourceLangs);
+            dest.writeAllLang();
+        }
+
+        String written = Files.readString(destLangDir.resolve("en_US.lang"), StandardCharsets.UTF_8);
+        assertTrue(written.contains("gui.credits.title=Credits"), "foreign key at destination must survive Save As");
+        assertTrue(written.contains("credits.category.team=FromSource"), "owned key must reflect the source value");
+        assertFalse(
+            written.contains("credits.category.team=DestOld"),
+            "destination's old owned value must be replaced");
+    }
+
+    @Test
+    public void writeLang_writesEveryDirtyLocale_andClearsDirtyAfterReload() throws Exception {
+        Path dir = Files.createDirectory(temp.resolve("root"));
+        Path langDir = dir.resolve(CreditsLayout.LANG_DIR.get());
+        Files.createDirectories(langDir);
+        Files.writeString(langDir.resolve("en_US.lang"), "credits.category.team=Team\n", StandardCharsets.UTF_8);
+        Files.writeString(langDir.resolve("fr_FR.lang"), "credits.category.team=Equipe\n", StandardCharsets.UTF_8);
+
+        try (ResourceManager rm = ResourceManager.open(dir.toString())) {
+            rm.loadDocuments();
+            rm.langDoc("en_US")
+                .set("credits.category.team", "Team!");
+            rm.langDoc("fr_FR")
+                .set("credits.category.team", "Equipe!");
+
+            rm.writeLang();
+        }
+
+        try (ResourceManager rm2 = ResourceManager.open(dir.toString())) {
+            rm2.loadDocuments();
+            assertEquals(
+                "Team!",
+                rm2.langDoc("en_US")
+                    .get("credits.category.team"));
+            assertEquals(
+                "Equipe!",
+                rm2.langDoc("fr_FR")
+                    .get("credits.category.team"));
+            assertFalse(rm2.isDirty(), "freshly reloaded manager must not be dirty");
         }
     }
 }
