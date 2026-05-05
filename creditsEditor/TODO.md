@@ -97,14 +97,20 @@ reference and cannot be removed.
   Done when: existing tests pass with the new API and a new unit test covers
   loading a directory containing `en_US.lang` plus `fr_FR.lang`.
 
-- [ ] **A.2 LangResolver service** (`service/LangResolver.java`)
-  New read-only service. Method `resolve(String key, String activeLocale)`
-  returns the active locale's value if present and non-empty; else the
-  `en_US` value if present and non-empty; else the sanitized-key fallback
-  produced by the existing `KeySanitizer`. Holds a reference to either
-  `DocumentBus` or directly to the locale map.
-  Done when: a unit test exercises all three fallback tiers, including the
-  empty-string vs missing-key distinction.
+- [x] **A.2 LangResolver service** (`service/LangResolver.java`)
+  New read-only service constructed with a live `Map<String, LangDocument>`
+  reference, no `DocumentBus` dependency (B.1 wires the bus to it later).
+  Method `resolve(String key, String activeLocale)` returns
+  `Optional<String>`: the active locale's value if present and non-empty;
+  else the `en_US` value if present and non-empty; else `Optional.empty()`.
+  Empty-string values are treated as absent at every tier so a translator
+  leaving an entry blank in a non-default locale falls through. Tier-3
+  placeholder selection is the caller's responsibility: each call site
+  picks `cat.id`, the role string, empty UI text, or whatever fits its
+  context via `Optional.orElse(...)`.
+  Done when: a unit test exercises all locale tiers including the
+  empty-string vs missing-key distinction, the active==default short
+  circuit, and live-map updates being observed.
 
 - [x] **A.3 Atomic multi-locale save** (`ResourceManager.writeLang()`,
   `ui/EditorSession.java`)
