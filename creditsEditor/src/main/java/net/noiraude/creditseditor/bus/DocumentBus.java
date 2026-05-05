@@ -2,6 +2,10 @@ package net.noiraude.creditseditor.bus;
 
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 
 import net.noiraude.libcredits.lang.LangDocument;
@@ -25,10 +29,14 @@ import org.jetbrains.annotations.Nullable;
  *
  * <p>
  * The bus is constructed once by the main window and lives for the whole application.
- * Opening a new resource replaces the documents via {@link #setSession(CreditsDocument, LangDocument)},
- * which fires {@link #TOPIC_SESSION} so every subscriber rebuilds against the new documents.
+ * Opening a new resource replaces the documents via
+ * {@link #setSession(CreditsDocument, Map)}, which fires {@link #TOPIC_SESSION} so every
+ * subscriber rebuilds against the new documents.
  */
 public final class DocumentBus {
+
+    /** Default lang locale tag, sourced from {@link Locale#US} so the literal "en_US" is not hardcoded. */
+    private static final @NotNull String DEFAULT_LOCALE = Locale.US.toString();
 
     /** Session documents were swapped. Subscribers should rebuild from scratch. */
     public static final @NotNull String TOPIC_SESSION = "session";
@@ -49,6 +57,13 @@ public final class DocumentBus {
     public static final @NotNull String TOPIC_LANG = "lang";
 
     /**
+     * The active editing locale changed. {@code oldValue} and {@code newValue} are the
+     * previous and current locale tags (e.g. {@code en_US}, {@code fr_FR}). Subscribers
+     * should re-resolve every visible lang key against the new locale.
+     */
+    public static final @NotNull String TOPIC_LOCALE = "locale";
+
+    /**
      * The undo/redo stack state changed (a command was executed, undone, or redone).
      * Subscribers should re-read {@code canUndo}, {@code canRedo}, and the peek names
      * from whatever {@link net.noiraude.creditseditor.command.CommandStack} they hold.
@@ -58,7 +73,8 @@ public final class DocumentBus {
     private final @NotNull PropertyChangeSupport pcs = new PropertyChangeSupport(this);
 
     private @Nullable CreditsDocument creditsDoc;
-    private @Nullable LangDocument langDoc;
+    private @Nullable Map<String, LangDocument> langDocs;
+    private @NotNull String activeLocale = DEFAULT_LOCALE;
 
     /** Returns the current credits document. Throws when no session is loaded. */
     @Contract(pure = true)
@@ -66,10 +82,28 @@ public final class DocumentBus {
         return Objects.requireNonNull(creditsDoc, "No session loaded");
     }
 
-    /** Returns the current lang document. Throws when no session is loaded. */
+    /**
+     * Returns the {@link Locale#US} lang document. Throws when no session is loaded or
+     * when the default locale's document is missing.
+     */
     @Contract(pure = true)
     public @NotNull LangDocument langDoc() {
-        return Objects.requireNonNull(langDoc, "No session loaded");
+        LangDocument doc = langDocs(DEFAULT_LOCALE);
+        return Objects.requireNonNull(doc, "No " + DEFAULT_LOCALE + " lang document loaded");
+    }
+
+    /**
+     * Returns the lang document for {@code locale}, or {@code null} if that locale is
+     * not loaded. Throws when no session is loaded.
+     */
+    @Contract(pure = true)
+    public @Nullable LangDocument langDoc(@NotNull String locale) {
+        return langDocs(locale);
+    }
+
+    private @Nullable LangDocument langDocs(@NotNull String locale) {
+        return Objects.requireNonNull(langDocs, "No session loaded")
+            .get(locale);
     }
 
     /** Returns {@code true} once a session has been loaded via {@link #setSession}. */
@@ -79,12 +113,46 @@ public final class DocumentBus {
     }
 
     /**
-     * Swaps the current documents and fires {@link #TOPIC_SESSION}. All subscribers that
-     * hold references to the old documents should re-read from this bus.
+     * Returns the active editing locale tag, defaulting to {@link Locale#US}.
+     */
+    @Contract(pure = true)
+    public @NotNull String activeLocale() {
+        return activeLocale;
+    }
+
+    /**
+     * Sets the active editing locale and fires {@link #TOPIC_LOCALE}. The change event
+     * fires only when {@code locale} differs from the current value, since
+     * {@link PropertyChangeSupport} suppresses no-op changes.
+     */
+    public void setActiveLocale(@NotNull String locale) {
+        String old = this.activeLocale;
+        this.activeLocale = locale;
+        pcs.firePropertyChange(TOPIC_LOCALE, old, locale);
+    }
+
+    /**
+     * Convenience for callers that only have a single (default-locale) lang document,
+     * such as unit tests. Delegates to {@link #setSession(CreditsDocument, Map)} with a
+     * single-entry map keyed by {@link Locale#US}.
      */
     public void setSession(@NotNull CreditsDocument credits, @NotNull LangDocument lang) {
+        setSession(credits, Collections.singletonMap(DEFAULT_LOCALE, lang));
+    }
+
+    /**
+     * Swaps the current documents and fires {@link #TOPIC_SESSION}. All subscribers that
+     * hold references to the old documents should re-read from this bus.
+     *
+     * <p>
+     * The supplied {@code langDocs} map is copied defensively so subsequent edits to the
+     * caller's map do not leak into the bus. Per-document edits (via {@link LangDocument}
+     * mutators) flow through normally because the {@link LangDocument} references stay
+     * shared.
+     */
+    public void setSession(@NotNull CreditsDocument credits, @NotNull Map<String, LangDocument> langDocs) {
         this.creditsDoc = credits;
-        this.langDoc = lang;
+        this.langDocs = new LinkedHashMap<>(langDocs);
         pcs.firePropertyChange(TOPIC_SESSION, null, this);
     }
 

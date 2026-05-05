@@ -126,7 +126,7 @@ reference and cannot be removed.
 
 ## Phase B: Bus and active-locale state
 
-- [ ] **B.1 EditingLocale on DocumentBus** (`bus/DocumentBus.java`)
+- [x] **B.1 EditingLocale on DocumentBus** (`bus/DocumentBus.java`)
   Add a private `String activeLocale` field defaulting to `"en_US"`,
   `activeLocale()` getter, `setActiveLocale(String)` setter, and a new
   `TOPIC_LOCALE` topic fired by the setter. `langDoc()` keeps its current
