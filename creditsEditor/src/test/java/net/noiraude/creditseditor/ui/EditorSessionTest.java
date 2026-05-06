@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Locale;
 
 import net.noiraude.libcredits.lang.LangDocument;
 import net.noiraude.libcredits.model.DocumentCategory;
@@ -207,6 +208,49 @@ public class EditorSessionTest {
             assertEquals("dev", reopened.creditsDoc().categories.get(0).id);
         } finally {
             reopened.close();
+        }
+    }
+
+    @Test
+    public void defaultLocale_picksMatchingLangFileForJvmLocale() throws Exception {
+        Path dir = Files.createDirectory(temp.resolve("root"));
+        Path langDir = dir.resolve(CreditsLayout.LANG_DIR.get());
+        Files.createDirectories(langDir);
+        Files.writeString(langDir.resolve("en_US.lang"), "", StandardCharsets.UTF_8);
+        Files.writeString(langDir.resolve("fr_FR.lang"), "", StandardCharsets.UTF_8);
+
+        Locale previous = Locale.getDefault();
+        Locale.setDefault(Locale.FRANCE);
+        try {
+            EditorSession session = EditorSession.open(dir.toString());
+            try {
+                assertEquals("fr_FR", session.defaultLocale());
+            } finally {
+                session.close();
+            }
+        } finally {
+            Locale.setDefault(previous);
+        }
+    }
+
+    @Test
+    public void defaultLocale_fallsBackToEnglishWhenJvmLocaleNotPresentOnDisk() throws Exception {
+        Path dir = Files.createDirectory(temp.resolve("root"));
+        Path langDir = dir.resolve(CreditsLayout.LANG_DIR.get());
+        Files.createDirectories(langDir);
+        Files.writeString(langDir.resolve("en_US.lang"), "", StandardCharsets.UTF_8);
+
+        Locale previous = Locale.getDefault();
+        Locale.setDefault(Locale.GERMANY);
+        try {
+            EditorSession session = EditorSession.open(dir.toString());
+            try {
+                assertEquals("en_US", session.defaultLocale());
+            } finally {
+                session.close();
+            }
+        } finally {
+            Locale.setDefault(previous);
         }
     }
 

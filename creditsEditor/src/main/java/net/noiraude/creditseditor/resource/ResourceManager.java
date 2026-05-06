@@ -10,12 +10,13 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import net.noiraude.creditseditor.service.LangResolver;
 import net.noiraude.libcredits.lang.LangDocument;
 import net.noiraude.libcredits.lang.LangParser;
 import net.noiraude.libcredits.lang.LangSerializer;
@@ -46,9 +47,8 @@ public final class ResourceManager implements Closeable {
 
     /**
      * All loaded lang documents keyed by locale tag (lang file basename without
-     * {@link CreditsLayout#LANG_EXT}). Always contains
-     * {@link CreditsLayout#DEFAULT_LOCALE} after a successful {@link #loadDocuments()}
-     * call, even when the on-disk lang directory is missing.
+     * {@link CreditsLayout#LANG_EXT}). Always contains {@link Locale#US} after a successful
+     * {@link #loadDocuments()} call, even when the on-disk lang directory is missing.
      */
     private final @NotNull Map<String, LangDocument> langDocs = new LinkedHashMap<>();
 
@@ -99,9 +99,9 @@ public final class ResourceManager implements Closeable {
      * are meaningful.
      *
      * <p>
-     * If no {@link CreditsLayout#DEFAULT_LOCALE} lang file is present on disk, an empty
-     * in-memory document is seeded for it so {@link #getLangDoc()} always succeeds; the
-     * file is not created on disk until the next save.
+     * If no {@link Locale#US} lang file is present on disk, an empty in-memory document is
+     * seeded for it so {@link #getLangDoc()} always succeeds; the file is not created on
+     * disk until the next save.
      *
      * @throws IOException           if a file exists but cannot be read
      * @throws CreditsParseException if the credits JSON is structurally invalid
@@ -120,7 +120,7 @@ public final class ResourceManager implements Closeable {
         List<String> langFiles;
         try (Stream<String> entries = storage.listFiles(CreditsLayout.LANG_DIR.get())) {
             langFiles = entries.filter(name -> name.endsWith(CreditsLayout.LANG_EXT))
-                .collect(Collectors.toList());
+                .toList();
         }
         for (String langFile : langFiles) {
             String locale = langFile.substring(0, langFile.length() - CreditsLayout.LANG_EXT.length());
@@ -128,9 +128,7 @@ public final class ResourceManager implements Closeable {
                 langDocs.put(locale, LangParser.parse(in));
             }
         }
-        if (!langDocs.containsKey(CreditsLayout.DEFAULT_LOCALE)) {
-            langDocs.put(CreditsLayout.DEFAULT_LOCALE, LangParser.empty());
-        }
+        langDocs.computeIfAbsent(LangResolver.DEFAULT_LOCALE, k -> LangParser.empty());
     }
 
     /**
@@ -140,16 +138,14 @@ public final class ResourceManager implements Closeable {
      *
      * <p>
      * The supplied lang map replaces the in-memory state; iteration order is preserved when
-     * {@code langs} is a {@link LinkedHashMap}. {@link CreditsLayout#DEFAULT_LOCALE} is
-     * seeded with an empty document if absent from {@code langs}.
+     * {@code langs} is a {@link LinkedHashMap}. {@link Locale#US} is seeded with an empty
+     * document if absent from {@code langs}.
      */
     public void adoptDocuments(@NotNull CreditsDocument credits, @NotNull Map<String, LangDocument> langs) {
         this.creditsDoc = credits;
         this.langDocs.clear();
         this.langDocs.putAll(langs);
-        if (!this.langDocs.containsKey(CreditsLayout.DEFAULT_LOCALE)) {
-            this.langDocs.put(CreditsLayout.DEFAULT_LOCALE, LangParser.empty());
-        }
+        this.langDocs.computeIfAbsent(LangResolver.DEFAULT_LOCALE, k -> LangParser.empty());
         this.pendingDeletions.clear();
     }
 
@@ -160,13 +156,12 @@ public final class ResourceManager implements Closeable {
     }
 
     /**
-     * Returns the {@link CreditsLayout#DEFAULT_LOCALE} lang document loaded by
-     * {@link #loadDocuments()}. Equivalent to {@code langDoc(DEFAULT_LOCALE)} but
-     * never returns {@code null}.
+     * Returns the {@link Locale#US} lang document loaded by {@link #loadDocuments()}.
+     * Equivalent to {@code langDoc(Locale.US.toString())} but never returns {@code null}.
      */
     @Contract(pure = true)
     public @NotNull LangDocument getLangDoc() {
-        LangDocument doc = langDocs.get(CreditsLayout.DEFAULT_LOCALE);
+        LangDocument doc = langDocs.get(LangResolver.DEFAULT_LOCALE);
         return Objects.requireNonNull(doc, "call loadDocuments() first");
     }
 
@@ -178,8 +173,7 @@ public final class ResourceManager implements Closeable {
 
     /**
      * Returns the locale tags currently loaded in memory, in insertion order
-     * ({@link CreditsLayout#DEFAULT_LOCALE} first when it was seeded by
-     * {@link #loadDocuments()}).
+     * ({@link Locale#US} first when it was seeded by {@link #loadDocuments()}).
      */
     @Contract(pure = true)
     public @NotNull Set<String> availableLocales() {

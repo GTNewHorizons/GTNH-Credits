@@ -37,7 +37,6 @@ public enum CreditsLayout {
     }
 
     public static final String LANG_EXT = ".lang";
-    public static final String DEFAULT_LOCALE = "en_US";
 
     /** Builds the relative path of the lang file for {@code locale}. */
     public static String getLangPath(String locale) {

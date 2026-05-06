@@ -8,6 +8,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
+import net.noiraude.creditseditor.service.LangResolver;
 import net.noiraude.libcredits.lang.LangDocument;
 import net.noiraude.libcredits.model.CreditsDocument;
 import net.noiraude.libcredits.model.DocumentCategory;
@@ -34,9 +35,6 @@ import org.jetbrains.annotations.Nullable;
  * subscriber rebuilds against the new documents.
  */
 public final class DocumentBus {
-
-    /** Default lang locale tag, sourced from {@link Locale#US} so the literal "en_US" is not hardcoded. */
-    private static final @NotNull String DEFAULT_LOCALE = Locale.US.toString();
 
     /** Session documents were swapped. Subscribers should rebuild from scratch. */
     public static final @NotNull String TOPIC_SESSION = "session";
@@ -74,7 +72,7 @@ public final class DocumentBus {
 
     private @Nullable CreditsDocument creditsDoc;
     private @Nullable Map<String, LangDocument> langDocs;
-    private @NotNull String activeLocale = DEFAULT_LOCALE;
+    private @NotNull String activeLocale = LangResolver.DEFAULT_LOCALE;
 
     /** Returns the current credits document. Throws when no session is loaded. */
     @Contract(pure = true)
@@ -88,8 +86,8 @@ public final class DocumentBus {
      */
     @Contract(pure = true)
     public @NotNull LangDocument langDoc() {
-        LangDocument doc = langDocs(DEFAULT_LOCALE);
-        return Objects.requireNonNull(doc, "No " + DEFAULT_LOCALE + " lang document loaded");
+        LangDocument doc = langDocs(LangResolver.DEFAULT_LOCALE);
+        return Objects.requireNonNull(doc, "No " + LangResolver.DEFAULT_LOCALE + " lang document loaded");
     }
 
     /**
@@ -137,7 +135,7 @@ public final class DocumentBus {
      * single-entry map keyed by {@link Locale#US}.
      */
     public void setSession(@NotNull CreditsDocument credits, @NotNull LangDocument lang) {
-        setSession(credits, Collections.singletonMap(DEFAULT_LOCALE, lang));
+        setSession(credits, Collections.singletonMap(LangResolver.DEFAULT_LOCALE, lang));
     }
 
     /**

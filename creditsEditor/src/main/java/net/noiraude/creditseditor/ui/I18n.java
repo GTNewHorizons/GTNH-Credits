@@ -3,7 +3,9 @@ package net.noiraude.creditseditor.ui;
 import java.text.MessageFormat;
 import java.util.Locale;
 import java.util.MissingResourceException;
+import java.util.Optional;
 import java.util.ResourceBundle;
+import java.util.Set;
 
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
@@ -62,5 +64,31 @@ public final class I18n {
         }
         if (args.length == 0) return pattern;
         return MessageFormat.format(pattern, args);
+    }
+
+    /**
+     * Resolves a JVM {@link Locale} to a basename present in {@code available}.
+     *
+     * <p>
+     * Tries an exact {@code language_COUNTRY} match first ({@code fr_FR}), then any entry sharing
+     * the language tag ({@code fr_*}). Returns {@link Optional#empty()} when {@code jvmLocale}
+     * carries no language tag or when no entry in {@code available} matches; the caller decides
+     * what default to apply.
+     */
+    @Contract(pure = true)
+    public static @NotNull Optional<String> resolveLangBasename(@NotNull Locale jvmLocale,
+        @NotNull Set<String> available) {
+        String lang = jvmLocale.getLanguage();
+        if (lang.isEmpty()) return Optional.empty();
+        String country = jvmLocale.getCountry();
+        if (!country.isEmpty()) {
+            String exact = lang + "_" + country;
+            if (available.contains(exact)) return Optional.of(exact);
+        }
+        String prefix = lang + "_";
+        for (String basename : available) {
+            if (basename.startsWith(prefix)) return Optional.of(basename);
+        }
+        return Optional.empty();
     }
 }

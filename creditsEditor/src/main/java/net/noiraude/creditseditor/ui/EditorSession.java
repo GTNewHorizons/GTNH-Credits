@@ -6,10 +6,12 @@ import java.lang.System.Logger.Level;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
 
 import net.noiraude.creditseditor.command.CommandStack;
 import net.noiraude.creditseditor.resource.ResourceManager;
+import net.noiraude.creditseditor.service.LangResolver;
 import net.noiraude.libcredits.lang.LangDocument;
 import net.noiraude.libcredits.model.CreditsDocument;
 
@@ -107,6 +109,18 @@ final class EditorSession {
     @NotNull
     java.util.Set<String> availableLocales() {
         return resourceManager.availableLocales();
+    }
+
+    /**
+     * Returns the lang basename that best matches {@link Locale#getDefault()} among the
+     * loaded locales, falling back to {@link LangResolver#DEFAULT_LOCALE} when nothing
+     * matches. Used to seed the editing locale right after a session is opened.
+     */
+    @Contract(pure = true)
+    @NotNull
+    String defaultLocale() {
+        return I18n.resolveLangBasename(Locale.getDefault(), availableLocales())
+            .orElse(LangResolver.DEFAULT_LOCALE);
     }
 
     /** Returns the file name of the resource directory or zip, for use in the title bar. */

@@ -134,7 +134,7 @@ reference and cannot be removed.
   Done when: the bus exposes the topic and a no-op default works without any
   UI change.
 
-- [ ] **B.2 Default editing locale = UI locale** (`ui/EditorSession.java`,
+- [x] **B.2 Default editing locale = UI locale** (`ui/EditorSession.java`,
   `ui/I18n.java`)
   After `ResourceManager.loadDocuments()` returns, resolve
   `Locale.getDefault()` to a lang basename. Match `language_COUNTRY` first
