@@ -1,33 +1,27 @@
 package net.noiraude.creditseditor.ui;
 
-import java.awt.BorderLayout;
-import java.awt.Dimension;
-import java.awt.Insets;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.DirectoryStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.concurrent.ExecutionException;
-
-import javax.swing.JFileChooser;
-import javax.swing.JFrame;
-import javax.swing.JOptionPane;
-import javax.swing.SwingWorker;
-import javax.swing.filechooser.FileFilter;
-import javax.swing.filechooser.FileNameExtensionFilter;
-
 import net.noiraude.creditseditor.bus.DocumentBus;
 import net.noiraude.creditseditor.command.CommandExecutor;
 import net.noiraude.creditseditor.ui.dialog.AboutDialog;
 import net.noiraude.creditseditor.ui.dialog.ProgressDialog;
 import net.noiraude.creditseditor.ui.dialog.ShortcutsDialog;
-
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import javax.swing.JFrame;
+import javax.swing.JOptionPane;
+import javax.swing.SwingWorker;
+import java.awt.BorderLayout;
+import java.awt.Dimension;
+import java.awt.Insets;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import java.io.IOException;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Optional;
+import java.util.concurrent.ExecutionException;
 
 /**
  * Main application window for the GTNH Credits Editor.
@@ -144,17 +138,9 @@ public final class MainWindow extends JFrame implements EditorActions.Handlers {
 
     private void doOpen(boolean createNew) {
         if (shouldAbort()) return;
-
-        JFileChooser chooser = new JFileChooser();
-        chooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
-        chooser.setDialogTitle(I18n.get(createNew ? "filechooser.new.title" : "filechooser.open.title"));
-
-        int result = createNew ? chooser.showSaveDialog(this) : chooser.showOpenDialog(this);
-        if (result != JFileChooser.APPROVE_OPTION) return;
-
-        loadResource(
-            chooser.getSelectedFile()
-                .getAbsolutePath());
+        Optional<Path> chosen = createNew ? CreditsResourceChooser.chooseForNew(this)
+            : CreditsResourceChooser.chooseForOpen(this);
+        chosen.ifPresent(p -> loadResource(p.toString()));
     }
 
     // -----------------------------------------------------------------------
@@ -192,40 +178,9 @@ public final class MainWindow extends JFrame implements EditorActions.Handlers {
     public void onSaveAs() {
         if (session == null) return;
 
-        JFileChooser chooser = new JFileChooser();
-        chooser.setDialogTitle(I18n.get("filechooser.save_as.title"));
-        chooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
-        chooser.setAcceptAllFileFilterUsed(false);
-        FileNameExtensionFilter zipFilter = new FileNameExtensionFilter(
-            I18n.get("filechooser.save_as.filter.zip"),
-            "zip");
-        FileFilter dirFilter = new FileFilter() {
-
-            @Override
-            public boolean accept(File f) {
-                return f.isDirectory();
-            }
-
-            @Override
-            public String getDescription() {
-                return I18n.get("filechooser.save_as.filter.dir");
-            }
-        };
-        chooser.addChoosableFileFilter(zipFilter);
-        chooser.addChoosableFileFilter(dirFilter);
-        chooser.setFileFilter(zipFilter);
-
-        if (chooser.showSaveDialog(this) != JFileChooser.APPROVE_OPTION) return;
-
-        File selected = chooser.getSelectedFile();
-        if (
-            chooser.getFileFilter() == zipFilter && !selected.getName()
-                .toLowerCase()
-                .endsWith(".zip")
-        ) {
-            selected = new File(selected.getAbsolutePath() + ".zip");
-        }
-        Path target = Paths.get(selected.getAbsolutePath());
+        Optional<Path> chosen = CreditsResourceChooser.chooseForSaveAs(this);
+        if (chosen.isEmpty()) return;
+        Path target = chosen.get();
 
         if (isNonEmptyTarget(target) && !confirmOverwrite(target)) return;
 
