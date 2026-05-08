@@ -13,6 +13,7 @@ import net.noiraude.creditseditor.command.CommandStack;
 import net.noiraude.creditseditor.resource.ResourceManager;
 import net.noiraude.creditseditor.service.LangResolver;
 import net.noiraude.libcredits.lang.LangDocument;
+import net.noiraude.libcredits.lang.MinecraftLangBasename;
 import net.noiraude.libcredits.model.CreditsDocument;
 
 import org.jetbrains.annotations.Contract;
@@ -119,7 +120,7 @@ final class EditorSession {
     @Contract(pure = true)
     @NotNull
     String defaultLocale() {
-        return I18n.resolveLangBasename(Locale.getDefault(), availableLocales())
+        return MinecraftLangBasename.forJavaLocale(Locale.getDefault(), availableLocales())
             .orElse(LangResolver.DEFAULT_LOCALE);
     }
 

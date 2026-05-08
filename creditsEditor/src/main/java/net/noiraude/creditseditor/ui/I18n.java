@@ -3,9 +3,7 @@ package net.noiraude.creditseditor.ui;
 import java.text.MessageFormat;
 import java.util.Locale;
 import java.util.MissingResourceException;
-import java.util.Optional;
 import java.util.ResourceBundle;
-import java.util.Set;
 
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
@@ -55,7 +53,7 @@ public final class I18n {
      *
      * <p>
      * The conversion to the {@link Object} array required by {@link MessageFormat} happens
-     * inside {@link MsgArg#unwrapArgs}, so the public API exposes only the typed surface.
+     * locally in this method, so the public API exposes only the typed {@link MsgArg} surface.
      */
     public static @NotNull String get(@NotNull String key, @NotNull MsgArg... args) {
         ResourceBundle bundle = Holder.BUNDLE;
@@ -70,29 +68,4 @@ public final class I18n {
         return MessageFormat.format(pattern, MsgArg.unwrapArgs(args));
     }
 
-    /**
-     * Resolves a JVM {@link Locale} to a basename present in {@code available}.
-     *
-     * <p>
-     * Tries an exact {@code language_COUNTRY} match first ({@code fr_FR}), then any entry sharing
-     * the language tag ({@code fr_*}). Returns {@link Optional#empty()} when {@code jvmLocale}
-     * carries no language tag or when no entry in {@code available} matches; the caller decides
-     * what default to apply.
-     */
-    @Contract(pure = true)
-    public static @NotNull Optional<String> resolveLangBasename(@NotNull Locale jvmLocale,
-        @NotNull Set<String> available) {
-        String lang = jvmLocale.getLanguage();
-        if (lang.isEmpty()) return Optional.empty();
-        String country = jvmLocale.getCountry();
-        if (!country.isEmpty()) {
-            String exact = lang + "_" + country;
-            if (available.contains(exact)) return Optional.of(exact);
-        }
-        String prefix = lang + "_";
-        for (String basename : available) {
-            if (basename.startsWith(prefix)) return Optional.of(basename);
-        }
-        return Optional.empty();
-    }
 }
