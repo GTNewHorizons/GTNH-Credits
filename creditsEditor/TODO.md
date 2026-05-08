@@ -146,7 +146,7 @@ reference and cannot be removed.
 
 ## Phase C: Detail-view editor wrapper
 
-- [ ] **C.1 LocalizedMcEditor wrapper** (`ui/component/LocalizedMcEditor.java`)
+- [ ] **C.1 LocalizedMcEditor wrapper** (`ui/component/mc/LocalizedMcEditor.java`)
   Composes a `MinecraftTextEditor` or `MinecraftTextAreaEditor` with an
   extra "EN" toggle button placed in the editor's top bar next to the
   existing raw/rendered toggle. While the EN toggle is on, the pane shows

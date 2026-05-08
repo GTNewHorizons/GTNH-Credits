@@ -20,6 +20,7 @@ import javax.swing.ScrollPaneConstants;
 import javax.swing.event.UndoableEditListener;
 
 import net.noiraude.creditseditor.mc.McText;
+import net.noiraude.creditseditor.ui.I18n;
 
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
@@ -58,7 +59,7 @@ class AbstractMcEditor extends JPanel {
 
         toggleButton.setMargin(new Insets(gapHair, gapSmall, gapHair, gapSmall));
         toggleButton.setFocusable(false);
-        toggleButton.setToolTipText("Toggle raw / rendered mode");
+        toggleButton.setToolTipText(I18n.get("toolbar.raw_rendered.toggle.tooltip"));
         toggleButton.addActionListener(e -> setRawMode(!rawMode));
 
         topBarTrailing = new JPanel();
