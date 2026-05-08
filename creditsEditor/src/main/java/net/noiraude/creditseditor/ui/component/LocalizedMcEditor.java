@@ -89,8 +89,12 @@ public final class LocalizedMcEditor extends JPanel {
         inner.addTopBarLeadingComponent(copyButton);
 
         inner.addTextChangeListener(newText -> {
-            if (state instanceof EnViewing) return;
-            for (Consumer<@NotNull String> l : textListeners) l.accept(newText);
+            switch (state) {
+                case EnViewing en -> {}
+                case Editing() -> {
+                    for (Consumer<@NotNull String> l : textListeners) l.accept(newText);
+                }
+            }
         });
 
         applyLocaleVisibility();
@@ -127,15 +131,19 @@ public final class LocalizedMcEditor extends JPanel {
      * @param langValue the value in Minecraft lang file format; pass an empty string for empty
      */
     public void setText(@NotNull String langValue) {
-        if (state instanceof EnViewing) state = new EnViewing(langValue);
-        else inner.setText(langValue);
+        switch (state) {
+            case EnViewing en -> state = new EnViewing(langValue);
+            case Editing() -> inner.setText(langValue);
+        }
     }
 
     /** Returns the current editing-locale value, regardless of the EN view state. */
     @Contract(pure = true)
     public @NotNull String getText() {
-        if (state instanceof EnViewing(String editingValue)) return editingValue;
-        return inner.getText();
+        return switch (state) {
+            case EnViewing(String editingValue) -> editingValue;
+            case Editing() -> inner.getText();
+        };
     }
 
     /**
@@ -159,7 +167,10 @@ public final class LocalizedMcEditor extends JPanel {
     /** Returns {@code true} when the EN view is currently shown. */
     @Contract(pure = true)
     boolean isEnViewing() {
-        return state instanceof EnViewing;
+        return switch (state) {
+            case EnViewing en -> true;
+            case Editing() -> false;
+        };
     }
 
     /** Returns the inner editor used to render and edit the active locale's value. */
@@ -195,34 +206,45 @@ public final class LocalizedMcEditor extends JPanel {
     }
 
     private void enterEnView(@NotNull String englishValue) {
-        if (state instanceof EnViewing) return;
-        state = new EnViewing(inner.getText());
-        inner.setText(englishValue);
-        inner.setEditable(false);
-        copyButton.setVisible(true);
-        enToggle.setSelected(true);
+        switch (state) {
+            case EnViewing en -> {}
+            case Editing() -> {
+                state = new EnViewing(inner.getText());
+                inner.setText(englishValue);
+                inner.setEditable(false);
+                copyButton.setVisible(true);
+                enToggle.setSelected(true);
+            }
+        }
     }
 
     private void exitEnView() {
-        if (state instanceof EnViewing(String buffered)) {
-            inner.setText(buffered);
-            state = EDITING;
-            inner.setEditable(true);
-            copyButton.setVisible(false);
-            enToggle.setSelected(false);
+        switch (state) {
+            case EnViewing(String buffered) -> {
+                inner.setText(buffered);
+                state = EDITING;
+                inner.setEditable(true);
+                copyButton.setVisible(false);
+                enToggle.setSelected(false);
+            }
+            case Editing() -> {}
         }
     }
 
     private void copyEnglishToEditing() {
-        if (!(state instanceof EnViewing)) return;
-        Optional<String> english = englishValueSupplier.get();
-        if (english.isEmpty()) return;
-        // Restore editing mode silently (this puts the previous editing value back into the
-        // inner editor, undoing the silent swap performed by enterEnView)...
-        exitEnView();
-        // ...then replay the English value as user input so the editing-locale change is
-        // observed by listeners (text listeners, undoable edits) the same way typing it would be.
-        inner.setTextAsUserInput(english.get());
+        switch (state) {
+            case Editing() -> {}
+            case EnViewing en -> {
+                Optional<String> english = englishValueSupplier.get();
+                if (english.isEmpty()) return;
+                // Restore editing mode silently (this puts the previous editing value back into
+                // the inner editor, undoing the silent swap performed by enterEnView)...
+                exitEnView();
+                // ...then replay the English value as user input so the editing-locale change is
+                // observed by listeners the same way typing it would be.
+                inner.setTextAsUserInput(english.get());
+            }
+        }
     }
 
     private void applyLocaleVisibility() {

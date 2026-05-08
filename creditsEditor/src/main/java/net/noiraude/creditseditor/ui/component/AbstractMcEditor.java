@@ -1,8 +1,15 @@
 package net.noiraude.creditseditor.ui.component;
 
-import net.noiraude.creditseditor.mc.McText;
-import org.jetbrains.annotations.Contract;
-import org.jetbrains.annotations.NotNull;
+import static net.noiraude.creditseditor.ui.ScaledMetrics.gapHair;
+import static net.noiraude.creditseditor.ui.ScaledMetrics.gapSmall;
+import static net.noiraude.creditseditor.ui.ScaledMetrics.gapTiny;
+
+import java.awt.BorderLayout;
+import java.awt.Component;
+import java.awt.Container;
+import java.awt.Dimension;
+import java.awt.Insets;
+import java.util.function.Consumer;
 
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -11,16 +18,11 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.event.UndoableEditListener;
-import java.awt.BorderLayout;
-import java.awt.Component;
-import java.awt.Container;
-import java.awt.Dimension;
-import java.awt.Insets;
-import java.util.function.Consumer;
 
-import static net.noiraude.creditseditor.ui.ScaledMetrics.gapHair;
-import static net.noiraude.creditseditor.ui.ScaledMetrics.gapSmall;
-import static net.noiraude.creditseditor.ui.ScaledMetrics.gapTiny;
+import net.noiraude.creditseditor.mc.McText;
+
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Abstract base for Minecraft-formatted text editors.

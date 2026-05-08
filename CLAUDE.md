@@ -20,6 +20,7 @@ GTNH Credits is a Minecraft 1.7.10 Forge mod (`modId = gtnhcredits`, `modGroup =
 ## Code style
 
 - Wildcard imports are prohibited. Always use explicit single-type imports (e.g. `import javax.swing.JPanel;`, not `import javax.swing.*;`). Applies to all subprojects.
+- `instanceof` is a prohibited code smell. Reach for polymorphism, sealed types with pattern-style dispatch, visitor patterns, or distinct typed APIs instead. The few legitimate uses (e.g. `equals` overrides, framework callbacks that hand back `Object`) must be justified in a comment.
 
 ## AI Transparency
 
