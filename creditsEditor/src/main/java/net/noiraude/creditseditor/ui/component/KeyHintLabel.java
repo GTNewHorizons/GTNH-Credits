@@ -21,7 +21,7 @@ import org.jetbrains.annotations.NotNull;
  * Sanitization runs on the editor thread on every document change, so the user sees right away
  * which characters get stripped, replaced, or lowercased. When the input matches its sanitized
  * form, the label renders in the disabled foreground color so it reads as a passive hint;
- * when sanitization changes the input, it switches to the warning foreground so the
+ * when sanitization changes the input, it switches to the warning foreground, so the
  * transformation is visible rather than silent.
  *
  * @implNote The label tracks the supplied text component's {@link Document}; if the component
