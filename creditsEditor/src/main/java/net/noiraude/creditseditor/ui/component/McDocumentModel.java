@@ -18,7 +18,6 @@ import net.noiraude.creditseditor.mc.McText;
 
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * Headless model behind {@link McWysiwygPane}: owns a {@link StyledDocument} and a
@@ -83,20 +82,19 @@ public final class McDocumentModel {
      * In multi-line mode, paragraphs separated by {@code '\n'} are inserted with the separator
      * carrying no formatting. In raw mode the string is inserted verbatim.
      */
-    public void setText(@Nullable String displayText) {
+    public void setText(@NotNull String displayText) {
         try {
             doc.remove(0, doc.getLength());
-            String content = displayText != null ? displayText : "";
             if (rawMode) {
-                doc.insertString(0, content, null);
+                doc.insertString(0, displayText, SimpleAttributeSet.EMPTY);
             } else if (multiLine) {
-                String[] paras = content.split("\n", -1);
+                String[] paras = displayText.split("\n", -1);
                 for (int i = 0; i < paras.length; i++) {
-                    if (i > 0) doc.insertString(doc.getLength(), "\n", null);
+                    if (i > 0) doc.insertString(doc.getLength(), "\n", SimpleAttributeSet.EMPTY);
                     insertParagraph(doc, paras[i]);
                 }
             } else {
-                insertParagraph(doc, content);
+                insertParagraph(doc, displayText);
             }
         } catch (BadLocationException ex) {
             LOG.log(Level.WARNING, "setText: bad location while rebuilding document", ex);

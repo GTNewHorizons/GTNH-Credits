@@ -2,7 +2,6 @@ package net.noiraude.creditseditor.service;
 
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 
 import net.noiraude.libcredits.lang.LangDocument;
@@ -47,7 +46,7 @@ public final class LangResolver {
      *                or the documents are observed by subsequent {@link #resolve} calls.
      */
     public LangResolver(@NotNull Map<String, LangDocument> locales) {
-        this.locales = Objects.requireNonNull(locales);
+        this.locales = locales;
     }
 
     /**

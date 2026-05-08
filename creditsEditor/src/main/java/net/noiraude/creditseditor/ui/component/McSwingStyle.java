@@ -35,7 +35,7 @@ import org.jetbrains.annotations.NotNull;
 public final class McSwingStyle {
 
     /** Private storage key for the obfuscated flag on Swing {@link AttributeSet}s. */
-    private static final @NotNull Object ATTR_OBFUSCATED = "mc-obfuscated";
+    private static final @NotNull String ATTR_OBFUSCATED = "mc-obfuscated";
 
     @Contract(pure = true)
     private McSwingStyle() {}

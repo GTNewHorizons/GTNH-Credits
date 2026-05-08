@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
-import java.util.Objects;
 
 import org.junit.jupiter.api.Test;
 
@@ -76,30 +75,27 @@ public class McTextTest {
         // §a = GREEN (palette index 10)
         List<McText.Segment> segs = McText.parse("§agreen");
         assertEquals(1, segs.size());
-        assertEquals(McFormatCode.GREEN, McFormatCode.activeColor(segs.getFirst().codes));
-        assertEquals(
-            McFormatCode.PALETTE[10].rgb(),
-            Objects.requireNonNull(McFormatCode.activeColor(segs.getFirst().codes))
-                .rgb());
+        McFormatCode color = McFormatCode.activeColor(segs.getFirst().codes);
+        assertNotNull(color);
+        assertEquals(McFormatCode.GREEN, color);
+        assertEquals(McFormatCode.PALETTE[10].rgb(), color.rgb());
         assertEquals("green", segs.getFirst().text);
     }
 
     @Test
     public void parse_colorCode0_isBlack() {
         List<McText.Segment> segs = McText.parse("§0x");
-        assertEquals(
-            0x000000,
-            Objects.requireNonNull(McFormatCode.activeColor(segs.getFirst().codes))
-                .rgb());
+        McFormatCode color = McFormatCode.activeColor(segs.getFirst().codes);
+        assertNotNull(color);
+        assertEquals(0x000000, color.rgb());
     }
 
     @Test
     public void parse_colorCodef_isWhite() {
         List<McText.Segment> segs = McText.parse("§fx");
-        assertEquals(
-            0xFFFFFF,
-            Objects.requireNonNull(McFormatCode.activeColor(segs.getFirst().codes))
-                .rgb());
+        McFormatCode color = McFormatCode.activeColor(segs.getFirst().codes);
+        assertNotNull(color);
+        assertEquals(0xFFFFFF, color.rgb());
     }
 
     @Test

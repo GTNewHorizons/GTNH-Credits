@@ -3,6 +3,7 @@ package net.noiraude.creditseditor.ui.component;
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
 import java.util.EnumSet;
+import java.util.function.Consumer;
 
 import javax.swing.AbstractAction;
 import javax.swing.JTextPane;
@@ -16,7 +17,6 @@ import net.noiraude.creditseditor.mc.McSelectionPresence;
 
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * Editable {@link JTextPane} that renders and edits Minecraft {@code §x} formatting codes in
@@ -114,13 +114,23 @@ public final class McWysiwygPane extends JTextPane implements McFormatTarget {
     }
 
     @Override
-    public void setText(@Nullable String displayText) {
+    public void setText(@NotNull String displayText) {
         settingText = true;
         try {
             model.setText(displayText);
         } finally {
             settingText = false;
         }
+        setCaretPosition(0);
+    }
+
+    /**
+     * Replaces the displayed text the same way {@link #setText} does, but lets the underlying
+     * document fire its {@link java.beans.PropertyChangeEvent} and {@link UndoableEditListener}
+     * events so the change is observed by listeners as if the user had typed it.
+     */
+    public void setTextAsUserInput(@NotNull String displayText) {
+        model.setText(displayText);
         setCaretPosition(0);
     }
 
@@ -158,6 +168,16 @@ public final class McWysiwygPane extends JTextPane implements McFormatTarget {
      */
     public void addUndoableEditListener(@NotNull UndoableEditListener l) {
         getDocument().addUndoableEditListener(e -> { if (!settingText) l.undoableEditHappened(e); });
+    }
+
+    /**
+     * Registers a typed text-change listener invoked with the current display-format text after
+     * every user-driven document mutation. Programmatic {@link #setText} calls are suppressed
+     * the same way the {@code "text"} property change is.
+     */
+    public void addTextChangeListener(@NotNull Consumer<@NotNull String> listener) {
+        getStyledDocument()
+            .addDocumentListener(new AnyChangeListener(() -> { if (!settingText) listener.accept(getText()); }));
     }
 
     /**
