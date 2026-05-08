@@ -1,19 +1,26 @@
 package net.noiraude.creditseditor.ui.component;
 
+import net.noiraude.creditseditor.mc.McText;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
+
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.JButton;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.ScrollPaneConstants;
+import javax.swing.event.UndoableEditListener;
+import java.awt.BorderLayout;
+import java.awt.Component;
+import java.awt.Container;
+import java.awt.Dimension;
+import java.awt.Insets;
+import java.util.function.Consumer;
+
 import static net.noiraude.creditseditor.ui.ScaledMetrics.gapHair;
 import static net.noiraude.creditseditor.ui.ScaledMetrics.gapSmall;
 import static net.noiraude.creditseditor.ui.ScaledMetrics.gapTiny;
-
-import java.awt.*;
-import java.util.function.Consumer;
-
-import javax.swing.*;
-import javax.swing.event.UndoableEditListener;
-
-import net.noiraude.creditseditor.mc.McText;
-
-import org.jetbrains.annotations.Contract;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Abstract base for Minecraft-formatted text editors.
@@ -182,7 +189,7 @@ class AbstractMcEditor extends JPanel {
     /**
      * Inserts {@code c} into the top bar's trailing group, immediately to the left of the
      * raw/rendered toggle. Each call adds a small gap before the previous leading component, so
-     * subsequent insertions stack rightward and the toggle stays at the far edge.
+     * later insertions stack rightward, and the toggle stays at the far edge.
      */
     final void addTopBarLeadingComponent(@NotNull Component c) {
         int toggleIdx = topBarTrailing.getComponentCount() - 1;
