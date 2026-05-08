@@ -9,6 +9,7 @@ import javax.swing.AbstractAction;
 import javax.swing.JTextPane;
 import javax.swing.KeyStroke;
 import javax.swing.UIManager;
+import javax.swing.event.CaretListener;
 import javax.swing.event.UndoableEditListener;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.MutableAttributeSet;
@@ -71,6 +72,11 @@ public final class McWysiwygPane extends JTextPane implements McFormatTarget {
     @Override
     public boolean getScrollableTracksViewportWidth() {
         return true;
+    }
+
+    @Override
+    public void addCaretListener(@NotNull CaretListener listener) {
+        super.addCaretListener(listener);
     }
 
     private void onCaretMoved() {
