@@ -4,6 +4,7 @@ import java.awt.Component;
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Locale;
 import java.util.Optional;
 
 import javax.swing.JFileChooser;
@@ -50,12 +51,13 @@ public final class CreditsResourceChooser {
         if (chooser.showSaveDialog(parent) != JFileChooser.APPROVE_OPTION) return Optional.empty();
 
         File selected = chooser.getSelectedFile();
-        if (
-            chooser.getFileFilter() == filters.zip() && !selected.getName()
-                .toLowerCase()
-                .endsWith(".zip")
-        ) {
-            selected = new File(selected.getAbsolutePath() + ".zip");
+        if (chooser.getFileFilter() == filters.zip()) {
+            String nameLower = selected.getName()
+                .toLowerCase(Locale.ROOT);
+
+            if (!nameLower.endsWith(".zip")) {
+                selected = new File(selected.getAbsolutePath() + ".zip");
+            }
         }
         return Optional.of(Paths.get(selected.getAbsolutePath()));
     }

@@ -1,12 +1,16 @@
 package net.noiraude.creditseditor.mc;
 
+import java.util.Arrays;
+import java.util.EnumSet;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.PropertyKey;
-
-import java.util.EnumSet;
-import java.util.Set;
 
 /**
  * Minecraft {@code §x} formatting codes as a pure domain concept.
@@ -106,16 +110,16 @@ public enum McFormatCode {
             .append(code);
     }
 
+    private static final Map<Character, McFormatCode> BY_CHAR = Arrays.stream(values())
+        .collect(Collectors.toUnmodifiableMap(mc -> mc.code, mc -> mc));
+
     /**
-     * Returns the {@link McFormatCode} for the given code character, or {@code null} if not
-     * recognized.
+     * Returns an {@link Optional} containing the {@link McFormatCode} for the
+     * given code character, or empty if not recognized.
      */
     @Contract(pure = true)
-    public static @Nullable McFormatCode fromChar(char c) {
-        for (McFormatCode mc : values()) {
-            if (mc.code == c) return mc;
-        }
-        return null;
+    public static @NotNull Optional<McFormatCode> fromChar(char c) {
+        return Optional.ofNullable(BY_CHAR.get(c));
     }
 
     /** Returns the active color code in {@code codes}, or {@code null} if none is present. */

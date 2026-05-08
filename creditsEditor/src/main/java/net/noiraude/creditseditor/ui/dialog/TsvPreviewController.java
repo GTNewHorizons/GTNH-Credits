@@ -1,27 +1,26 @@
 package net.noiraude.creditseditor.ui.dialog;
 
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.function.Consumer;
-
-import javax.swing.SwingUtilities;
-import javax.swing.SwingWorker;
-import javax.swing.table.AbstractTableModel;
-
 import net.noiraude.creditseditor.bus.DocumentBus;
 import net.noiraude.creditseditor.service.TsvImporter;
 import net.noiraude.creditseditor.service.TsvImporter.ImportLine;
 import net.noiraude.creditseditor.ui.I18n;
 import net.noiraude.creditseditor.ui.MsgArg;
-
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.UnmodifiableView;
+
+import javax.swing.SwingUtilities;
+import javax.swing.SwingWorker;
+import javax.swing.table.AbstractTableModel;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Locale;
+import java.util.concurrent.ExecutionException;
+import java.util.function.Consumer;
 
 /**
  * Owns the asynchronous TSV parse and the backing table model for a preview widget.
@@ -164,7 +163,7 @@ final class TsvPreviewController {
                 case 1 -> String.join(", ", line.roles);
                 case 2 -> line.action.name()
                     .replace('_', ' ')
-                    .toLowerCase();
+                    .toLowerCase(Locale.ROOT); // Keep it consistent
                 default -> "";
             };
         }
