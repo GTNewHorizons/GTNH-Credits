@@ -103,7 +103,7 @@ final class EditorActions {
             null,
             h::onShortcuts);
         about = make(
-            I18n.get("menu.help.about", AppInfo.name()),
+            I18n.get("menu.help.about", MsgArg.text(AppInfo.name())),
             I18n.get("menu.help.about.mnemonic"),
             null,
             h::onAbout);
@@ -132,11 +132,11 @@ final class EditorActions {
         String undoName = loaded ? session.stack.peekUndoName() : null;
         undo.putValue(
             Action.NAME,
-            undoName != null ? I18n.get("menu.edit.undo.named", undoName) : I18n.get("menu.edit.undo"));
+            undoName != null ? I18n.get("menu.edit.undo.named", MsgArg.text(undoName)) : I18n.get("menu.edit.undo"));
         String redoName = loaded ? session.stack.peekRedoName() : null;
         redo.putValue(
             Action.NAME,
-            redoName != null ? I18n.get("menu.edit.redo.named", redoName) : I18n.get("menu.edit.redo"));
+            redoName != null ? I18n.get("menu.edit.redo.named", MsgArg.text(redoName)) : I18n.get("menu.edit.redo"));
     }
 
     private static @NotNull Action make(@NotNull String label, @NotNull String mnemonic,

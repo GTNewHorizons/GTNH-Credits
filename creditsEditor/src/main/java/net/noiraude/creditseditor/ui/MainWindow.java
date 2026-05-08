@@ -111,7 +111,7 @@ public final class MainWindow extends JFrame implements EditorActions.Handlers {
         ProgressDialog.runWith(
             this,
             I18n.get("dialog.load.progress.title"),
-            I18n.get("dialog.load.progress.message", path),
+            I18n.get("dialog.load.progress.message", MsgArg.text(path)),
             worker);
 
         EditorSession newSession;
@@ -212,8 +212,9 @@ public final class MainWindow extends JFrame implements EditorActions.Handlers {
             this,
             I18n.get(
                 "dialog.save_as.confirm.message",
-                target.getFileName()
-                    .toString()),
+                MsgArg.text(
+                    target.getFileName()
+                        .toString())),
             I18n.get("dialog.save_as.confirm.title"),
             JOptionPane.YES_NO_OPTION,
             JOptionPane.WARNING_MESSAGE);
@@ -271,9 +272,9 @@ public final class MainWindow extends JFrame implements EditorActions.Handlers {
         if (session == null) {
             title = appName;
         } else if (session.isDirty()) {
-            title = I18n.get("title.session.dirty", appName, session.displayPath());
+            title = I18n.get("title.session.dirty", MsgArg.text(appName), MsgArg.text(session.displayPath()));
         } else {
-            title = I18n.get("title.session", appName, session.displayPath());
+            title = I18n.get("title.session", MsgArg.text(appName), MsgArg.text(session.displayPath()));
         }
         setTitle(title);
     }

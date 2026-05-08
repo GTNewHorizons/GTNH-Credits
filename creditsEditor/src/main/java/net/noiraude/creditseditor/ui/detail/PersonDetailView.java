@@ -22,6 +22,7 @@ import net.noiraude.creditseditor.command.impl.RemoveMembershipCommand;
 import net.noiraude.creditseditor.mc.McText;
 import net.noiraude.creditseditor.service.KeySanitizer;
 import net.noiraude.creditseditor.ui.I18n;
+import net.noiraude.creditseditor.ui.MsgArg;
 import net.noiraude.creditseditor.ui.component.MinecraftTextEditor;
 import net.noiraude.libcredits.model.DocumentCategory;
 import net.noiraude.libcredits.model.DocumentMembership;
@@ -178,7 +179,7 @@ public final class PersonDetailView extends DetailView<DocumentPerson> implement
         if (available.isEmpty()) {
             JOptionPane.showMessageDialog(
                 this,
-                I18n.get("view.person.no_categories.message", McText.strip(current.name)),
+                I18n.get("view.person.no_categories.message", MsgArg.text(McText.strip(current.name))),
                 I18n.get("view.person.no_categories.title"),
                 JOptionPane.INFORMATION_MESSAGE);
             return;

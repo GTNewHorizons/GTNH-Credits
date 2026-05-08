@@ -31,6 +31,7 @@ import javax.swing.KeyStroke;
 import net.noiraude.creditseditor.ui.AppIcons;
 import net.noiraude.creditseditor.ui.AppInfo;
 import net.noiraude.creditseditor.ui.I18n;
+import net.noiraude.creditseditor.ui.MsgArg;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -46,7 +47,7 @@ import org.jetbrains.annotations.Nullable;
 public final class AboutDialog extends JDialog {
 
     public AboutDialog(@Nullable Frame owner) {
-        super(owner, I18n.get("dialog.about.title", AppInfo.name()), true);
+        super(owner, I18n.get("dialog.about.title", MsgArg.text(AppInfo.name())), true);
 
         JPanel content = new JPanel(new BorderLayout(gapHuge, gapXXLarge));
         content.setBorder(BorderFactory.createEmptyBorder(gapHuge, gapHuge, gapXXLarge, gapHuge));
@@ -85,7 +86,7 @@ public final class AboutDialog extends JDialog {
         panel.add(nameLabel);
 
         panel.add(Box.createVerticalStrut(gapMedium));
-        panel.add(leftLabel(I18n.get("dialog.about.version", AppInfo.version())));
+        panel.add(leftLabel(I18n.get("dialog.about.version", MsgArg.text(AppInfo.version()))));
 
         String description = I18n.get("about.description");
         String license = AppInfo.license();

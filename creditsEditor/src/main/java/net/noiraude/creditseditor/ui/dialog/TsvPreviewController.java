@@ -16,6 +16,7 @@ import net.noiraude.creditseditor.bus.DocumentBus;
 import net.noiraude.creditseditor.service.TsvImporter;
 import net.noiraude.creditseditor.service.TsvImporter.ImportLine;
 import net.noiraude.creditseditor.ui.I18n;
+import net.noiraude.creditseditor.ui.MsgArg;
 
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
@@ -118,7 +119,7 @@ final class TsvPreviewController {
                 lines = List.of();
             } catch (ExecutionException ex) {
                 lines = List.of();
-                onError.accept(I18n.get("tsv.error.read_failed", causeMessageOf(ex)));
+                onError.accept(I18n.get("tsv.error.read_failed", MsgArg.text(causeMessageOf(ex))));
             }
             tableModel.setLines(lines);
             onStateChange.run();

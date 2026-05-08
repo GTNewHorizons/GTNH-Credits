@@ -18,6 +18,7 @@ import javax.swing.event.UndoableEditListener;
 
 import net.noiraude.creditseditor.service.LangResolver;
 import net.noiraude.creditseditor.ui.I18n;
+import net.noiraude.creditseditor.ui.MsgArg;
 
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
@@ -229,7 +230,7 @@ public final class LocalizedMcEditor extends JPanel {
         if (isDefault) exitEnView();
         enToggle.setVisible(!isDefault);
         if (isDefault) copyButton.setVisible(false);
-        copyButton.setText(I18n.get("editor.localized.copy_to.label", activeLocale));
-        copyButton.setToolTipText(I18n.get("editor.localized.copy_to.tooltip", activeLocale));
+        copyButton.setText(I18n.get("editor.localized.copy_to.label", MsgArg.text(activeLocale)));
+        copyButton.setToolTipText(I18n.get("editor.localized.copy_to.tooltip", MsgArg.text(activeLocale)));
     }
 }

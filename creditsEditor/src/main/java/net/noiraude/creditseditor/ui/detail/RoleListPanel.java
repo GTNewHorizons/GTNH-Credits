@@ -34,6 +34,7 @@ import net.noiraude.creditseditor.command.impl.RemovePersonRoleCommand;
 import net.noiraude.creditseditor.mc.McText;
 import net.noiraude.creditseditor.service.KeySanitizer;
 import net.noiraude.creditseditor.ui.I18n;
+import net.noiraude.creditseditor.ui.MsgArg;
 import net.noiraude.creditseditor.ui.component.dnd.ListReorderTransferHandler;
 import net.noiraude.libcredits.model.CreditsDocument;
 import net.noiraude.libcredits.model.DocumentMembership;
@@ -240,7 +241,7 @@ public final class RoleListPanel extends JPanel {
         if (currentMembership.roles.contains(role)) {
             JOptionPane.showMessageDialog(
                 this,
-                I18n.get("panel.roles.duplicate.message", role),
+                I18n.get("panel.roles.duplicate.message", MsgArg.text(role)),
                 I18n.get("panel.roles.duplicate.title"),
                 JOptionPane.WARNING_MESSAGE);
             return;
@@ -253,7 +254,7 @@ public final class RoleListPanel extends JPanel {
         if (selected.isEmpty() || currentMembership == null || currentPerson == null) return;
 
         CompoundCommand.Builder builder = new CompoundCommand.Builder(
-            I18n.get("command.remove.roles", selected.size(), currentMembership.categoryId));
+            I18n.get("command.remove.roles", MsgArg.count(selected.size()), MsgArg.text(currentMembership.categoryId)));
         for (String role : selected) {
             builder.add(new RemovePersonRoleCommand(bus, currentPerson, currentMembership, role));
         }
@@ -263,7 +264,7 @@ public final class RoleListPanel extends JPanel {
     private void updateContextLabel() {
         boolean has = currentMembership != null;
         contextLabel.setText(
-            has ? I18n.get("panel.roles.context", currentMembership.categoryId)
+            has ? I18n.get("panel.roles.context", MsgArg.text(currentMembership.categoryId))
                 : I18n.get("panel.roles.no_membership"));
         contextLabel.setFont(
             contextLabel.getFont()

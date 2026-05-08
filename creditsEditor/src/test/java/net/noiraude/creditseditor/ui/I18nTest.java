@@ -22,12 +22,12 @@ public class I18nTest {
     @Test
     public void missingKey_withArgs_stillReturnsKey() {
         String key = "another.absent.key";
-        assertEquals(key, I18n.get(key, "ignored"));
+        assertEquals(key, I18n.get(key, MsgArg.text("ignored")));
     }
 
     @Test
     public void presentKey_isFormattedWithArgs() {
-        assertEquals("About Credits Editor", I18n.get("menu.help.about", "Credits Editor"));
+        assertEquals("About Credits Editor", I18n.get("menu.help.about", MsgArg.text("Credits Editor")));
     }
 
     @Test
