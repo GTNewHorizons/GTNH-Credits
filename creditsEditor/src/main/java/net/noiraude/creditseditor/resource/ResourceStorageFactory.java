@@ -13,6 +13,7 @@ import java.util.Map;
 
 import net.noiraude.libcredits.pack.PackMcmeta;
 
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -24,6 +25,7 @@ final class ResourceStorageFactory {
 
     private static final String ZIP_SUFFIX = ".zip";
 
+    @Contract(pure = true)
     private ResourceStorageFactory() {}
 
     static boolean exists(@NotNull String pathArg) {
@@ -34,6 +36,7 @@ final class ResourceStorageFactory {
         return Files.isDirectory(path) || (pathArg.endsWith(ZIP_SUFFIX) && Files.isRegularFile(path));
     }
 
+    @Contract("_ -> new")
     static @NotNull ResourceStorage open(@NotNull String pathArg) throws IOException {
         Path path = Paths.get(pathArg);
         if (!Files.exists(path)) {
@@ -48,6 +51,7 @@ final class ResourceStorageFactory {
         throw new IOException("Path is not a recognized resource container: " + path);
     }
 
+    @Contract("_, _ -> new")
     static @NotNull ResourceStorage create(@NotNull String pathArg, @NotNull String packDescription)
         throws IOException {
         Path path = Paths.get(pathArg);

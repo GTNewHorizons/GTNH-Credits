@@ -94,7 +94,7 @@ public final class MembershipTablePanel extends JPanel {
      * a shrinking layout.
      */
     @Override
-    public Dimension getMinimumSize() {
+    public @NotNull Dimension getMinimumSize() {
         Dimension min = super.getMinimumSize();
         JTableHeader header = table.getTableHeader();
         int headerHeight = header != null ? header.getPreferredSize().height : 0;

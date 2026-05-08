@@ -3,7 +3,6 @@ package net.noiraude.creditseditor.ui.dialog;
 import static net.noiraude.creditseditor.ui.ScaledMetrics.fontHeadingDelta;
 import static net.noiraude.creditseditor.ui.ScaledMetrics.gapHuge;
 import static net.noiraude.creditseditor.ui.ScaledMetrics.gapMedium;
-import static net.noiraude.creditseditor.ui.ScaledMetrics.gapXLarge;
 import static net.noiraude.creditseditor.ui.ScaledMetrics.gapXXLarge;
 
 import java.awt.BorderLayout;
@@ -70,7 +69,7 @@ public final class AboutDialog extends JDialog {
         JPanel wrap = new JPanel(new BorderLayout());
         List<Image> images = AppIcons.load();
         if (!images.isEmpty()) {
-            JLabel label = new JLabel(new ImageIcon(images.get(images.size() - 1)));
+            JLabel label = new JLabel(new ImageIcon(images.getLast()));
             wrap.add(label, BorderLayout.NORTH);
         }
         return wrap;
@@ -91,14 +90,14 @@ public final class AboutDialog extends JDialog {
         String description = I18n.get("about.description");
         String license = AppInfo.license();
         if (!description.isEmpty() || !license.isEmpty()) {
-            panel.add(Box.createVerticalStrut(gapXLarge));
+            panel.add(Box.createVerticalStrut(gapMedium));
             if (!description.isEmpty()) panel.add(leftLabel(description));
             if (!license.isEmpty()) panel.add(leftLabel(license));
         }
 
         String copyright = AppInfo.copyright();
         if (!copyright.isEmpty()) {
-            panel.add(Box.createVerticalStrut(gapXLarge));
+            panel.add(Box.createVerticalStrut(gapMedium));
             panel.add(leftLabel(copyright));
         }
 

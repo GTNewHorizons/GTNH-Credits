@@ -66,11 +66,6 @@ public final class RoleDetailCard {
         displayNameEditor.addUndoableEditListener(e -> { if (!loading) onUndoableEdit.accept(e); });
     }
 
-    @NotNull
-    JPanel getPanel() {
-        return panel;
-    }
-
     private void buildEmptyCard() {
         JLabel hint = new JLabel(I18n.get("card.role.empty"));
         hint.setFont(

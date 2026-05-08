@@ -19,7 +19,7 @@ import org.jetbrains.annotations.Nullable;
  *
  * <p>
  * Each action carries its label, mnemonic, and accelerator at construction. Dynamic state
- * (Save enablement, Undo/Redo enablement and named-variant labels) is driven by bus
+ * (Save enablement, Undo/Redo enablement, and named-variant labels) is driven by bus
  * subscriptions to {@link DocumentBus#TOPIC_SESSION} and
  * {@link DocumentBus#TOPIC_COMMAND_STACK}; the owning window does not call into this class
  * after construction.

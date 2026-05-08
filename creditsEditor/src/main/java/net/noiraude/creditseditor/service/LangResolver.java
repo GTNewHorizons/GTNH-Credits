@@ -22,7 +22,7 @@ import org.jetbrains.annotations.NotNull;
  * <p>
  * When neither tier has a non-empty value, the resolver returns an empty
  * {@link Optional}; the caller is responsible for choosing a placeholder
- * (e.g. the raw category id, role string, or empty UI text).
+ * (e.g., the raw category id, role string, or empty UI text).
  *
  * <p>
  * Empty-string values are treated as absent at every tier, so a translator
@@ -45,6 +45,7 @@ public final class LangResolver {
      *                The resolver reads through the reference, so changes to the map
      *                or the documents are observed by subsequent {@link #resolve} calls.
      */
+    @Contract(pure = true)
     public LangResolver(@NotNull Map<String, LangDocument> locales) {
         this.locales = locales;
     }

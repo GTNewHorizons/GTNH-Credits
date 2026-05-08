@@ -4,6 +4,7 @@ import net.noiraude.creditseditor.bus.DocumentBus;
 import net.noiraude.libcredits.model.DocumentMembership;
 import net.noiraude.libcredits.model.DocumentPerson;
 
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -41,6 +42,7 @@ public final class RemovePersonRoleCommand extends AbstractCommand {
         bus.firePersonChanged(person);
     }
 
+    @Contract(pure = true)
     @Override
     public @NotNull String getDisplayName() {
         return "Remove role " + role + " from " + membership.categoryId;

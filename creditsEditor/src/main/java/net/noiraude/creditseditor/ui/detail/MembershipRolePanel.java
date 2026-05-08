@@ -55,7 +55,7 @@ public final class MembershipRolePanel extends JPanel {
      * allowed to collapse below its preferred height when space is tight.
      */
     @Override
-    public Dimension getMinimumSize() {
+    public @NotNull Dimension getMinimumSize() {
         Dimension min = super.getMinimumSize();
         Insets borderInsets = getInsets();
         Dimension listMin = roleListPanel.getMinimumSize();

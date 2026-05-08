@@ -12,6 +12,7 @@ import javax.swing.JPanel;
 
 import net.noiraude.libcredits.model.DocumentCategory;
 
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -48,6 +49,7 @@ public final class CategoryClassSelector extends JPanel {
         classDetail.setSelected(classes.contains(CLASS_DETAIL));
     }
 
+    @Contract(pure = true)
     public boolean isDetailSelected() {
         return classDetail.isSelected();
     }

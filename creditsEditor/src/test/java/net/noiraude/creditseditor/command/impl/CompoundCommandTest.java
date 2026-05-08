@@ -2,6 +2,7 @@ package net.noiraude.creditseditor.command.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -15,11 +16,12 @@ import net.noiraude.libcredits.model.DocumentCategory;
 import net.noiraude.libcredits.model.DocumentMembership;
 import net.noiraude.libcredits.model.DocumentPerson;
 
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 
 public class CompoundCommandTest {
 
-    private static DocumentBus busFor(CreditsDocument doc) {
+    private static @NotNull DocumentBus busFor(CreditsDocument doc) {
         DocumentBus bus = new DocumentBus();
         bus.setSession(doc, LangParser.empty());
         return bus;
@@ -45,7 +47,7 @@ public class CompoundCommandTest {
         Command result = new CompoundCommand.Builder("single").add(single)
             .build();
 
-        assertTrue(result instanceof AddCategoryCommand, "single-child build should unwrap");
+        assertInstanceOf(AddCategoryCommand.class, result, "single-child build should unwrap");
     }
 
     @Test
@@ -57,7 +59,7 @@ public class CompoundCommandTest {
             .add(new AddCategoryCommand(bus, new DocumentCategory("b")))
             .build();
 
-        assertTrue(result instanceof CompoundCommand);
+        assertInstanceOf(CompoundCommand.class, result);
         assertEquals(2, ((CompoundCommand) result).size());
     }
 

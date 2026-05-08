@@ -21,6 +21,7 @@ import net.noiraude.creditseditor.ui.MsgArg;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.UnmodifiableView;
 
 /**
  * Owns the asynchronous TSV parse and the backing table model for a preview widget.
@@ -101,7 +102,7 @@ final class TsvPreviewController {
         }
 
         @Override
-        protected List<ImportLine> doInBackground() throws IOException {
+        protected @NotNull @UnmodifiableView List<ImportLine> doInBackground() throws IOException {
             try (FileReader reader = new FileReader(file, StandardCharsets.UTF_8)) {
                 return TsvImporter.parse(reader, bus.creditsDoc(), categoryId);
             }

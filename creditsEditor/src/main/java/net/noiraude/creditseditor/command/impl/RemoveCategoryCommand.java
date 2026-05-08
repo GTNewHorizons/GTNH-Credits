@@ -9,6 +9,7 @@ import net.noiraude.libcredits.model.DocumentCategory;
 import net.noiraude.libcredits.model.DocumentMembership;
 import net.noiraude.libcredits.model.DocumentPerson;
 
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -66,6 +67,7 @@ public final class RemoveCategoryCommand extends AbstractCommand {
         if (!saved.isEmpty()) bus.firePersonsChanged();
     }
 
+    @Contract(pure = true)
     @Override
     public @NotNull String getDisplayName() {
         return "Remove category " + category.id;

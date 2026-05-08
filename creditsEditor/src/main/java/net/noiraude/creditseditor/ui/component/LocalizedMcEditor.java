@@ -71,11 +71,13 @@ public final class LocalizedMcEditor extends JPanel {
      */
     private record EnViewing(@NotNull String editingValue) implements ViewState {
 
+        @Contract(pure = true)
         @Override
         public boolean isEnViewing() {
             return true;
         }
 
+        @Contract(value = " -> new", pure = true)
         @Override
         public @NotNull Optional<@NotNull String> bufferedEditingValue() {
             return Optional.of(editingValue);
@@ -126,6 +128,7 @@ public final class LocalizedMcEditor extends JPanel {
      * switched on and whenever the Copy action runs. An empty {@link Optional} signals that no
      * English source is available; in that case EN view does not engage.
      */
+    @Contract(mutates = "this")
     public void setEnglishValueSupplier(@NotNull Supplier<@NotNull Optional<@NotNull String>> supplier) {
         this.englishValueSupplier = supplier;
     }

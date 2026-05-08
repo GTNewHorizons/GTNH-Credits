@@ -12,6 +12,7 @@ import net.noiraude.creditseditor.mc.McFormatCode;
 
 import org.junit.jupiter.api.Test;
 
+@SuppressWarnings("SpellCheckingInspection")
 public class McDocumentModelTest {
 
     @Test

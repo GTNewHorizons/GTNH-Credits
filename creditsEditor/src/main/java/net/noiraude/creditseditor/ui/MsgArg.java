@@ -39,6 +39,7 @@ public sealed interface MsgArg {
     /** Plain text substitution. */
     record Text(@NotNull String text) implements MsgArg {
 
+        @Contract(pure = true)
         @Override
         public @NotNull Object unwrap() {
             return text;
@@ -48,6 +49,7 @@ public sealed interface MsgArg {
     /** Count substitution. */
     record Count(long count) implements MsgArg {
 
+        @Contract(pure = true)
         @Override
         public @NotNull Object unwrap() {
             return count;

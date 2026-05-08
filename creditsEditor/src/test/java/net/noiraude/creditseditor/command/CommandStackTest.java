@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,7 +24,8 @@ public class CommandStackTest {
         log = new ArrayList<>();
     }
 
-    private Command cmd(String name) {
+    @Contract("_ -> new")
+    private @NotNull Command cmd(String name) {
         return new LoggingCommand(name, log);
     }
 
@@ -39,6 +41,7 @@ public class CommandStackTest {
             log.add("undo:" + name);
         }
 
+        @Contract(pure = true)
         @Override
         public @NotNull String getDisplayName() {
             return name;
@@ -279,7 +282,7 @@ public class CommandStackTest {
     @Test
     public void execute_editAborted_doesNotPushFailedCommand() {
         Command good = cmd("Good");
-        Command bad = abortingCommand("Bad");
+        Command bad = abortingCommand();
         stack.execute(good);
         try {
             stack.execute(bad);
@@ -293,7 +296,7 @@ public class CommandStackTest {
 
     @Test
     public void undo_editAborted_keepsCommandOnUndoStack() {
-        Command failing = abortingOnUndoCommand("Sticky");
+        Command failing = abortingOnUndoCommand();
         stack.execute(failing);
         try {
             stack.undo();
@@ -307,9 +310,9 @@ public class CommandStackTest {
 
     @Test
     public void redo_editAborted_keepsCommandOnRedoStack() {
-        Command failing = abortingOnRedoCommand("Sticky");
+        Command failing = abortingOnRedoCommand();
         stack.execute(failing);
-        // First undo succeeds because the command's execute does not abort.
+        // First, undo succeeds because the command's executing does not abort.
         stack.undo();
         try {
             stack.redo();
@@ -321,62 +324,79 @@ public class CommandStackTest {
         assertFalse(stack.canUndo());
     }
 
-    private static Command abortingCommand(String name) {
-        return new Command() {
-
-            @Override
-            public void execute() {
-                throw new EditAbortedException("aborted on execute", new IllegalStateException("test"));
-            }
-
-            @Override
-            public void undo() {}
-
-            @Override
-            public @NotNull String getDisplayName() {
-                return name;
-            }
-        };
+    @Contract(value = " -> new", pure = true)
+    private static @NotNull Command abortingCommand() {
+        return new AbortingCommand();
     }
 
-    private static Command abortingOnUndoCommand(String name) {
-        return new Command() {
-
-            @Override
-            public void execute() {}
-
-            @Override
-            public void undo() {
-                throw new EditAbortedException("aborted on undo", new IllegalStateException("test"));
-            }
-
-            @Override
-            public @NotNull String getDisplayName() {
-                return name;
-            }
-        };
+    @Contract(value = " -> new", pure = true)
+    private static @NotNull Command abortingOnUndoCommand() {
+        return new AbortingOnUndoCommand();
     }
 
-    private static Command abortingOnRedoCommand(String name) {
-        return new Command() {
+    @Contract(value = " -> new", pure = true)
+    private static @NotNull Command abortingOnRedoCommand() {
+        return new AbortingOnRedoCommand();
+    }
 
-            private boolean executed;
+    private static class AbortingCommand implements Command {
 
-            @Override
-            public void execute() {
-                if (executed) {
-                    throw new EditAbortedException("aborted on redo", new IllegalStateException("test"));
-                }
-                executed = true;
+        @Contract(" -> fail")
+        @Override
+        public void execute() {
+            throw new EditAbortedException("aborted on execute", new IllegalStateException("test"));
+        }
+
+        @Contract(pure = true)
+        @Override
+        public void undo() {}
+
+        @Contract(pure = true)
+        @Override
+        public @NotNull String getDisplayName() {
+            return "Bad";
+        }
+    }
+
+    private static class AbortingOnUndoCommand implements Command {
+
+        @Contract(pure = true)
+        @Override
+        public void execute() {}
+
+        @Contract(" -> fail")
+        @Override
+        public void undo() {
+            throw new EditAbortedException("aborted on undo", new IllegalStateException("test"));
+        }
+
+        @Contract(pure = true)
+        @Override
+        public @NotNull String getDisplayName() {
+            return "Sticky";
+        }
+    }
+
+    private static class AbortingOnRedoCommand implements Command {
+
+        private boolean executed;
+
+        @Override
+        public void execute() {
+            if (executed) {
+                throw new EditAbortedException("aborted on redo", new IllegalStateException("test"));
             }
+            executed = true;
+        }
 
-            @Override
-            public void undo() {}
+        @Contract(pure = true)
+        @Override
+        public void undo() {}
 
-            @Override
-            public @NotNull String getDisplayName() {
-                return name;
-            }
-        };
+        @Contract(pure = true)
+        @Override
+        public @NotNull String getDisplayName() {
+            return "Sticky";
+        }
     }
 }

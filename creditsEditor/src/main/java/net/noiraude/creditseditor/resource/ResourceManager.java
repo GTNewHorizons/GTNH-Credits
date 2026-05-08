@@ -29,13 +29,14 @@ import net.noiraude.libcredits.serializer.CreditsSerializer;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.UnmodifiableView;
 
 /**
  * Typed document repository for GTNH Credits resources, layered over a
  * backend-agnostic {@link ResourceStorage}.
  *
  * <p>
- * Get an instance via {@link #open(String, String)}, then call {@link #loadDocuments()}
+ * Get an instance via {@code open(String, String)}, then call {@link #loadDocuments()}
  * to parse the resource files. The instance owns its storage and must be closed when
  * done; use try-with-resources.
  */
@@ -61,7 +62,7 @@ public final class ResourceManager implements Closeable {
 
     /**
      * Returns {@code true} when a resource container exists at {@code pathArg} and is in
-     * a state that {@link #open(String)} would accept. Cheap probe meant to be paired with
+     * a state that {@link #open(String)} would accept. Inexpensive probe meant to be paired with
      * {@link #open(String)} or {@link #create(String, String)} to choose the next action.
      */
     @Contract(pure = true)
@@ -107,7 +108,7 @@ public final class ResourceManager implements Closeable {
      * @throws CreditsParseException if the credits JSON is structurally invalid
      */
     public void loadDocuments() throws IOException, CreditsParseException {
-        if (!storage.hasFile(CreditsLayout.CREDITS.get())) {
+        if (storage.hasNoFile(CreditsLayout.CREDITS.get())) {
             creditsDoc = CreditsDocument.empty();
         } else {
             try (InputStream in = storage.openRead(CreditsLayout.CREDITS.get())) {
@@ -176,7 +177,7 @@ public final class ResourceManager implements Closeable {
      * ({@link Locale#US} first when it was seeded by {@link #loadDocuments()}).
      */
     @Contract(pure = true)
-    public @NotNull Set<String> availableLocales() {
+    public @NotNull @UnmodifiableView Set<String> availableLocales() {
         return Collections.unmodifiableSet(langDocs.keySet());
     }
 
@@ -191,8 +192,8 @@ public final class ResourceManager implements Closeable {
 
     /**
      * Removes the in-memory lang document for {@code locale} and returns it, or
-     * {@code null} if the locale was not loaded. The corresponding file is deleted from
-     * disk by the next save.
+     * {@code null} if the locale was not loaded. The next save deletes the corresponding file from
+     * the disk.
      */
     public @Nullable LangDocument removeLocale(@NotNull String locale) {
         LangDocument removed = langDocs.remove(locale);
@@ -228,8 +229,8 @@ public final class ResourceManager implements Closeable {
 
     /**
      * Returns the on-disk location of the directory or zip backing this manager, for path
-     * equality checks (e.g. Save As same-target detection). Never use the returned path to
-     * perform I/O; route reads and writes through the storage primitives instead.
+     * equality checks (e.g., Save As same-target detection). Never use the returned path to
+     * perform I/O; the route reads and writes through the storage primitives instead.
      */
     @Contract(pure = true)
     public @NotNull java.nio.file.Path location() {
@@ -270,7 +271,7 @@ public final class ResourceManager implements Closeable {
     /**
      * Like {@link #writeLang()} but writes every loaded locale unconditionally. Intended
      * for the Save As flow, where the destination's dirty bits (relative to the previous
-     * storage) do not apply but foreign content at the destination must still be preserved.
+     * storage) do not apply, but foreign content at the destination must still be preserved.
      *
      * @throws IOException if any file cannot be read or written
      */
@@ -293,7 +294,7 @@ public final class ResourceManager implements Closeable {
         }
         for (String locale : pendingDeletions) {
             String langPath = CreditsLayout.getLangPath(locale);
-            if (!storage.hasFile(langPath)) continue;
+            if (storage.hasNoFile(langPath)) continue;
             LangDocument onDisk = readOnDiskLang(langPath);
             onDisk.applyOwnedKeysFrom(LangParser.empty());
             try (OutputStream out = storage.openWrite(langPath)) {
@@ -304,7 +305,7 @@ public final class ResourceManager implements Closeable {
     }
 
     private @NotNull LangDocument readOnDiskLang(@NotNull String langPath) throws IOException {
-        if (!storage.hasFile(langPath)) return LangParser.empty();
+        if (storage.hasNoFile(langPath)) return LangParser.empty();
         try (InputStream in = storage.openRead(langPath)) {
             return LangParser.parse(in);
         }

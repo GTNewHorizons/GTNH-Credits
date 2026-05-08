@@ -3,6 +3,7 @@ package net.noiraude.creditseditor.command.impl;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -16,6 +17,7 @@ import org.jetbrains.annotations.NotNull;
  */
 final class ListReorderHelper {
 
+    @Contract(pure = true)
     private ListReorderHelper() {}
 
     /**

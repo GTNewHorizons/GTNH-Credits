@@ -15,6 +15,7 @@ import net.noiraude.libcredits.lang.LangParser;
 
 import org.junit.jupiter.api.Test;
 
+@SuppressWarnings("SpellCheckingInspection")
 public class LangResolverTest {
 
     private static LangDocument doc(String text) throws Exception {

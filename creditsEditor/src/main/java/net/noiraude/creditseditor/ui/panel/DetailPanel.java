@@ -184,7 +184,7 @@ public final class DetailPanel extends JPanel {
         JScrollPane personScroll = new JScrollPane(personView) {
 
             @Override
-            public Dimension getMinimumSize() {
+            public @NotNull Dimension getMinimumSize() {
                 Dimension viewMin = personView.getMinimumSize();
                 Dimension superMin = super.getMinimumSize();
                 return new Dimension(

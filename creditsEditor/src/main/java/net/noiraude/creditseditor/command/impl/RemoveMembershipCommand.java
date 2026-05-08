@@ -4,6 +4,7 @@ import net.noiraude.creditseditor.bus.DocumentBus;
 import net.noiraude.libcredits.model.DocumentMembership;
 import net.noiraude.libcredits.model.DocumentPerson;
 
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -39,6 +40,7 @@ public final class RemoveMembershipCommand extends AbstractCommand {
         bus.firePersonChanged(person);
     }
 
+    @Contract(pure = true)
     @Override
     public @NotNull String getDisplayName() {
         return "Remove " + membership.categoryId + " from " + person.name;

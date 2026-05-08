@@ -10,7 +10,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Localized string lookup for the credits editor UI.
+ * Localized string lookup for the Credits Editor UI.
  *
  * <p>
  * Resolves keys against {@code messages.properties} resource bundles for {@link Locale#getDefault()},
@@ -19,7 +19,7 @@ import org.jetbrains.annotations.Nullable;
  * UI without crashing.
  *
  * <p>
- * The bundle is loaded lazily on first lookup and cached for the JVM lifetime; runtime locale
+ * The bundle is loaded lazily on the first lookup and cached for the JVM lifetime; runtime locale
  * changes are not picked up.
  */
 public final class I18n {

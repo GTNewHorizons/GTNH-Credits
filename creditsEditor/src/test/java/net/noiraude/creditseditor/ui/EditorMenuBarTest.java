@@ -15,6 +15,7 @@ import javax.swing.JMenuItem;
 import net.noiraude.creditseditor.bus.DocumentBus;
 import net.noiraude.creditseditor.command.Command;
 
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -22,35 +23,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 public class EditorMenuBarTest {
 
-    private static final EditorActions.Handlers NOOP_HANDLERS = new EditorActions.Handlers() {
-
-        @Override
-        public void onOpen() {}
-
-        @Override
-        public void onNew() {}
-
-        @Override
-        public void onSave() {}
-
-        @Override
-        public void onSaveAs() {}
-
-        @Override
-        public void onQuit() {}
-
-        @Override
-        public void onUndo() {}
-
-        @Override
-        public void onRedo() {}
-
-        @Override
-        public void onShortcuts() {}
-
-        @Override
-        public void onAbout() {}
-    };
+    private static final EditorActions.Handlers NOOP_HANDLERS = new EditorActionsHandlers();
 
     @TempDir
     Path temp;
@@ -146,10 +119,12 @@ public class EditorMenuBarTest {
         }
     }
 
+    @Contract(" -> new")
     private static @NotNull Fixture newFixture() {
         return new Fixture();
     }
 
+    @Contract(" -> new")
     private @NotNull EditorSession newSession() throws Exception {
         return EditorSession.open(
             Files.createTempDirectory(temp, "session")
@@ -190,15 +165,57 @@ public class EditorMenuBarTest {
 
     private record NamedCommand(@NotNull String name) implements Command {
 
+        @Contract(pure = true)
         @Override
         public void execute() {}
 
+        @Contract(pure = true)
         @Override
         public void undo() {}
 
+        @Contract(pure = true)
         @Override
         public @NotNull String getDisplayName() {
             return name;
         }
+    }
+
+    private static class EditorActionsHandlers implements EditorActions.Handlers {
+
+        @Contract(pure = true)
+        @Override
+        public void onOpen() {}
+
+        @Contract(pure = true)
+        @Override
+        public void onNew() {}
+
+        @Contract(pure = true)
+        @Override
+        public void onSave() {}
+
+        @Contract(pure = true)
+        @Override
+        public void onSaveAs() {}
+
+        @Contract(pure = true)
+        @Override
+        public void onQuit() {}
+
+        @Contract(pure = true)
+        @Override
+        public void onUndo() {}
+
+        @Contract(pure = true)
+        @Override
+        public void onRedo() {}
+
+        @Contract(pure = true)
+        @Override
+        public void onShortcuts() {}
+
+        @Contract(pure = true)
+        @Override
+        public void onAbout() {}
     }
 }

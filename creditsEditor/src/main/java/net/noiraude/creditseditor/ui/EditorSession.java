@@ -18,6 +18,7 @@ import net.noiraude.libcredits.model.CreditsDocument;
 
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Unmodifiable;
 
 /**
  * Facade for one editing session: encapsulates the {@link ResourceManager}, loaded
@@ -56,6 +57,7 @@ final class EditorSession {
      * @return a ready-to-use session
      * @throws Exception if the path cannot be opened or the files cannot be parsed
      */
+    @Contract("_ -> new")
     static @NotNull EditorSession open(@NotNull String path) throws Exception {
         ResourceManager rm = openOrCreate(path);
         try {
@@ -108,7 +110,7 @@ final class EditorSession {
     /** Returns the locales currently loaded in the resource manager, in insertion order. */
     @Contract(pure = true)
     @NotNull
-    java.util.Set<String> availableLocales() {
+    java.util.@Unmodifiable Set<String> availableLocales() {
         return resourceManager.availableLocales();
     }
 

@@ -28,6 +28,7 @@ import net.noiraude.libcredits.model.DocumentCategory;
 import net.noiraude.libcredits.model.DocumentMembership;
 import net.noiraude.libcredits.model.DocumentPerson;
 
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -72,7 +73,7 @@ public final class PersonDetailView extends DetailView<DocumentPerson> implement
         field.gridy = 0;
         add(nameEditor, field);
 
-        // Row 1: Memberships table + toolbar. weighty stays at 0 so the panel keeps its
+        // Row 1: Memberships table + toolbar. weighty stays at 0, so the panel keeps its
         // preferred height (MembershipTablePanel pins 2 rows + toolbar); the role panel on
         // row 2 absorbs any extra vertical space.
         label.gridy = 1;
@@ -227,21 +228,25 @@ public final class PersonDetailView extends DetailView<DocumentPerson> implement
         return getPreferredSize();
     }
 
+    @Contract(pure = true)
     @Override
     public int getScrollableUnitIncrement(Rectangle visibleRect, int orientation, int direction) {
         return scrollUnitIncrement;
     }
 
+    @Contract(pure = true)
     @Override
     public int getScrollableBlockIncrement(Rectangle visibleRect, int orientation, int direction) {
         return orientation == javax.swing.SwingConstants.VERTICAL ? visibleRect.height : visibleRect.width;
     }
 
+    @Contract(pure = true)
     @Override
     public boolean getScrollableTracksViewportWidth() {
         return true;
     }
 
+    @Contract(pure = true)
     @Override
     public boolean getScrollableTracksViewportHeight() {
         return false;

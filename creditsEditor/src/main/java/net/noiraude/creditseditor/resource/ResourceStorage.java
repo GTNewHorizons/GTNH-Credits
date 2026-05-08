@@ -22,7 +22,7 @@ import org.jetbrains.annotations.NotNull;
  *
  * <p>
  * Use {@link #exists(String)} to query whether a resource container is available at a path,
- * then {@link #open(String)} or {@link #create(String, String)} to obtain an instance.
+ * then {@link #open(String)} or {@link #create(String, String)} to get an instance.
  */
 public interface ResourceStorage extends Closeable {
 
@@ -62,8 +62,8 @@ public interface ResourceStorage extends Closeable {
         return ResourceStorageFactory.create(pathArg, packDescription);
     }
 
-    /** Returns {@code true} if {@code relPath} resolves to an existing file inside this storage. */
-    boolean hasFile(@NotNull String relPath);
+    /** Returns {@code false} if {@code relPath} resolves to an existing file inside this storage. */
+    boolean hasNoFile(@NotNull String relPath);
 
     /**
      * Opens an {@link InputStream} for reading {@code relPath}.

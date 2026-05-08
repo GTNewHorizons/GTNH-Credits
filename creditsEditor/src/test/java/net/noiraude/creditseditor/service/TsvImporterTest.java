@@ -15,11 +15,13 @@ import net.noiraude.libcredits.model.DocumentCategory;
 import net.noiraude.libcredits.model.DocumentMembership;
 import net.noiraude.libcredits.model.DocumentPerson;
 
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 
+@SuppressWarnings("SpellCheckingInspection")
 public class TsvImporterTest {
 
-    private static CreditsDocument docWithCategory(String catId) {
+    private static @NotNull CreditsDocument docWithCategory(String catId) {
         CreditsDocument doc = CreditsDocument.empty();
         doc.categories.add(new DocumentCategory(catId));
         return doc;

@@ -10,6 +10,7 @@ import javax.swing.JFileChooser;
 import javax.swing.filechooser.FileFilter;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -72,6 +73,7 @@ public final class CreditsResourceChooser {
 
     private record Filters(@NotNull FileFilter zip, @NotNull FileFilter dir) {
 
+        @Contract(" -> new")
         static @NotNull Filters create() {
             return new Filters(
                 new FileNameExtensionFilter(I18n.get("filechooser.filter.zip"), "zip"),

@@ -14,11 +14,14 @@ import net.noiraude.libcredits.lang.LangDocument;
 import net.noiraude.libcredits.lang.LangParser;
 import net.noiraude.libcredits.lang.LangSerializer;
 
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 
 public class LangServiceTest {
 
-    private static LangDocument load(String content) throws IOException {
+    @Contract("_ -> new")
+    private static @NotNull LangDocument load(@NotNull String content) throws IOException {
         return LangParser.parse(new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8)));
     }
 

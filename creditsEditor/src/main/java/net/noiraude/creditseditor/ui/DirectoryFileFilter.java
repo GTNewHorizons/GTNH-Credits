@@ -5,6 +5,7 @@ import java.io.File;
 import javax.swing.JFileChooser;
 import javax.swing.filechooser.FileFilter;
 
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -23,12 +24,13 @@ public final class DirectoryFileFilter extends FileFilter {
     }
 
     @Override
-    public boolean accept(File f) {
+    public boolean accept(@NotNull File f) {
         return f.isDirectory();
     }
 
+    @Contract(pure = true)
     @Override
-    public String getDescription() {
+    public @NotNull String getDescription() {
         return description;
     }
 }

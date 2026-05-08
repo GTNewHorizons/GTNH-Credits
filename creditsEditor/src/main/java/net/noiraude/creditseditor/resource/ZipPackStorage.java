@@ -9,9 +9,9 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Comparator;
 import java.util.List;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -24,14 +24,15 @@ final class ZipPackStorage implements ResourceStorage {
     private final @NotNull Path zipPath;
     private final @NotNull FileSystem fs;
 
+    @Contract(pure = true)
     ZipPackStorage(@NotNull Path zipPath, @NotNull FileSystem fs) {
         this.zipPath = zipPath;
         this.fs = fs;
     }
 
     @Override
-    public boolean hasFile(@NotNull String relPath) {
-        return Files.exists(fs.getPath("/", relPath));
+    public boolean hasNoFile(@NotNull String relPath) {
+        return !Files.exists(fs.getPath("/", relPath));
     }
 
     @Override
@@ -66,11 +67,12 @@ final class ZipPackStorage implements ResourceStorage {
                     p -> p.getFileName()
                         .toString())
                 .sorted(Comparator.naturalOrder())
-                .collect(Collectors.toList());
+                .toList();
             return names.stream();
         }
     }
 
+    @Contract(pure = true)
     @Override
     public @NotNull Path location() {
         return zipPath;

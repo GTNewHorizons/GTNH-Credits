@@ -6,7 +6,13 @@ import static net.noiraude.creditseditor.ui.ScaledMetrics.gapSmall;
 import static net.noiraude.creditseditor.ui.ScaledMetrics.gapToolbarGroup;
 import static net.noiraude.creditseditor.ui.ScaledMetrics.toolbarIconSize;
 
-import java.awt.*;
+import java.awt.AlphaComposite;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Font;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.Insets;
 import java.awt.font.TextAttribute;
 import java.util.Collections;
 import java.util.EnumMap;
@@ -14,7 +20,14 @@ import java.util.EnumSet;
 import java.util.Locale;
 import java.util.Map;
 
-import javax.swing.*;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.ButtonGroup;
+import javax.swing.Icon;
+import javax.swing.JButton;
+import javax.swing.JPanel;
+import javax.swing.JToggleButton;
+import javax.swing.UIManager;
 
 import net.noiraude.creditseditor.mc.McFormatCode;
 import net.noiraude.creditseditor.mc.McSelectionPresence;
@@ -80,6 +93,7 @@ public final class McFormatToolbar extends JPanel {
     }
 
     private static @NotNull String tooltipFor(@NotNull McFormatCode code) {
+        @SuppressWarnings("SpellCheckingInspection")
         String name = I18n.get(
             "mcformat." + code.name()
                 .toLowerCase(Locale.ROOT));

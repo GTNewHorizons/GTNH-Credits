@@ -20,6 +20,7 @@ import javax.swing.SwingUtilities;
 
 import net.noiraude.libcredits.parser.CreditsParseException;
 
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -28,18 +29,19 @@ import org.jetbrains.annotations.Nullable;
  * "Details..." toggle that reveals the underlying exception text.
  *
  * <p>
- * The mapping from exception type to friendly message is intentionally narrow: unknown types
- * fall back to a generic wording so no raw filesystem paths, class names, or stack frames leak
+ * The mapping from an exception type to a friendly message is intentionally narrow: unknown types
+ * fall back to a generic wording, so no raw filesystem paths, class names, or stack frames leak
  * into the primary dialog line. Diagnostic detail is still reachable via the toggle.
  */
 public final class ErrorPresenter {
 
+    @Contract(pure = true)
     private ErrorPresenter() {}
 
     /**
      * Shows a modal error dialog for the given exception.
      *
-     * @param parent parent component (may be {@code null})
+     * @param parent parent component (maybe {@code null})
      * @param title  dialog title
      * @param ex     the thrown exception
      */
@@ -77,9 +79,19 @@ public final class ErrorPresenter {
         // Walk the cause chain because CreditsParseException is a wrapper around gson errors,
         // not the deepest cause; root-only matching would miss it.
         for (Throwable cur = ex; cur != null; cur = (cur.getCause() == cur ? null : cur.getCause())) {
-            if (cur instanceof CreditsParseException) return I18n.get("error.json.invalid");
-            if (cur instanceof NoSuchFileException) return I18n.get("error.no.such.file");
-            if (cur instanceof AccessDeniedException) return I18n.get("error.access.denied");
+            switch (cur) {
+                case CreditsParseException ignored -> {
+                    return I18n.get("error.json.invalid");
+                }
+                case NoSuchFileException ignored -> {
+                    return I18n.get("error.no.such.file");
+                }
+                case AccessDeniedException ignored -> {
+                    return I18n.get("error.access.denied");
+                }
+                default -> {
+                }
+            }
         }
         if (rootCause(ex) instanceof IOException) return I18n.get("error.io.generic");
         return I18n.get("error.unexpected");

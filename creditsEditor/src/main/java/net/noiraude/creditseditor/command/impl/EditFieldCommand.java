@@ -3,6 +3,7 @@ package net.noiraude.creditseditor.command.impl;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -11,7 +12,7 @@ import org.jetbrains.annotations.Nullable;
  *
  * <p>
  * The getter is called during {@link #execute} to capture the old value for undo. The getter
- * and setter must operate on the same field. If the caller wants a bus topic fired on execute
+ * and setter must operate on the same field. If the caller wants a bus topic fired on executing
  * and undo, the setter they supply should fire it; no bus reference is held here.
  *
  * @param <T> the type of the field value
@@ -43,6 +44,7 @@ public final class EditFieldCommand<T> extends AbstractCommand {
         setter.accept(oldValue);
     }
 
+    @Contract(pure = true)
     @Override
     public @NotNull String getDisplayName() {
         return displayName;

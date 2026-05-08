@@ -3,6 +3,7 @@ package net.noiraude.creditseditor.command.impl;
 import net.noiraude.creditseditor.bus.DocumentBus;
 import net.noiraude.libcredits.model.DocumentPerson;
 
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 /** Appends a new person to the end of the person list. */
@@ -28,6 +29,7 @@ public final class AddPersonCommand extends AbstractCommand {
         bus.firePersonsChanged();
     }
 
+    @Contract(pure = true)
     @Override
     public @NotNull String getDisplayName() {
         return "Add person " + person.name;

@@ -10,6 +10,7 @@ import java.awt.GraphicsEnvironment;
 
 import javax.swing.JToggleButton;
 
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -80,7 +81,7 @@ public class McFormatToolbarTest {
         assertTrue(italic.isSelected(), "ITALIC button should light up for a caret sitting in an italic run");
     }
 
-    private static JToggleButton findModifierButton(McFormatToolbar toolbar, String label) {
+    private static JToggleButton findModifierButton(@NotNull McFormatToolbar toolbar, String label) {
         for (Component c : toolbar.getComponents()) {
             if (c instanceof JToggleButton btn && label.equals(btn.getText())) {
                 return btn;

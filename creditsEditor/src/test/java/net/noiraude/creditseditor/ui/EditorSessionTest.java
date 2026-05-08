@@ -17,6 +17,7 @@ import net.noiraude.libcredits.pack.CreditsLayout;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+@SuppressWarnings("SpellCheckingInspection")
 public class EditorSessionTest {
 
     @TempDir
@@ -169,6 +170,7 @@ public class EditorSessionTest {
 
         // Seed an existing destination zip with content ResourceManager does not manage:
         // a texture and another mod's lang file. Save As must preserve both.
+        // noinspection EmptyTryBlock
         try (java.io.OutputStream ignored = java.nio.file.Files.newOutputStream(destZip)) {
             // create empty file then immediately remove so the zip filesystem can create it.
         }
@@ -205,7 +207,7 @@ public class EditorSessionTest {
         EditorSession reopened = EditorSession.open(destZip.toString());
         try {
             assertEquals(1, reopened.creditsDoc().categories.size(), "Save As must replace credits.json content");
-            assertEquals("dev", reopened.creditsDoc().categories.get(0).id);
+            assertEquals("dev", reopened.creditsDoc().categories.getFirst().id);
         } finally {
             reopened.close();
         }
