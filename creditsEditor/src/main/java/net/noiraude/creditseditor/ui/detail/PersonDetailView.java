@@ -23,7 +23,7 @@ import net.noiraude.creditseditor.mc.McText;
 import net.noiraude.creditseditor.service.KeySanitizer;
 import net.noiraude.creditseditor.ui.I18n;
 import net.noiraude.creditseditor.ui.MsgArg;
-import net.noiraude.creditseditor.ui.component.MinecraftTextEditor;
+import net.noiraude.creditseditor.ui.component.mc.MinecraftTextEditor;
 import net.noiraude.libcredits.model.DocumentCategory;
 import net.noiraude.libcredits.model.DocumentMembership;
 import net.noiraude.libcredits.model.DocumentPerson;

@@ -6,7 +6,7 @@ import javax.swing.JLabel;
 import javax.swing.event.UndoableEditListener;
 
 import net.noiraude.creditseditor.ui.I18n;
-import net.noiraude.creditseditor.ui.component.MinecraftTextAreaEditor;
+import net.noiraude.creditseditor.ui.component.mc.MinecraftTextAreaEditor;
 
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;

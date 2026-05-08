@@ -1,4 +1,4 @@
-package net.noiraude.creditseditor.ui.component;
+package net.noiraude.creditseditor.ui.component.mc;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;

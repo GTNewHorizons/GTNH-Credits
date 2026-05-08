@@ -1,4 +1,4 @@
-package net.noiraude.creditseditor.ui.component;
+package net.noiraude.creditseditor.ui.component.mc;
 
 import java.awt.Color;
 import java.util.Collections;

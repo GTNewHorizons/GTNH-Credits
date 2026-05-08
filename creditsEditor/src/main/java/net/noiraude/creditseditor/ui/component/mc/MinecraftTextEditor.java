@@ -1,4 +1,4 @@
-package net.noiraude.creditseditor.ui.component;
+package net.noiraude.creditseditor.ui.component.mc;
 
 /**
  * Single-line editable field for strings that may contain Minecraft {@code §x} formatting codes.

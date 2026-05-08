@@ -1,4 +1,4 @@
-package net.noiraude.creditseditor.ui.component;
+package net.noiraude.creditseditor.ui.component.mc;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
@@ -17,6 +17,7 @@ import javax.swing.text.MutableAttributeSet;
 import net.noiraude.creditseditor.command.EditAbortedException;
 import net.noiraude.creditseditor.mc.McFormatCode;
 import net.noiraude.creditseditor.mc.McSelectionPresence;
+import net.noiraude.creditseditor.ui.component.AnyChangeListener;
 
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;

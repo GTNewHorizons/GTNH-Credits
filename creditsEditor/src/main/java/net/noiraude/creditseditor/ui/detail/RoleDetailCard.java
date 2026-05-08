@@ -20,7 +20,7 @@ import javax.swing.UIManager;
 import javax.swing.event.UndoableEditEvent;
 
 import net.noiraude.creditseditor.ui.I18n;
-import net.noiraude.creditseditor.ui.component.MinecraftTextEditor;
+import net.noiraude.creditseditor.ui.component.mc.MinecraftTextEditor;
 
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;

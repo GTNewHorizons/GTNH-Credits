@@ -1,4 +1,4 @@
-package net.noiraude.creditseditor.ui.component;
+package net.noiraude.creditseditor.ui.component.mc;
 
 import static net.noiraude.creditseditor.ui.ScaledMetrics.gapHair;
 import static net.noiraude.creditseditor.ui.ScaledMetrics.gapSmall;
