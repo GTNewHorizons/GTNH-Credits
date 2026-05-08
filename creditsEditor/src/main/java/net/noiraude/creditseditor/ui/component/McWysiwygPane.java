@@ -10,8 +10,10 @@ import javax.swing.JTextPane;
 import javax.swing.KeyStroke;
 import javax.swing.UIManager;
 import javax.swing.event.UndoableEditListener;
+import javax.swing.text.BadLocationException;
 import javax.swing.text.MutableAttributeSet;
 
+import net.noiraude.creditseditor.command.EditAbortedException;
 import net.noiraude.creditseditor.mc.McFormatCode;
 import net.noiraude.creditseditor.mc.McSelectionPresence;
 
@@ -107,6 +109,8 @@ public final class McWysiwygPane extends JTextPane implements McFormatTarget {
         settingText = true;
         try {
             model.setRawMode(raw);
+        } catch (BadLocationException ex) {
+            throw new EditAbortedException("Cannot switch raw/rendered mode", ex);
         } finally {
             settingText = false;
         }
@@ -118,6 +122,8 @@ public final class McWysiwygPane extends JTextPane implements McFormatTarget {
         settingText = true;
         try {
             model.setText(displayText);
+        } catch (BadLocationException ex) {
+            throw new EditAbortedException("Cannot replace document text", ex);
         } finally {
             settingText = false;
         }
@@ -130,7 +136,11 @@ public final class McWysiwygPane extends JTextPane implements McFormatTarget {
      * events so the change is observed by listeners as if the user had typed it.
      */
     public void setTextAsUserInput(@NotNull String displayText) {
-        model.setText(displayText);
+        try {
+            model.setText(displayText);
+        } catch (BadLocationException ex) {
+            throw new EditAbortedException("Cannot replace document text", ex);
+        }
         setCaretPosition(0);
     }
 
@@ -143,7 +153,11 @@ public final class McWysiwygPane extends JTextPane implements McFormatTarget {
      */
     @Override
     public @NotNull String getText() {
-        return model.getText();
+        try {
+            return model.getText();
+        } catch (BadLocationException ex) {
+            throw new EditAbortedException("Cannot read document text", ex);
+        }
     }
 
     @Override
@@ -194,21 +208,33 @@ public final class McWysiwygPane extends JTextPane implements McFormatTarget {
 
     @Override
     public void applyCode(@NotNull McFormatCode mc, boolean active) {
-        model.applyCode(mc, active, getSelectionStart(), getSelectionEnd());
+        try {
+            model.applyCode(mc, active, getSelectionStart(), getSelectionEnd());
+        } catch (BadLocationException ex) {
+            throw new EditAbortedException("Cannot apply formatting code", ex);
+        }
         flushPendingToInputAttributes();
         requestFocusInWindow();
     }
 
     @Override
     public void applyReset() {
-        model.applyReset(getSelectionStart(), getSelectionEnd());
+        try {
+            model.applyReset(getSelectionStart(), getSelectionEnd());
+        } catch (BadLocationException ex) {
+            throw new EditAbortedException("Cannot reset selection formatting", ex);
+        }
         flushPendingToInputAttributes();
         requestFocusInWindow();
     }
 
     @Override
     public void applyColorReset() {
-        model.applyColorReset(getSelectionStart(), getSelectionEnd());
+        try {
+            model.applyColorReset(getSelectionStart(), getSelectionEnd());
+        } catch (BadLocationException ex) {
+            throw new EditAbortedException("Cannot reset selection color", ex);
+        }
         flushPendingToInputAttributes();
         requestFocusInWindow();
     }

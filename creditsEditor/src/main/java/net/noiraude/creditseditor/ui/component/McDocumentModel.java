@@ -1,7 +1,5 @@
 package net.noiraude.creditseditor.ui.component;
 
-import java.lang.System.Logger;
-import java.lang.System.Logger.Level;
 import java.util.EnumSet;
 
 import javax.swing.text.AttributeSet;
@@ -43,8 +41,6 @@ import org.jetbrains.annotations.NotNull;
  */
 public final class McDocumentModel {
 
-    private static final Logger LOG = System.getLogger(McDocumentModel.class.getName());
-
     private final @NotNull StyledDocument doc = new DefaultStyledDocument();
     private final boolean multiLine;
     private boolean rawMode;
@@ -82,22 +78,18 @@ public final class McDocumentModel {
      * In multi-line mode, paragraphs separated by {@code '\n'} are inserted with the separator
      * carrying no formatting. In raw mode the string is inserted verbatim.
      */
-    public void setText(@NotNull String displayText) {
-        try {
-            doc.remove(0, doc.getLength());
-            if (rawMode) {
-                doc.insertString(0, displayText, SimpleAttributeSet.EMPTY);
-            } else if (multiLine) {
-                String[] paras = displayText.split("\n", -1);
-                for (int i = 0; i < paras.length; i++) {
-                    if (i > 0) doc.insertString(doc.getLength(), "\n", SimpleAttributeSet.EMPTY);
-                    insertParagraph(doc, paras[i]);
-                }
-            } else {
-                insertParagraph(doc, displayText);
+    public void setText(@NotNull String displayText) throws BadLocationException {
+        doc.remove(0, doc.getLength());
+        if (rawMode) {
+            doc.insertString(0, displayText, SimpleAttributeSet.EMPTY);
+        } else if (multiLine) {
+            String[] paras = displayText.split("\n", -1);
+            for (int i = 0; i < paras.length; i++) {
+                if (i > 0) doc.insertString(doc.getLength(), "\n", SimpleAttributeSet.EMPTY);
+                insertParagraph(doc, paras[i]);
             }
-        } catch (BadLocationException ex) {
-            LOG.log(Level.WARNING, "setText: bad location while rebuilding document", ex);
+        } else {
+            insertParagraph(doc, displayText);
         }
     }
 
@@ -108,15 +100,10 @@ public final class McDocumentModel {
      * In multi-line mode, paragraphs are separated by actual {@code '\n'} characters. The
      * implicit trailing {@code '\n'} that {@link DefaultStyledDocument} maintains is stripped.
      */
-    public @NotNull String getText() {
+    public @NotNull String getText() throws BadLocationException {
         if (rawMode) {
-            try {
-                String text = doc.getText(0, doc.getLength());
-                return text.endsWith("\n") ? text.substring(0, text.length() - 1) : text;
-            } catch (BadLocationException ex) {
-                LOG.log(Level.WARNING, "getText: bad location while reading raw document", ex);
-                return "";
-            }
+            String text = doc.getText(0, doc.getLength());
+            return text.endsWith("\n") ? text.substring(0, text.length() - 1) : text;
         }
         return styledDocToRaw();
     }
@@ -125,7 +112,7 @@ public final class McDocumentModel {
      * Switches between rendered (WYSIWYG) and raw (literal {@code §x}) display mode, preserving
      * the current text across the switch and clearing the pending-codes carry.
      */
-    public void setRawMode(boolean raw) {
+    public void setRawMode(boolean raw) throws BadLocationException {
         if (this.rawMode == raw) return;
         String text = getText();
         this.rawMode = raw;
@@ -187,7 +174,8 @@ public final class McDocumentModel {
     /**
      * Applies or removes a code on the selection if non-empty, otherwise updates the carry.
      */
-    public void applyCode(@NotNull McFormatCode mc, boolean active, int selStart, int selEnd) {
+    public void applyCode(@NotNull McFormatCode mc, boolean active, int selStart, int selEnd)
+        throws BadLocationException {
         if (rawMode) return;
         if (selStart != selEnd) {
             SimpleAttributeSet attrs = new SimpleAttributeSet();
@@ -201,7 +189,7 @@ public final class McDocumentModel {
     }
 
     /** Removes all formatting from the selection if non-empty, otherwise clears the carry. */
-    public void applyReset(int selStart, int selEnd) {
+    public void applyReset(int selStart, int selEnd) throws BadLocationException {
         if (rawMode) return;
         if (selStart != selEnd) {
             applyAttrsToSelectionRange(new SimpleAttributeSet(), true, selStart, selEnd);
@@ -214,23 +202,19 @@ public final class McDocumentModel {
      * Removes only the color attribute from the selection if non-empty, otherwise drops every
      * color from the carry while leaving modifiers intact.
      */
-    public void applyColorReset(int selStart, int selEnd) {
+    public void applyColorReset(int selStart, int selEnd) throws BadLocationException {
         if (rawMode) return;
         if (selStart != selEnd) {
             int offset = selStart;
             while (offset < selEnd) {
                 Element elem = doc.getCharacterElement(offset);
                 int runEnd = Math.min(elem.getEndOffset(), selEnd);
-                try {
-                    String text = doc.getText(offset, runEnd - offset);
-                    AttributeSet elemAttrs = elem.getAttributes();
-                    if (McText.containsNonNewline(text) && elemAttrs.isDefined(StyleConstants.Foreground)) {
-                        SimpleAttributeSet attrs = new SimpleAttributeSet(elemAttrs);
-                        attrs.removeAttribute(StyleConstants.Foreground);
-                        doc.setCharacterAttributes(offset, runEnd - offset, attrs, true);
-                    }
-                } catch (BadLocationException ex) {
-                    LOG.log(Level.WARNING, "applyColorReset: bad location while scanning run", ex);
+                String text = doc.getText(offset, runEnd - offset);
+                AttributeSet elemAttrs = elem.getAttributes();
+                if (McText.containsNonNewline(text) && elemAttrs.isDefined(StyleConstants.Foreground)) {
+                    SimpleAttributeSet attrs = new SimpleAttributeSet(elemAttrs);
+                    attrs.removeAttribute(StyleConstants.Foreground);
+                    doc.setCharacterAttributes(offset, runEnd - offset, attrs, true);
                 }
                 offset = runEnd;
             }
@@ -239,18 +223,15 @@ public final class McDocumentModel {
         }
     }
 
-    private void applyAttrsToSelectionRange(@NotNull SimpleAttributeSet attrs, boolean replace, int start, int end) {
+    private void applyAttrsToSelectionRange(@NotNull SimpleAttributeSet attrs, boolean replace, int start, int end)
+        throws BadLocationException {
         int offset = start;
         while (offset < end) {
             Element elem = doc.getCharacterElement(offset);
             int runEnd = Math.min(elem.getEndOffset(), end);
-            try {
-                String text = doc.getText(offset, runEnd - offset);
-                if (McText.containsNonNewline(text)) {
-                    doc.setCharacterAttributes(offset, runEnd - offset, attrs, replace);
-                }
-            } catch (BadLocationException ex) {
-                LOG.log(Level.WARNING, "applyAttrsToSelectionRange: bad location while scanning run", ex);
+            String text = doc.getText(offset, runEnd - offset);
+            if (McText.containsNonNewline(text)) {
+                doc.setCharacterAttributes(offset, runEnd - offset, attrs, replace);
             }
             offset = runEnd;
         }
@@ -271,7 +252,7 @@ public final class McDocumentModel {
      * transition codes required between adjacent runs and stripping the implicit trailing
      * {@code '\n'} maintained by {@link DefaultStyledDocument}.
      */
-    private @NotNull String styledDocToRaw() {
+    private @NotNull String styledDocToRaw() throws BadLocationException {
         int len = doc.getLength();
         if (len == 0) return "";
 
@@ -281,14 +262,7 @@ public final class McDocumentModel {
         while (offset < len) {
             Element elem = doc.getCharacterElement(offset);
             int runEnd = Math.min(elem.getEndOffset(), len);
-            String text;
-            try {
-                text = doc.getText(offset, runEnd - offset);
-            } catch (BadLocationException ex) {
-                LOG.log(Level.WARNING, "styledDocToRaw: bad location while reading run", ex);
-                offset = runEnd;
-                continue;
-            }
+            String text = doc.getText(offset, runEnd - offset);
             if ("\n".equals(text)) {
                 sb.append('\n');
             } else {

@@ -271,4 +271,112 @@ public class CommandStackTest {
         stack.clear();
         assertFalse(stack.isDirty());
     }
+
+    // -----------------------------------------------------------------------
+    // EditAbortedException
+    // -----------------------------------------------------------------------
+
+    @Test
+    public void execute_editAborted_doesNotPushFailedCommand() {
+        Command good = cmd("Good");
+        Command bad = abortingCommand("Bad");
+        stack.execute(good);
+        try {
+            stack.execute(bad);
+            org.junit.jupiter.api.Assertions.fail("expected EditAbortedException");
+        } catch (EditAbortedException expected) {
+            // pass
+        }
+        assertEquals("Good", stack.peekUndoName());
+        assertFalse(stack.canRedo());
+    }
+
+    @Test
+    public void undo_editAborted_keepsCommandOnUndoStack() {
+        Command failing = abortingOnUndoCommand("Sticky");
+        stack.execute(failing);
+        try {
+            stack.undo();
+            org.junit.jupiter.api.Assertions.fail("expected EditAbortedException");
+        } catch (EditAbortedException expected) {
+            // pass
+        }
+        assertTrue(stack.canUndo(), "command stays on undo stack so the user can retry");
+        assertFalse(stack.canRedo());
+    }
+
+    @Test
+    public void redo_editAborted_keepsCommandOnRedoStack() {
+        Command failing = abortingOnRedoCommand("Sticky");
+        stack.execute(failing);
+        // First undo succeeds because the command's execute does not abort.
+        stack.undo();
+        try {
+            stack.redo();
+            org.junit.jupiter.api.Assertions.fail("expected EditAbortedException");
+        } catch (EditAbortedException expected) {
+            // pass
+        }
+        assertTrue(stack.canRedo(), "command stays on redo stack so the user can retry");
+        assertFalse(stack.canUndo());
+    }
+
+    private static Command abortingCommand(String name) {
+        return new Command() {
+
+            @Override
+            public void execute() {
+                throw new EditAbortedException("aborted on execute", new IllegalStateException("test"));
+            }
+
+            @Override
+            public void undo() {}
+
+            @Override
+            public @NotNull String getDisplayName() {
+                return name;
+            }
+        };
+    }
+
+    private static Command abortingOnUndoCommand(String name) {
+        return new Command() {
+
+            @Override
+            public void execute() {}
+
+            @Override
+            public void undo() {
+                throw new EditAbortedException("aborted on undo", new IllegalStateException("test"));
+            }
+
+            @Override
+            public @NotNull String getDisplayName() {
+                return name;
+            }
+        };
+    }
+
+    private static Command abortingOnRedoCommand(String name) {
+        return new Command() {
+
+            private boolean executed;
+
+            @Override
+            public void execute() {
+                if (executed) {
+                    throw new EditAbortedException("aborted on redo", new IllegalStateException("test"));
+                }
+                executed = true;
+            }
+
+            @Override
+            public void undo() {}
+
+            @Override
+            public @NotNull String getDisplayName() {
+                return name;
+            }
+        };
+    }
 }

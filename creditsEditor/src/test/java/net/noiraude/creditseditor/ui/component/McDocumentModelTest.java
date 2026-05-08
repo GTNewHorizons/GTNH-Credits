@@ -15,28 +15,28 @@ import org.junit.jupiter.api.Test;
 public class McDocumentModelTest {
 
     @Test
-    public void roundTrip_plainText_preserved() {
+    public void roundTrip_plainText_preserved() throws javax.swing.text.BadLocationException {
         McDocumentModel model = new McDocumentModel(true);
         model.setText("Hello World");
         assertEquals("Hello World", model.getText());
     }
 
     @Test
-    public void roundTrip_singleColor_preserved() {
+    public void roundTrip_singleColor_preserved() throws javax.swing.text.BadLocationException {
         McDocumentModel model = new McDocumentModel(true);
         model.setText("§aHello");
         assertEquals("§aHello", model.getText());
     }
 
     @Test
-    public void roundTrip_multipleParagraphs_preserved() {
+    public void roundTrip_multipleParagraphs_preserved() throws javax.swing.text.BadLocationException {
         McDocumentModel model = new McDocumentModel(true);
         model.setText("§aLine one\n§bLine two");
         assertEquals("§aLine one\n§bLine two", model.getText());
     }
 
     @Test
-    public void rawMode_returnsLiteralText() {
+    public void rawMode_returnsLiteralText() throws javax.swing.text.BadLocationException {
         McDocumentModel model = new McDocumentModel(true);
         model.setText("§aHello");
         model.setRawMode(true);
@@ -44,7 +44,7 @@ public class McDocumentModelTest {
     }
 
     @Test
-    public void applyCode_noSelection_togglesPendingCarry() {
+    public void applyCode_noSelection_togglesPendingCarry() throws javax.swing.text.BadLocationException {
         McDocumentModel model = new McDocumentModel(true);
         model.setText("");
         assertFalse(
@@ -63,7 +63,7 @@ public class McDocumentModelTest {
     }
 
     @Test
-    public void applyReset_noSelection_clearsCarry() {
+    public void applyReset_noSelection_clearsCarry() throws javax.swing.text.BadLocationException {
         McDocumentModel model = new McDocumentModel(true);
         model.setText("");
         model.applyCode(McFormatCode.BOLD, true, 0, 0);
@@ -77,7 +77,7 @@ public class McDocumentModelTest {
     }
 
     @Test
-    public void applyColorReset_noSelection_keepsModifiers() {
+    public void applyColorReset_noSelection_keepsModifiers() throws javax.swing.text.BadLocationException {
         McDocumentModel model = new McDocumentModel(true);
         model.setText("");
         model.applyCode(McFormatCode.BOLD, true, 0, 0);
@@ -91,7 +91,7 @@ public class McDocumentModelTest {
     }
 
     @Test
-    public void syncPendingFromCaret_readsPrecedingChar() {
+    public void syncPendingFromCaret_readsPrecedingChar() throws javax.swing.text.BadLocationException {
         McDocumentModel model = new McDocumentModel(true);
         model.setText("§aHello§cWorld");
         // Document content is "HelloWorld" (codes removed). Caret at position 5 sits between
@@ -105,7 +105,7 @@ public class McDocumentModelTest {
     }
 
     @Test
-    public void getCaretStyle_noSelection_readsDocumentDirectly() {
+    public void getCaretStyle_noSelection_readsDocumentDirectly() throws javax.swing.text.BadLocationException {
         McDocumentModel model = new McDocumentModel(true);
         model.setText("§lHello§rWorld");
         // Caret at position 3 sits in the bold "Hello" run. getCaretStyle reads the document
@@ -116,7 +116,7 @@ public class McDocumentModelTest {
     }
 
     @Test
-    public void getCaretStyle_withSelection_readsAtSelectionStart() {
+    public void getCaretStyle_withSelection_readsAtSelectionStart() throws javax.swing.text.BadLocationException {
         McDocumentModel model = new McDocumentModel(true);
         model.setText("§lHello§rWorld");
         // Selection [3, 8) starts inside the bold run; getCaretStyle should report BOLD.
@@ -125,7 +125,7 @@ public class McDocumentModelTest {
     }
 
     @Test
-    public void applyCode_onSelection_writesAttributesToDocument() {
+    public void applyCode_onSelection_writesAttributesToDocument() throws javax.swing.text.BadLocationException {
         McDocumentModel model = new McDocumentModel(true);
         model.setText("Hello");
         StyledDocument doc = model.getDocument();

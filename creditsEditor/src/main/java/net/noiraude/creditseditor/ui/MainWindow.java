@@ -18,6 +18,7 @@ import javax.swing.SwingWorker;
 
 import net.noiraude.creditseditor.bus.DocumentBus;
 import net.noiraude.creditseditor.command.CommandExecutor;
+import net.noiraude.creditseditor.command.EditAbortedException;
 import net.noiraude.creditseditor.ui.dialog.AboutDialog;
 import net.noiraude.creditseditor.ui.dialog.ProgressDialog;
 import net.noiraude.creditseditor.ui.dialog.ShortcutsDialog;
@@ -58,7 +59,11 @@ public final class MainWindow extends JFrame implements EditorActions.Handlers {
 
         CommandExecutor onCommand = cmd -> {
             if (session == null) return;
-            session.stack.execute(cmd);
+            try {
+                session.stack.execute(cmd);
+            } catch (EditAbortedException ex) {
+                showEditAborted(ex);
+            }
             afterCommand();
         };
 
@@ -231,14 +236,22 @@ public final class MainWindow extends JFrame implements EditorActions.Handlers {
     @Override
     public void onUndo() {
         if (session == null || !session.stack.canUndo()) return;
-        session.stack.undo();
+        try {
+            session.stack.undo();
+        } catch (EditAbortedException ex) {
+            showEditAborted(ex);
+        }
         afterCommand();
     }
 
     @Override
     public void onRedo() {
         if (session == null || !session.stack.canRedo()) return;
-        session.stack.redo();
+        try {
+            session.stack.redo();
+        } catch (EditAbortedException ex) {
+            showEditAborted(ex);
+        }
         afterCommand();
     }
 
@@ -307,5 +320,18 @@ public final class MainWindow extends JFrame implements EditorActions.Handlers {
             case 1 -> false;
             default -> true;
         };
+    }
+
+    /**
+     * Surfaces an {@link EditAbortedException} as a non-blocking warning dialog. The command
+     * stack has already refused to record the failed attempt; this method only informs the
+     * user that the action did not take effect.
+     */
+    private void showEditAborted(@NotNull EditAbortedException ex) {
+        JOptionPane.showMessageDialog(
+            this,
+            I18n.get("dialog.edit_aborted.message", MsgArg.text(ex.getMessage())),
+            I18n.get("dialog.edit_aborted.title"),
+            JOptionPane.WARNING_MESSAGE);
     }
 }
