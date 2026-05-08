@@ -17,7 +17,6 @@ import java.awt.font.TextAttribute;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.EnumSet;
-import java.util.Locale;
 import java.util.Map;
 
 import javax.swing.Box;
@@ -93,10 +92,7 @@ public final class McFormatToolbar extends JPanel {
     }
 
     private static @NotNull String tooltipFor(@NotNull McFormatCode code) {
-        @SuppressWarnings("SpellCheckingInspection")
-        String name = I18n.get(
-            "mcformat." + code.name()
-                .toLowerCase(Locale.ROOT));
+        String name = I18n.get(code.getTranslationKey());
         return name + " (§" + code.code + ")";
     }
 

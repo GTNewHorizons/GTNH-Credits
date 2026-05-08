@@ -8,6 +8,7 @@ import java.util.ResourceBundle;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.PropertyKey;
 
 /**
  * Localized string lookup for the Credits Editor UI.
@@ -55,7 +56,8 @@ public final class I18n {
      * The conversion to the {@link Object} array required by {@link MessageFormat} happens
      * locally in this method, so the public API exposes only the typed {@link MsgArg} surface.
      */
-    public static @NotNull String get(@NotNull String key, @NotNull MsgArg... args) {
+    public static @NotNull String get(@PropertyKey(resourceBundle = BUNDLE_BASE) @NotNull String key,
+        @NotNull MsgArg... args) {
         ResourceBundle bundle = Holder.BUNDLE;
         if (bundle == null) return key;
         String pattern;
