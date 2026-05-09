@@ -207,7 +207,7 @@ they help with the heavy lifting, I manually review everything. I vet my own wor
 trust my first-pass code as little as I trust AI output.
 
 I ensure all output complies with the Software Engineering fundamentals I mastered over 40+ years in the industry. My
-standards are rooted in a career spanning the full IT stack—from legacy mini-systems and network protocols to modern R&D
+standards are rooted in a career spanning the full IT stack from legacy mini-systems and network protocols to modern R&D
 and Java development.
 
 ### Ownership & Accountability
