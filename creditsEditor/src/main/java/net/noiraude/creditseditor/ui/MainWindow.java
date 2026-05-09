@@ -139,7 +139,7 @@ public final class MainWindow extends JFrame implements EditorActions.Handlers {
         session = newSession;
 
         bus.setActiveLocale(session.defaultLocale());
-        bus.setSession(session.creditsDoc(), session.langDoc());
+        bus.setSession(session.creditsDoc(), session.langDocs());
         updateTitle();
     }
 

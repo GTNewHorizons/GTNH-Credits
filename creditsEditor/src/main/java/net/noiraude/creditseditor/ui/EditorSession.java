@@ -107,6 +107,23 @@ final class EditorSession {
         return resourceManager.langDoc(locale);
     }
 
+    /**
+     * Returns a snapshot map of every loaded locale to its {@link LangDocument}, in the
+     * insertion order reported by {@link #availableLocales()}. The {@link LangDocument}
+     * references are shared with the resource manager so subsequent in-place edits flow
+     * through; only the map itself is detached.
+     */
+    @Contract(pure = true)
+    @NotNull
+    Map<String, LangDocument> langDocs() {
+        Map<String, LangDocument> docs = new LinkedHashMap<>();
+        for (String locale : resourceManager.availableLocales()) {
+            LangDocument doc = resourceManager.langDoc(locale);
+            if (doc != null) docs.put(locale, doc);
+        }
+        return docs;
+    }
+
     /** Returns the locales currently loaded in the resource manager, in insertion order. */
     @Contract(pure = true)
     @NotNull
@@ -197,13 +214,7 @@ final class EditorSession {
         }
 
         CreditsDocument credits = resourceManager.getCreditsDoc();
-        Map<String, LangDocument> langs = new LinkedHashMap<>();
-        for (String locale : resourceManager.availableLocales()) {
-            LangDocument doc = resourceManager.langDoc(locale);
-            if (doc != null) {
-                langs.put(locale, doc);
-            }
-        }
+        Map<String, LangDocument> langs = langDocs();
 
         ResourceManager newRm = openOrCreate(pathArg);
         try {

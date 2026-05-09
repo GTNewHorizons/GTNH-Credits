@@ -8,6 +8,7 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.util.LinkedHashSet;
+import java.util.Optional;
 import java.util.Set;
 
 import javax.swing.Box;
@@ -20,22 +21,27 @@ import net.noiraude.creditseditor.command.CommandExecutor;
 import net.noiraude.creditseditor.command.impl.DocumentEditCommand;
 import net.noiraude.creditseditor.command.impl.EditFieldCommand;
 import net.noiraude.creditseditor.service.KeySanitizer;
+import net.noiraude.creditseditor.service.LangResolver;
 import net.noiraude.creditseditor.ui.I18n;
-import net.noiraude.creditseditor.ui.component.mc.MinecraftTextEditor;
+import net.noiraude.creditseditor.ui.component.mc.LocalizedMcEditor;
+import net.noiraude.libcredits.lang.LangDocument;
 import net.noiraude.libcredits.model.DocumentCategory;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Form panel that displays and edits the fields of a single {@link DocumentCategory}.
  *
  * <p>
  * Subscribes to {@link DocumentBus#TOPIC_CATEGORY} to reload the current category when it
- * is the one that changed. Removal of the current category is detected by the owning
+ * is the one that changed and to {@link DocumentBus#TOPIC_LOCALE} to rebuild the display
+ * name from the active locale. Removal of the current category is detected by the owning
  * {@code DetailPanel}, which calls {@link #clear()} and switches the card away from this
  * view; this view therefore does not listen for {@code TOPIC_CATEGORIES}. Lang-derived
- * fields (display name, description) are read from and written to the bus's
- * {@code langDoc()} directly. Class checkboxes are delegated to
+ * fields (display name, description) are read from and written to the active locale's
+ * {@link LangDocument}, falling back to the default locale via the resolver chain when the
+ * active locale has no value. Class checkboxes are delegated to
  * {@link CategoryClassSelector}; the description row is delegated to
  * {@link CategoryDescriptionSection}.
  */
@@ -45,7 +51,7 @@ public final class CategoryDetailView extends DetailView<DocumentCategory> {
 
     private final @NotNull JTextField idField = new JTextField();
     private final @NotNull JLabel langKeyLabel = new JLabel();
-    private final @NotNull MinecraftTextEditor displayNameEditor = new MinecraftTextEditor();
+    private final @NotNull LocalizedMcEditor displayNameEditor = new LocalizedMcEditor(false);
     private final @NotNull CategoryClassSelector classSelector = new CategoryClassSelector();
     private final @NotNull CategoryDescriptionSection descriptionSection = new CategoryDescriptionSection();
     private final @NotNull Component spacer = Box.createVerticalGlue();
@@ -56,6 +62,8 @@ public final class CategoryDetailView extends DetailView<DocumentCategory> {
         idField.setEditable(false);
         idField.setBackground(UIManager.getColor("Panel.background"));
         langKeyLabel.setForeground(UIManager.getColor("Label.disabledForeground"));
+        displayNameEditor.setEnglishValueSupplier(this::englishDisplayName);
+        displayNameEditor.setActiveLocale(bus.activeLocale());
         buildLayout();
         wireEvents();
         updateDescriptionVisibility();
@@ -67,6 +75,7 @@ public final class CategoryDetailView extends DetailView<DocumentCategory> {
         bus.addListener(
             DocumentBus.TOPIC_CATEGORY,
             e -> { if (current != null && e.getNewValue() == current) reloadClassCheckboxes(); });
+        bus.addListener(DocumentBus.TOPIC_LOCALE, e -> onLocaleChanged());
     }
 
     private void buildLayout() {
@@ -129,14 +138,13 @@ public final class CategoryDetailView extends DetailView<DocumentCategory> {
     }
 
     private void wireDisplayNameEvents() {
-        displayNameEditor.addPropertyChangeListener("text", e -> {
+        displayNameEditor.addTextChangeListener(value -> {
             if (loading || current == null) return;
             String key = "credits.category." + KeySanitizer.sanitize(current.id);
-            String value = (String) e.getNewValue();
-            if (value.isEmpty()) bus.langDoc()
-                .remove(key);
-            else bus.langDoc()
-                .set(key, value);
+            LangDocument target = bus.langDoc(bus.activeLocale());
+            if (target == null) return;
+            if (value.isEmpty()) target.remove(key);
+            else target.set(key, value);
             bus.fireLangChanged(key);
         });
         displayNameEditor.addUndoableEditListener(e -> {
@@ -194,9 +202,8 @@ public final class CategoryDetailView extends DetailView<DocumentCategory> {
             String key = "credits.category." + KeySanitizer.sanitize(cat.id);
             idField.setText(cat.id);
             langKeyLabel.setText(key);
-            String name = bus.langDoc()
-                .get(key);
-            displayNameEditor.setText(name != null ? name : "");
+            displayNameEditor.setActiveLocale(bus.activeLocale());
+            displayNameEditor.setText(resolveDisplayName(key));
             String detail = bus.langDoc()
                 .get(key + ".detail");
             descriptionSection.setText(detail != null ? detail : "");
@@ -205,6 +212,47 @@ public final class CategoryDetailView extends DetailView<DocumentCategory> {
             loading = false;
         }
         updateDescriptionVisibility();
+    }
+
+    /**
+     * Returns the active locale's value for {@code key}, falling back to the default-locale
+     * value when the active locale has no non-empty entry. An empty string represents both
+     * "absent everywhere" and "intentionally cleared in the default locale" so the editor
+     * shows nothing for the user to translate from.
+     */
+    private @NotNull String resolveDisplayName(@NotNull String key) {
+        String activeLocale = bus.activeLocale();
+        String active = lookup(activeLocale, key);
+        if (active != null) return active;
+        if (LangResolver.DEFAULT_LOCALE.equals(activeLocale)) return "";
+        String fallback = lookup(LangResolver.DEFAULT_LOCALE, key);
+        return fallback != null ? fallback : "";
+    }
+
+    private @Nullable String lookup(@NotNull String locale, @NotNull String key) {
+        LangDocument doc = bus.langDoc(locale);
+        if (doc == null) return null;
+        String value = doc.get(key);
+        return (value == null || value.isEmpty()) ? null : value;
+    }
+
+    private @NotNull Optional<String> englishDisplayName() {
+        if (current == null) return Optional.empty();
+        String key = "credits.category." + KeySanitizer.sanitize(current.id);
+        return Optional.ofNullable(lookup(LangResolver.DEFAULT_LOCALE, key));
+    }
+
+    private void onLocaleChanged() {
+        String activeLocale = bus.activeLocale();
+        displayNameEditor.setActiveLocale(activeLocale);
+        if (current == null) return;
+        String key = "credits.category." + KeySanitizer.sanitize(current.id);
+        loading = true;
+        try {
+            displayNameEditor.setText(resolveDisplayName(key));
+        } finally {
+            loading = false;
+        }
     }
 
     private void onClassToggle(@NotNull String cls, boolean selected) {

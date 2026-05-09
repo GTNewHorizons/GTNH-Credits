@@ -160,7 +160,7 @@ reference and cannot be removed.
   the EN toggle round-trips, and "Copy to <locale>" replaces the editing
   locale's pending value with the English source.
 
-- [ ] **C.2 CategoryDetailView locale awareness**
+- [x] **C.2 CategoryDetailView locale awareness**
   (`ui/detail/CategoryDetailView.java`)
   Replace the `MinecraftTextEditor displayNameEditor` with a
   `LocalizedMcEditor`. Subscribe to `TOPIC_LOCALE` and rebuild the field's
