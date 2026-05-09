@@ -168,14 +168,38 @@ reference and cannot be removed.
   Done when: switching locale updates the displayed name in place without
   losing pending edits in the previously active locale.
 
-- [ ] **C.3 CategoryDescriptionSection locale awareness**
-  (`ui/detail/CategoryDescriptionSection.java`)
-  Same change for plain detail and indexed detail paragraphs. Each indexed
-  paragraph gets its own `LocalizedMcEditor` instance with its own EN
-  toggle state.
-  Done when: indexed details preserve per-paragraph EN-toggle state when
-  the user adds, reorders, or removes paragraphs, and switching locale
-  rebinds every paragraph editor.
+- [x] **C.3 CategoryDescriptionSection locale awareness**
+  (`ui/detail/CategoryDescriptionSection.java`,
+  `ui/detail/CategoryDetailView.java`)
+  Replace the section's `MinecraftTextAreaEditor` with a `LocalizedMcEditor`
+  for the `credits.category.{id}.detail` field. Wire the English-value
+  supplier and the active-locale setter, route writes through the active
+  locale's `LangDocument`, and rebuild the field on `TOPIC_LOCALE`.
+  The editor reads and writes the canonical `.detail` key only; indexed
+  paragraphs (`.detail.0`, `.detail.1`, ...) are a manual-editing
+  convenience normalized away inside libCredits (see L.1) so the editor
+  never sees the indexed form.
+  Done when: switching locale updates the displayed detail in place
+  without losing pending edits in the previously active locale, and the
+  EN toggle round-trips for the detail field the same way it does for
+  the display name.
+
+- [ ] **L.1 libCredits detail-key normalization**
+  (`libCredits/.../lang/LangDocument.java`)
+  Hide the indexed-paragraph syntax from all callers. On read, a query
+  for `credits.category.{id}.detail` returns the plain value joined with
+  any `credits.category.{id}.detail.{n}` siblings (natural-sorted by
+  suffix), separated by `\n`, as a single string. On write, `set` for
+  the `.detail` key writes only the plain key and removes every
+  `.detail.{n}` sibling. Different locales may legitimately use
+  different paragraph counts; the indexed form remains a
+  text-editor-friendly sugar in the on-disk file, never an editor or
+  caller concern.
+  Done when: a unit test loads a lang document mixing plain and indexed
+  detail paragraphs, calls `get` and observes the joined value, calls
+  `set` with a new value and observes the indexed siblings removed
+  and the plain key updated, and the editor's category detail field
+  reflects both forms transparently.
 
 - [ ] **C.4 RoleDetailCard locale awareness**
   (`ui/detail/RoleDetailCard.java`, `ui/detail/MembershipRolePanel.java`)

@@ -36,12 +36,12 @@ import org.jetbrains.annotations.Nullable;
  * <p>
  * Subscribes to {@link DocumentBus#TOPIC_CATEGORY} to reload the current category when it
  * is the one that changed and to {@link DocumentBus#TOPIC_LOCALE} to rebuild the display
- * name from the active locale. Removal of the current category is detected by the owning
- * {@code DetailPanel}, which calls {@link #clear()} and switches the card away from this
- * view; this view therefore does not listen for {@code TOPIC_CATEGORIES}. Lang-derived
- * fields (display name, description) are read from and written to the active locale's
- * {@link LangDocument}, falling back to the default locale via the resolver chain when the
- * active locale has no value. Class checkboxes are delegated to
+ * name and description from the active locale. Removal of the current category is detected
+ * by the owning {@code DetailPanel}, which calls {@link #clear()} and switches the card
+ * away from this view; this view therefore does not listen for {@code TOPIC_CATEGORIES}.
+ * Lang-derived fields (display name, description) are read from and written to the active
+ * locale's {@link LangDocument}, falling back to the default locale via the resolver chain
+ * when the active locale has no value. Class checkboxes are delegated to
  * {@link CategoryClassSelector}; the description row is delegated to
  * {@link CategoryDescriptionSection}.
  */
@@ -64,6 +64,8 @@ public final class CategoryDetailView extends DetailView<DocumentCategory> {
         langKeyLabel.setForeground(UIManager.getColor("Label.disabledForeground"));
         displayNameEditor.setEnglishValueSupplier(this::englishDisplayName);
         displayNameEditor.setActiveLocale(bus.activeLocale());
+        descriptionSection.setEnglishValueSupplier(this::englishDescription);
+        descriptionSection.setActiveLocale(bus.activeLocale());
         buildLayout();
         wireEvents();
         updateDescriptionVisibility();
@@ -155,14 +157,13 @@ public final class CategoryDetailView extends DetailView<DocumentCategory> {
     }
 
     private void wireDescriptionEvents() {
-        descriptionSection.addTextPropertyChangeListener(e -> {
+        descriptionSection.addTextChangeListener(value -> {
             if (loading || current == null) return;
             String key = "credits.category." + KeySanitizer.sanitize(current.id) + ".detail";
-            String value = (String) e.getNewValue();
-            if (value.isEmpty()) bus.langDoc()
-                .remove(key);
-            else bus.langDoc()
-                .set(key, value);
+            LangDocument target = bus.langDoc(bus.activeLocale());
+            if (target == null) return;
+            if (value.isEmpty()) target.remove(key);
+            else target.set(key, value);
             bus.fireLangChanged(key);
         });
         descriptionSection.addUndoableEditListener(e -> {
@@ -203,10 +204,9 @@ public final class CategoryDetailView extends DetailView<DocumentCategory> {
             idField.setText(cat.id);
             langKeyLabel.setText(key);
             displayNameEditor.setActiveLocale(bus.activeLocale());
-            displayNameEditor.setText(resolveDisplayName(key));
-            String detail = bus.langDoc()
-                .get(key + ".detail");
-            descriptionSection.setText(detail != null ? detail : "");
+            displayNameEditor.setText(resolveLangValue(key));
+            descriptionSection.setActiveLocale(bus.activeLocale());
+            descriptionSection.setText(resolveLangValue(key + ".detail"));
             classSelector.setClasses(cat.classes);
         } finally {
             loading = false;
@@ -220,7 +220,7 @@ public final class CategoryDetailView extends DetailView<DocumentCategory> {
      * "absent everywhere" and "intentionally cleared in the default locale" so the editor
      * shows nothing for the user to translate from.
      */
-    private @NotNull String resolveDisplayName(@NotNull String key) {
+    private @NotNull String resolveLangValue(@NotNull String key) {
         String activeLocale = bus.activeLocale();
         String active = lookup(activeLocale, key);
         if (active != null) return active;
@@ -242,14 +242,22 @@ public final class CategoryDetailView extends DetailView<DocumentCategory> {
         return Optional.ofNullable(lookup(LangResolver.DEFAULT_LOCALE, key));
     }
 
+    private @NotNull Optional<String> englishDescription() {
+        if (current == null) return Optional.empty();
+        String key = "credits.category." + KeySanitizer.sanitize(current.id) + ".detail";
+        return Optional.ofNullable(lookup(LangResolver.DEFAULT_LOCALE, key));
+    }
+
     private void onLocaleChanged() {
         String activeLocale = bus.activeLocale();
         displayNameEditor.setActiveLocale(activeLocale);
+        descriptionSection.setActiveLocale(activeLocale);
         if (current == null) return;
         String key = "credits.category." + KeySanitizer.sanitize(current.id);
         loading = true;
         try {
-            displayNameEditor.setText(resolveDisplayName(key));
+            displayNameEditor.setText(resolveLangValue(key));
+            descriptionSection.setText(resolveLangValue(key + ".detail"));
         } finally {
             loading = false;
         }
