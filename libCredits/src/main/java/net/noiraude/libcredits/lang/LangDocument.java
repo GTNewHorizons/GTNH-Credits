@@ -145,6 +145,22 @@ public final class LangDocument {
         return get(key) != null;
     }
 
+    /**
+     * Returns every active key (originals not deleted plus pending inserts) whose name
+     * starts with {@code prefix}, in original-then-pending insertion order.
+     */
+    @Contract(pure = true)
+    public @NotNull LinkedHashSet<String> keysStartingWith(@NotNull String prefix) {
+        LinkedHashSet<String> out = new LinkedHashSet<>();
+        for (KeyValueLine line : index.values()) {
+            if (!line.deleted && line.key.startsWith(prefix)) out.add(line.key);
+        }
+        for (String pendingKey : pendingInserts.keySet()) {
+            if (pendingKey.startsWith(prefix)) out.add(pendingKey);
+        }
+        return out;
+    }
+
     // ------------------------------------------------------------------
     // Public API -- writes (restricted to owned prefixes)
     // ------------------------------------------------------------------

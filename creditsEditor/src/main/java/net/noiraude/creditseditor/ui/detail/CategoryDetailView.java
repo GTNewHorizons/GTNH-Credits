@@ -1,21 +1,5 @@
 package net.noiraude.creditseditor.ui.detail;
 
-import static net.noiraude.creditseditor.ui.ScaledMetrics.gapMedium;
-import static net.noiraude.creditseditor.ui.ScaledMetrics.gapSmall;
-
-import java.awt.Component;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
-import java.util.LinkedHashSet;
-import java.util.Optional;
-import java.util.Set;
-
-import javax.swing.Box;
-import javax.swing.JLabel;
-import javax.swing.JTextField;
-import javax.swing.UIManager;
-
 import net.noiraude.creditseditor.bus.DocumentBus;
 import net.noiraude.creditseditor.command.CommandExecutor;
 import net.noiraude.creditseditor.command.impl.DocumentEditCommand;
@@ -24,11 +8,26 @@ import net.noiraude.creditseditor.service.KeySanitizer;
 import net.noiraude.creditseditor.service.LangResolver;
 import net.noiraude.creditseditor.ui.I18n;
 import net.noiraude.creditseditor.ui.component.mc.LocalizedMcEditor;
+import net.noiraude.libcredits.lang.DetailLangKey;
 import net.noiraude.libcredits.lang.LangDocument;
+import net.noiraude.libcredits.lang.LangKey;
 import net.noiraude.libcredits.model.DocumentCategory;
-
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+
+import javax.swing.Box;
+import javax.swing.JLabel;
+import javax.swing.JTextField;
+import javax.swing.UIManager;
+import java.awt.Component;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
+import java.util.LinkedHashSet;
+import java.util.Optional;
+import java.util.Set;
+
+import static net.noiraude.creditseditor.ui.ScaledMetrics.gapMedium;
+import static net.noiraude.creditseditor.ui.ScaledMetrics.gapSmall;
 
 /**
  * Form panel that displays and edits the fields of a single {@link DocumentCategory}.
@@ -142,12 +141,12 @@ public final class CategoryDetailView extends DetailView<DocumentCategory> {
     private void wireDisplayNameEvents() {
         displayNameEditor.addTextChangeListener(value -> {
             if (loading || current == null) return;
-            String key = "credits.category." + KeySanitizer.sanitize(current.id);
+            LangKey nameKey = new LangKey(categoryPrefix(current));
             LangDocument target = bus.langDoc(bus.activeLocale());
             if (target == null) return;
-            if (value.isEmpty()) target.remove(key);
-            else target.set(key, value);
-            bus.fireLangChanged(key);
+            if (value.isEmpty()) nameKey.remove(target);
+            else nameKey.write(target, value);
+            bus.fireLangChanged(nameKey.key());
         });
         displayNameEditor.addUndoableEditListener(e -> {
             if (!loading && current != null) {
@@ -159,12 +158,12 @@ public final class CategoryDetailView extends DetailView<DocumentCategory> {
     private void wireDescriptionEvents() {
         descriptionSection.addTextChangeListener(value -> {
             if (loading || current == null) return;
-            String key = "credits.category." + KeySanitizer.sanitize(current.id) + ".detail";
+            DetailLangKey detailKey = new DetailLangKey(categoryPrefix(current));
             LangDocument target = bus.langDoc(bus.activeLocale());
             if (target == null) return;
-            if (value.isEmpty()) target.remove(key);
-            else target.set(key, value);
-            bus.fireLangChanged(key);
+            if (value.isEmpty()) detailKey.remove(target);
+            else detailKey.write(target, value);
+            bus.fireLangChanged(detailKey.key());
         });
         descriptionSection.addUndoableEditListener(e -> {
             if (!loading && current != null) {
@@ -200,13 +199,13 @@ public final class CategoryDetailView extends DetailView<DocumentCategory> {
         current = cat;
         loading = true;
         try {
-            String key = "credits.category." + KeySanitizer.sanitize(cat.id);
+            String prefix = categoryPrefix(cat);
             idField.setText(cat.id);
-            langKeyLabel.setText(key);
+            langKeyLabel.setText(prefix);
             displayNameEditor.setActiveLocale(bus.activeLocale());
-            displayNameEditor.setText(resolveLangValue(key));
+            displayNameEditor.setText(resolveLangValue(new LangKey(prefix)));
             descriptionSection.setActiveLocale(bus.activeLocale());
-            descriptionSection.setText(resolveLangValue(key + ".detail"));
+            descriptionSection.setText(resolveLangValue(new DetailLangKey(prefix)));
             classSelector.setClasses(cat.classes);
         } finally {
             loading = false;
@@ -217,35 +216,32 @@ public final class CategoryDetailView extends DetailView<DocumentCategory> {
     /**
      * Returns the active locale's value for {@code key}, falling back to the default-locale
      * value when the active locale has no non-empty entry. An empty string represents both
-     * "absent everywhere" and "intentionally cleared in the default locale" so the editor
+     * "absent everywhere" and "intentionally cleared in the default locale", so the editor
      * shows nothing for the user to translate from.
      */
-    private @NotNull String resolveLangValue(@NotNull String key) {
+    private @NotNull String resolveLangValue(@NotNull LangKey key) {
         String activeLocale = bus.activeLocale();
-        String active = lookup(activeLocale, key);
-        if (active != null) return active;
+        Optional<String> active = lookup(activeLocale, key);
+        if (active.isPresent()) return active.get();
         if (LangResolver.DEFAULT_LOCALE.equals(activeLocale)) return "";
-        String fallback = lookup(LangResolver.DEFAULT_LOCALE, key);
-        return fallback != null ? fallback : "";
+        return lookup(LangResolver.DEFAULT_LOCALE, key).orElse("");
     }
 
-    private @Nullable String lookup(@NotNull String locale, @NotNull String key) {
+    private @NotNull Optional<String> lookup(@NotNull String locale, @NotNull LangKey key) {
         LangDocument doc = bus.langDoc(locale);
-        if (doc == null) return null;
-        String value = doc.get(key);
-        return (value == null || value.isEmpty()) ? null : value;
+        return Optional.ofNullable(doc)
+            .flatMap(key::read)
+            .filter(v -> !v.isEmpty());
     }
 
     private @NotNull Optional<String> englishDisplayName() {
         if (current == null) return Optional.empty();
-        String key = "credits.category." + KeySanitizer.sanitize(current.id);
-        return Optional.ofNullable(lookup(LangResolver.DEFAULT_LOCALE, key));
+        return lookup(LangResolver.DEFAULT_LOCALE, new LangKey(categoryPrefix(current)));
     }
 
     private @NotNull Optional<String> englishDescription() {
         if (current == null) return Optional.empty();
-        String key = "credits.category." + KeySanitizer.sanitize(current.id) + ".detail";
-        return Optional.ofNullable(lookup(LangResolver.DEFAULT_LOCALE, key));
+        return lookup(LangResolver.DEFAULT_LOCALE, new DetailLangKey(categoryPrefix(current)));
     }
 
     private void onLocaleChanged() {
@@ -253,14 +249,18 @@ public final class CategoryDetailView extends DetailView<DocumentCategory> {
         displayNameEditor.setActiveLocale(activeLocale);
         descriptionSection.setActiveLocale(activeLocale);
         if (current == null) return;
-        String key = "credits.category." + KeySanitizer.sanitize(current.id);
+        String prefix = categoryPrefix(current);
         loading = true;
         try {
-            displayNameEditor.setText(resolveLangValue(key));
-            descriptionSection.setText(resolveLangValue(key + ".detail"));
+            displayNameEditor.setText(resolveLangValue(new LangKey(prefix)));
+            descriptionSection.setText(resolveLangValue(new DetailLangKey(prefix)));
         } finally {
             loading = false;
         }
+    }
+
+    private static @NotNull String categoryPrefix(@NotNull DocumentCategory cat) {
+        return "credits.category." + KeySanitizer.sanitize(cat.id);
     }
 
     private void onClassToggle(@NotNull String cls, boolean selected) {

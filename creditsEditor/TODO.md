@@ -184,7 +184,7 @@ reference and cannot be removed.
   EN toggle round-trips for the detail field the same way it does for
   the display name.
 
-- [ ] **L.1 libCredits detail-key normalization**
+- [x] **L.1 libCredits detail-key normalization**
   (`libCredits/.../lang/LangDocument.java`)
   Hide the indexed-paragraph syntax from all callers. On read, a query
   for `credits.category.{id}.detail` returns the plain value joined with
