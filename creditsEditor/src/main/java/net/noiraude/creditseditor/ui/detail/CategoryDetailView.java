@@ -1,5 +1,21 @@
 package net.noiraude.creditseditor.ui.detail;
 
+import static net.noiraude.creditseditor.ui.ScaledMetrics.gapMedium;
+import static net.noiraude.creditseditor.ui.ScaledMetrics.gapSmall;
+
+import java.awt.Component;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
+import java.util.LinkedHashSet;
+import java.util.Optional;
+import java.util.Set;
+
+import javax.swing.Box;
+import javax.swing.JLabel;
+import javax.swing.JTextField;
+import javax.swing.UIManager;
+
 import net.noiraude.creditseditor.bus.DocumentBus;
 import net.noiraude.creditseditor.command.CommandExecutor;
 import net.noiraude.creditseditor.command.impl.DocumentEditCommand;
@@ -12,22 +28,8 @@ import net.noiraude.libcredits.lang.DetailLangKey;
 import net.noiraude.libcredits.lang.LangDocument;
 import net.noiraude.libcredits.lang.LangKey;
 import net.noiraude.libcredits.model.DocumentCategory;
+
 import org.jetbrains.annotations.NotNull;
-
-import javax.swing.Box;
-import javax.swing.JLabel;
-import javax.swing.JTextField;
-import javax.swing.UIManager;
-import java.awt.Component;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
-import java.util.LinkedHashSet;
-import java.util.Optional;
-import java.util.Set;
-
-import static net.noiraude.creditseditor.ui.ScaledMetrics.gapMedium;
-import static net.noiraude.creditseditor.ui.ScaledMetrics.gapSmall;
 
 /**
  * Form panel that displays and edits the fields of a single {@link DocumentCategory}.
