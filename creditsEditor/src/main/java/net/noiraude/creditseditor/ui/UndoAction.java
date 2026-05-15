@@ -16,12 +16,12 @@ import org.jetbrains.annotations.NotNull;
 /** Reverts the most recently applied command. */
 final class UndoAction extends AbstractAction {
 
-    private final @NotNull Runnable callback;
+    private final @NotNull DocumentBus bus;
 
-    UndoAction(@NotNull DocumentBus bus, @NotNull Runnable callback) {
-        super(I18n.get("menu.edit.undo"));
-        this.callback = callback;
-        String mnemonic = I18n.get("menu.edit.undo.mnemonic");
+    UndoAction(@NotNull DocumentBus bus) {
+        super(I18n.get("action.undo"));
+        this.bus = bus;
+        String mnemonic = I18n.get("action.undo.mnemonic");
         if (mnemonic.length() == 1) {
             putValue(Action.MNEMONIC_KEY, (int) Character.toUpperCase(mnemonic.charAt(0)));
         }
@@ -33,13 +33,13 @@ final class UndoAction extends AbstractAction {
             putValue(
                 Action.NAME,
                 snapshot.undoName()
-                    .map(name -> I18n.get("menu.edit.undo.named", MsgArg.text(name)))
-                    .orElseGet(() -> I18n.get("menu.edit.undo")));
+                    .map(name -> I18n.get("action.undo.named", MsgArg.text(name)))
+                    .orElseGet(() -> I18n.get("action.undo")));
         });
     }
 
     @Override
     public void actionPerformed(@NotNull ActionEvent e) {
-        callback.run();
+        bus.fireUndoRequested();
     }
 }

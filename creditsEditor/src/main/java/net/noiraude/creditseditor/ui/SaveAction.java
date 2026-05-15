@@ -15,12 +15,12 @@ import org.jetbrains.annotations.NotNull;
 /** Persists the active session to disk. */
 final class SaveAction extends AbstractAction {
 
-    private final @NotNull Runnable callback;
+    private final @NotNull DocumentBus bus;
 
-    SaveAction(@NotNull DocumentBus bus, @NotNull Runnable callback) {
-        super(I18n.get("menu.file.save"));
-        this.callback = callback;
-        String mnemonic = I18n.get("menu.file.save.mnemonic");
+    SaveAction(@NotNull DocumentBus bus) {
+        super(I18n.get("action.save"));
+        this.bus = bus;
+        String mnemonic = I18n.get("action.save.mnemonic");
         if (mnemonic.length() == 1) {
             putValue(Action.MNEMONIC_KEY, (int) Character.toUpperCase(mnemonic.charAt(0)));
         }
@@ -31,6 +31,6 @@ final class SaveAction extends AbstractAction {
 
     @Override
     public void actionPerformed(@NotNull ActionEvent e) {
-        callback.run();
+        bus.fireSaveRequested();
     }
 }

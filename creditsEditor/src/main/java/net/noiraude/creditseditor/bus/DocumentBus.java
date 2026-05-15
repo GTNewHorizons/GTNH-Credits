@@ -39,7 +39,10 @@ import org.jetbrains.annotations.UnmodifiableView;
  */
 public final class DocumentBus {
 
-    /** Session documents were swapped. Subscribers should rebuild from scratch. */
+    /**
+     * Session presence and/or documents changed. {@code newValue} is the {@link Boolean}
+     * session-presence flag after the change.
+     */
     public static final @NotNull String TOPIC_SESSION = "session";
 
     /** Category list structure changed (add, remove, reorder). */
@@ -76,6 +79,33 @@ public final class DocumentBus {
      * previous and current boolean dirty flags.
      */
     public static final @NotNull String TOPIC_DIRTY = "dirty";
+
+    /** The user requested to load an existing credits resource. */
+    public static final @NotNull String TOPIC_REQUEST_OPEN = "request.open";
+
+    /** The user requested to create a new credits resource. */
+    public static final @NotNull String TOPIC_REQUEST_NEW = "request.new";
+
+    /** The user requested to persist the active session to its current location. */
+    public static final @NotNull String TOPIC_REQUEST_SAVE = "request.save";
+
+    /** The user requested to persist the active session to a chosen location. */
+    public static final @NotNull String TOPIC_REQUEST_SAVE_AS = "request.saveAs";
+
+    /** The user requested to close the editor. */
+    public static final @NotNull String TOPIC_REQUEST_QUIT = "request.quit";
+
+    /** The user requested to revert the most recent command. */
+    public static final @NotNull String TOPIC_REQUEST_UNDO = "request.undo";
+
+    /** The user requested to reapply the most recently undone command. */
+    public static final @NotNull String TOPIC_REQUEST_REDO = "request.redo";
+
+    /** The user requested to view the keyboard-shortcuts reference. */
+    public static final @NotNull String TOPIC_REQUEST_SHORTCUTS = "request.shortcuts";
+
+    /** The user requested to view the about dialog. */
+    public static final @NotNull String TOPIC_REQUEST_ABOUT = "request.about";
 
     private final @NotNull PropertyChangeSupport pcs = new PropertyChangeSupport(this);
 
@@ -153,6 +183,51 @@ public final class DocumentBus {
         pcs.firePropertyChange(TOPIC_DIRTY, null, dirty);
     }
 
+    /** Fires {@link #TOPIC_REQUEST_OPEN}. */
+    public void fireOpenRequested() {
+        pcs.firePropertyChange(TOPIC_REQUEST_OPEN, null, Boolean.TRUE);
+    }
+
+    /** Fires {@link #TOPIC_REQUEST_NEW}. */
+    public void fireNewRequested() {
+        pcs.firePropertyChange(TOPIC_REQUEST_NEW, null, Boolean.TRUE);
+    }
+
+    /** Fires {@link #TOPIC_REQUEST_SAVE}. */
+    public void fireSaveRequested() {
+        pcs.firePropertyChange(TOPIC_REQUEST_SAVE, null, Boolean.TRUE);
+    }
+
+    /** Fires {@link #TOPIC_REQUEST_SAVE_AS}. */
+    public void fireSaveAsRequested() {
+        pcs.firePropertyChange(TOPIC_REQUEST_SAVE_AS, null, Boolean.TRUE);
+    }
+
+    /** Fires {@link #TOPIC_REQUEST_QUIT}. */
+    public void fireQuitRequested() {
+        pcs.firePropertyChange(TOPIC_REQUEST_QUIT, null, Boolean.TRUE);
+    }
+
+    /** Fires {@link #TOPIC_REQUEST_UNDO}. */
+    public void fireUndoRequested() {
+        pcs.firePropertyChange(TOPIC_REQUEST_UNDO, null, Boolean.TRUE);
+    }
+
+    /** Fires {@link #TOPIC_REQUEST_REDO}. */
+    public void fireRedoRequested() {
+        pcs.firePropertyChange(TOPIC_REQUEST_REDO, null, Boolean.TRUE);
+    }
+
+    /** Fires {@link #TOPIC_REQUEST_SHORTCUTS}. */
+    public void fireShortcutsRequested() {
+        pcs.firePropertyChange(TOPIC_REQUEST_SHORTCUTS, null, Boolean.TRUE);
+    }
+
+    /** Fires {@link #TOPIC_REQUEST_ABOUT}. */
+    public void fireAboutRequested() {
+        pcs.firePropertyChange(TOPIC_REQUEST_ABOUT, null, Boolean.TRUE);
+    }
+
     /**
      * Convenience for callers that only have a single (default-locale) lang document,
      * such as unit tests. Delegates to {@link #setSession(CreditsDocument, Map)} with a
@@ -175,7 +250,7 @@ public final class DocumentBus {
     public void setSession(@NotNull CreditsDocument credits, @NotNull Map<String, LangDocument> langDocs) {
         this.creditsDoc = credits;
         this.langDocs = new LinkedHashMap<>(langDocs);
-        pcs.firePropertyChange(TOPIC_SESSION, null, this);
+        pcs.firePropertyChange(TOPIC_SESSION, null, Boolean.TRUE);
     }
 
     public void fireCategoriesChanged() {

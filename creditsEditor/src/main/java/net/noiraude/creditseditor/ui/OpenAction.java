@@ -12,27 +12,23 @@ import net.noiraude.creditseditor.bus.DocumentBus;
 
 import org.jetbrains.annotations.NotNull;
 
-/** Persists the active session to a user-chosen location. */
-final class SaveAsAction extends AbstractAction {
+/** Loads an existing credits resource from disk into the editor. */
+final class OpenAction extends AbstractAction {
 
     private final @NotNull DocumentBus bus;
 
-    SaveAsAction(@NotNull DocumentBus bus) {
-        super(I18n.get("action.save_as"));
+    OpenAction(@NotNull DocumentBus bus) {
+        super(I18n.get("action.open"));
         this.bus = bus;
-        String mnemonic = I18n.get("action.save_as.mnemonic");
+        String mnemonic = I18n.get("action.open.mnemonic");
         if (mnemonic.length() == 1) {
             putValue(Action.MNEMONIC_KEY, (int) Character.toUpperCase(mnemonic.charAt(0)));
         }
-        putValue(
-            Action.ACCELERATOR_KEY,
-            KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK));
-        setEnabled(false);
-        bus.addListener(DocumentBus.TOPIC_SESSION, e -> setEnabled((Boolean) e.getNewValue()));
+        putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.CTRL_DOWN_MASK));
     }
 
     @Override
     public void actionPerformed(@NotNull ActionEvent e) {
-        bus.fireSaveAsRequested();
+        bus.fireOpenRequested();
     }
 }

@@ -20,6 +20,6 @@ public class I18nTest {
 
     @Test
     public void presentKey_isFormattedWithArgs() {
-        assertEquals("About Credits Editor", I18n.get("menu.help.about", MsgArg.text("Credits Editor")));
+        assertEquals("About Credits Editor", I18n.get("action.about", MsgArg.text("Credits Editor")));
     }
 }

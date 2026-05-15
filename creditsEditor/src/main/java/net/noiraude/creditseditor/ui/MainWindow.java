@@ -27,20 +27,8 @@ import net.noiraude.creditseditor.ui.dialog.ShortcutsDialog;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-/**
- * Main application window for the GTNH Credits Editor.
- *
- * <p>
- * Responsible for: the JFrame lifecycle, the menu bar, file I/O dialogs (open / save / quit),
- * and undo/redo dispatch. Panel layout and selection coordination are delegated to
- * {@link EditorView}; session state is held in {@link EditorSession}. All widgets subscribe
- * to a single application-wide {@link DocumentBus}; refresh is entirely event-driven.
- *
- * <p>
- * Implements {@link EditorActions.Handlers} directly so menu activations dispatch to
- * named methods on this class rather than to an inline anonymous adapter.
- */
-public final class MainWindow extends JFrame implements EditorActions.Handlers {
+/** Main application window for the GTNH Credits Editor. */
+public final class MainWindow extends JFrame {
 
     private @Nullable EditorSession session; // null when no resource is open
 
@@ -54,7 +42,7 @@ public final class MainWindow extends JFrame implements EditorActions.Handlers {
 
             @Override
             public void windowClosing(@NotNull WindowEvent e) {
-                onQuit();
+                doQuit();
             }
         });
 
@@ -68,17 +56,29 @@ public final class MainWindow extends JFrame implements EditorActions.Handlers {
             afterCommand();
         };
 
-        EditorActions actions = new EditorActions(this, bus);
+        EditorActions actions = new EditorActions(bus);
 
         @NotNull
         EditorView editorView = new EditorView(bus, onCommand);
 
         setLayout(new BorderLayout());
-        add(new EditorToolBar(bus, actions.save), BorderLayout.NORTH);
+        add(new EditorToolBar(bus, actions), BorderLayout.NORTH);
         add(editorView, BorderLayout.CENTER);
 
         EditorMenuBar menuBar = new EditorMenuBar(actions);
         setJMenuBar(menuBar);
+
+        bus.addListener(DocumentBus.TOPIC_REQUEST_OPEN, e -> doOpen(false));
+        bus.addListener(DocumentBus.TOPIC_REQUEST_NEW, e -> doOpen(true));
+        bus.addListener(DocumentBus.TOPIC_REQUEST_SAVE, e -> doSave());
+        bus.addListener(DocumentBus.TOPIC_REQUEST_SAVE_AS, e -> doSaveAs());
+        bus.addListener(DocumentBus.TOPIC_REQUEST_QUIT, e -> doQuit());
+        bus.addListener(DocumentBus.TOPIC_REQUEST_UNDO, e -> doUndo());
+        bus.addListener(DocumentBus.TOPIC_REQUEST_REDO, e -> doRedo());
+        bus.addListener(DocumentBus.TOPIC_REQUEST_SHORTCUTS, e -> doShortcuts());
+        bus.addListener(DocumentBus.TOPIC_REQUEST_ABOUT, e -> doAbout());
+        bus.addListener(DocumentBus.TOPIC_DIRTY, e -> updateTitle());
+        bus.addListener(DocumentBus.TOPIC_SESSION, e -> updateTitle());
 
         // Realize the peer so getInsets() returns real chrome sizes, then force the frame's
         // minimum size to whatever the content pane plus the menu bar report as their own
@@ -145,7 +145,6 @@ public final class MainWindow extends JFrame implements EditorActions.Handlers {
         bus.setSession(session.creditsDoc(), session.langDocs());
         bus.fireDirtyChanged(session.isDirty());
         bus.fireCommandStackChanged(CommandStackSnapshot.of(session.stack));
-        updateTitle();
     }
 
     private void doOpen(boolean createNew) {
@@ -153,25 +152,6 @@ public final class MainWindow extends JFrame implements EditorActions.Handlers {
         Optional<Path> chosen = createNew ? CreditsResourceChooser.chooseForNew(this)
             : CreditsResourceChooser.chooseForOpen(this);
         chosen.ifPresent(p -> loadResource(p.toString()));
-    }
-
-    // -----------------------------------------------------------------------
-    // EditorActions.Handlers implementation
-    // -----------------------------------------------------------------------
-
-    @Override
-    public void onOpen() {
-        doOpen(false);
-    }
-
-    @Override
-    public void onNew() {
-        doOpen(true);
-    }
-
-    @Override
-    public void onSave() {
-        doSave();
     }
 
     private boolean doSave() {
@@ -183,12 +163,10 @@ public final class MainWindow extends JFrame implements EditorActions.Handlers {
             return false;
         }
         bus.fireDirtyChanged(session.isDirty());
-        updateTitle();
         return true;
     }
 
-    @Override
-    public void onSaveAs() {
+    private void doSaveAs() {
         if (session == null) return;
 
         Optional<Path> chosen = CreditsResourceChooser.chooseForSaveAs(this);
@@ -204,7 +182,6 @@ public final class MainWindow extends JFrame implements EditorActions.Handlers {
             return;
         }
         bus.fireDirtyChanged(session.isDirty());
-        updateTitle();
     }
 
     private static boolean isNonEmptyTarget(@NotNull Path target) {
@@ -233,15 +210,13 @@ public final class MainWindow extends JFrame implements EditorActions.Handlers {
         return choice == JOptionPane.YES_OPTION;
     }
 
-    @Override
-    public void onQuit() {
+    private void doQuit() {
         if (shouldAbort()) return;
         if (session != null) session.close();
         System.exit(0);
     }
 
-    @Override
-    public void onUndo() {
+    private void doUndo() {
         if (session == null || !session.stack.canUndo()) return;
         try {
             session.stack.undo();
@@ -251,8 +226,7 @@ public final class MainWindow extends JFrame implements EditorActions.Handlers {
         afterCommand();
     }
 
-    @Override
-    public void onRedo() {
+    private void doRedo() {
         if (session == null || !session.stack.canRedo()) return;
         try {
             session.stack.redo();
@@ -262,13 +236,11 @@ public final class MainWindow extends JFrame implements EditorActions.Handlers {
         afterCommand();
     }
 
-    @Override
-    public void onShortcuts() {
+    private void doShortcuts() {
         new ShortcutsDialog(this).setVisible(true);
     }
 
-    @Override
-    public void onAbout() {
+    private void doAbout() {
         new AboutDialog(this).setVisible(true);
     }
 
@@ -276,17 +248,12 @@ public final class MainWindow extends JFrame implements EditorActions.Handlers {
     // UI refresh helpers
     // -----------------------------------------------------------------------
 
-    /**
-     * Post-command/undo/redo housekeeping. Document-driven UI updates are published on the
-     * bus by the commands themselves; this method forwards command-stack state to the bus
-     * (so {@link EditorActions} updates Save/Undo/Redo) and refreshes the window title.
-     */
+    /** Forwards command-stack state to the bus after every command execution, undo, or redo. */
     private void afterCommand() {
         if (session != null) {
             bus.fireCommandStackChanged(CommandStackSnapshot.of(session.stack));
             bus.fireDirtyChanged(session.isDirty());
         }
-        updateTitle();
     }
 
     private void updateTitle() {

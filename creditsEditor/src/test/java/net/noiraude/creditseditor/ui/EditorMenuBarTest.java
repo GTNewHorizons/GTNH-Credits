@@ -25,8 +25,6 @@ import org.junit.jupiter.api.io.TempDir;
 
 public class EditorMenuBarTest {
 
-    private static final EditorActions.Handlers NOOP_HANDLERS = new EditorActionsHandlers();
-
     @TempDir
     Path temp;
 
@@ -159,35 +157,33 @@ public class EditorMenuBarTest {
     }
 
     private static @NotNull JMenuItem saveItem(@NotNull Fixture f) {
-        return item(f.bar, "File", "Save Resources");
+        return item(f.bar, "File", "Save", "Save As");
     }
 
     private static @NotNull JMenuItem saveAsItem(@NotNull Fixture f) {
-        return item(f.bar, "File", "Save Resources As");
+        return item(f.bar, "File", "Save As", null);
     }
 
     private static @NotNull JMenuItem undoItem(@NotNull Fixture f) {
-        return item(f.bar, "Edit", "Undo");
+        return item(f.bar, "Edit", "Undo", null);
     }
 
     private static @NotNull JMenuItem redoItem(@NotNull Fixture f) {
-        return item(f.bar, "Edit", "Redo");
+        return item(f.bar, "Edit", "Redo", null);
     }
 
     private static @NotNull JMenuItem item(@NotNull EditorMenuBar bar, @NotNull String menuName,
-        @NotNull String labelPrefix) {
+        @NotNull String labelPrefix, @Nullable String excludePrefix) {
         for (int i = 0; i < bar.getMenuCount(); i++) {
             JMenu menu = bar.getMenu(i);
             if (menu == null || !menuName.equals(menu.getText())) continue;
             for (int j = 0; j < menu.getItemCount(); j++) {
                 JMenuItem child = menu.getItem(j);
-                if (
-                    child != null && child.getText() != null
-                        && child.getText()
-                            .startsWith(labelPrefix)
-                ) {
-                    return child;
-                }
+                if (child == null || child.getText() == null) continue;
+                String t = child.getText();
+                if (!t.startsWith(labelPrefix)) continue;
+                if (excludePrefix != null && t.startsWith(excludePrefix)) continue;
+                return child;
             }
         }
         throw new AssertionError("menu item not found: " + menuName + " / " + labelPrefix);
@@ -196,7 +192,7 @@ public class EditorMenuBarTest {
     private static final class Fixture {
 
         final @NotNull DocumentBus bus = new DocumentBus();
-        final @NotNull EditorActions actions = new EditorActions(NOOP_HANDLERS, bus);
+        final @NotNull EditorActions actions = new EditorActions(bus);
         final @NotNull EditorMenuBar bar = new EditorMenuBar(actions);
 
         void setSession(@NotNull EditorSession session) {
@@ -204,44 +200,5 @@ public class EditorMenuBarTest {
             bus.fireDirtyChanged(session.isDirty());
             bus.fireCommandStackChanged(CommandStackSnapshot.of(session.stack));
         }
-    }
-
-    private static class EditorActionsHandlers implements EditorActions.Handlers {
-
-        @Contract(pure = true)
-        @Override
-        public void onOpen() {}
-
-        @Contract(pure = true)
-        @Override
-        public void onNew() {}
-
-        @Contract(pure = true)
-        @Override
-        public void onSave() {}
-
-        @Contract(pure = true)
-        @Override
-        public void onSaveAs() {}
-
-        @Contract(pure = true)
-        @Override
-        public void onQuit() {}
-
-        @Contract(pure = true)
-        @Override
-        public void onUndo() {}
-
-        @Contract(pure = true)
-        @Override
-        public void onRedo() {}
-
-        @Contract(pure = true)
-        @Override
-        public void onShortcuts() {}
-
-        @Contract(pure = true)
-        @Override
-        public void onAbout() {}
     }
 }
