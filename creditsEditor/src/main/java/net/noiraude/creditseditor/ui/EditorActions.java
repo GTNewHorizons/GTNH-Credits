@@ -3,7 +3,6 @@ package net.noiraude.creditseditor.ui;
 import java.awt.event.ActionEvent;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
-import java.util.function.Supplier;
 
 import javax.swing.AbstractAction;
 import javax.swing.Action;
@@ -14,20 +13,7 @@ import net.noiraude.creditseditor.bus.DocumentBus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-/**
- * Bundle of {@link Action} instances backing every {@link EditorMenuBar} entry.
- *
- * <p>
- * Each action carries its label, mnemonic, and accelerator at construction. Dynamic state
- * (Save enablement, Undo/Redo enablement, and named-variant labels) is driven by bus
- * subscriptions to {@link DocumentBus#TOPIC_SESSION} and
- * {@link DocumentBus#TOPIC_COMMAND_STACK}; the owning window does not call into this class
- * after construction.
- *
- * <p>
- * Menu items bound to these actions update themselves through Swing's standard
- * {@link java.beans.PropertyChangeListener} wiring on {@link Action} property changes.
- */
+/** Composition of every {@link Action} backing the editor's menu and toolbar. */
 final class EditorActions {
 
     /**
@@ -64,82 +50,31 @@ final class EditorActions {
     final @NotNull Action shortcuts;
     final @NotNull Action about;
 
-    private final @NotNull Supplier<@Nullable EditorSession> sessionSupplier;
-
-    EditorActions(@NotNull Handlers h, @NotNull DocumentBus bus,
-        @NotNull Supplier<@Nullable EditorSession> sessionSupplier) {
-        this.sessionSupplier = sessionSupplier;
-
-        open = make(
+    EditorActions(@NotNull Handlers h, @NotNull DocumentBus bus) {
+        open = makeStatic(
             I18n.get("menu.file.open"),
             I18n.get("menu.file.open.mnemonic"),
             KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.CTRL_DOWN_MASK),
             h::onOpen);
-        newDoc = make(I18n.get("menu.file.new"), I18n.get("menu.file.new.mnemonic"), null, h::onNew);
-        save = make(
-            I18n.get("menu.file.save"),
-            I18n.get("menu.file.save.mnemonic"),
-            KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK),
-            h::onSave);
-        saveAs = make(
-            I18n.get("menu.file.save_as"),
-            I18n.get("menu.file.save_as.mnemonic"),
-            KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK),
-            h::onSaveAs);
-        quit = make(I18n.get("menu.file.quit"), I18n.get("menu.file.quit.mnemonic"), null, h::onQuit);
-        undo = make(
-            I18n.get("menu.edit.undo"),
-            I18n.get("menu.edit.undo.mnemonic"),
-            KeyStroke.getKeyStroke(KeyEvent.VK_Z, InputEvent.CTRL_DOWN_MASK),
-            h::onUndo);
-        redo = make(
-            I18n.get("menu.edit.redo"),
-            I18n.get("menu.edit.redo.mnemonic"),
-            KeyStroke.getKeyStroke(KeyEvent.VK_Z, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK),
-            h::onRedo);
-        shortcuts = make(
+        newDoc = makeStatic(I18n.get("menu.file.new"), I18n.get("menu.file.new.mnemonic"), null, h::onNew);
+        save = new SaveAction(bus, h::onSave);
+        saveAs = new SaveAsAction(bus, h::onSaveAs);
+        quit = makeStatic(I18n.get("menu.file.quit"), I18n.get("menu.file.quit.mnemonic"), null, h::onQuit);
+        undo = new UndoAction(bus, h::onUndo);
+        redo = new RedoAction(bus, h::onRedo);
+        shortcuts = makeStatic(
             I18n.get("menu.help.shortcuts"),
             I18n.get("menu.help.shortcuts.mnemonic"),
             null,
             h::onShortcuts);
-        about = make(
+        about = makeStatic(
             I18n.get("menu.help.about", MsgArg.text(AppInfo.name())),
             I18n.get("menu.help.about.mnemonic"),
             null,
             h::onAbout);
-
-        bus.addListener(DocumentBus.TOPIC_SESSION, e -> refresh());
-        bus.addListener(DocumentBus.TOPIC_COMMAND_STACK, e -> refresh());
-
-        refresh();
     }
 
-    /**
-     * Re-evaluates enablement and dynamic labels against the session returned by the
-     * supplier. Visible for tests; production callers use bus events instead.
-     */
-    void refresh() {
-        EditorSession session = sessionSupplier.get();
-        boolean loaded = session != null;
-        save.setEnabled(loaded);
-        saveAs.setEnabled(loaded);
-
-        boolean canUndo = loaded && session.stack.canUndo();
-        boolean canRedo = loaded && session.stack.canRedo();
-        undo.setEnabled(canUndo);
-        redo.setEnabled(canRedo);
-
-        String undoName = loaded ? session.stack.peekUndoName() : null;
-        undo.putValue(
-            Action.NAME,
-            undoName != null ? I18n.get("menu.edit.undo.named", MsgArg.text(undoName)) : I18n.get("menu.edit.undo"));
-        String redoName = loaded ? session.stack.peekRedoName() : null;
-        redo.putValue(
-            Action.NAME,
-            redoName != null ? I18n.get("menu.edit.redo.named", MsgArg.text(redoName)) : I18n.get("menu.edit.redo"));
-    }
-
-    private static @NotNull Action make(@NotNull String label, @NotNull String mnemonic,
+    private static @NotNull Action makeStatic(@NotNull String label, @NotNull String mnemonic,
         @Nullable KeyStroke accelerator, @NotNull Runnable callback) {
         AbstractAction action = new AbstractAction(label) {
 

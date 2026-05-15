@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
+import net.noiraude.creditseditor.command.CommandStackSnapshot;
 import net.noiraude.creditseditor.service.LangResolver;
 import net.noiraude.libcredits.lang.LangDocument;
 import net.noiraude.libcredits.model.CreditsDocument;
@@ -69,6 +70,12 @@ public final class DocumentBus {
      * from whatever {@link net.noiraude.creditseditor.command.CommandStack} they hold.
      */
     public static final @NotNull String TOPIC_COMMAND_STACK = "commandStack";
+
+    /**
+     * The unsaved-changes flag changed. {@code oldValue} and {@code newValue} are the
+     * previous and current boolean dirty flags.
+     */
+    public static final @NotNull String TOPIC_DIRTY = "dirty";
 
     private final @NotNull PropertyChangeSupport pcs = new PropertyChangeSupport(this);
 
@@ -141,6 +148,11 @@ public final class DocumentBus {
         pcs.firePropertyChange(TOPIC_LOCALE, old, locale);
     }
 
+    /** Fires {@link #TOPIC_DIRTY} carrying the session's current unsaved-changes flag. */
+    public void fireDirtyChanged(boolean dirty) {
+        pcs.firePropertyChange(TOPIC_DIRTY, null, dirty);
+    }
+
     /**
      * Convenience for callers that only have a single (default-locale) lang document,
      * such as unit tests. Delegates to {@link #setSession(CreditsDocument, Map)} with a
@@ -186,12 +198,9 @@ public final class DocumentBus {
         pcs.firePropertyChange(TOPIC_LANG, null, key);
     }
 
-    /**
-     * Fires {@link #TOPIC_COMMAND_STACK}. Call after every {@code execute}, {@code undo},
-     * or {@code redo} on the active command stack.
-     */
-    public void fireCommandStackChanged() {
-        pcs.firePropertyChange(TOPIC_COMMAND_STACK, null, Boolean.TRUE);
+    /** Fires {@link #TOPIC_COMMAND_STACK} carrying the current command-stack snapshot. */
+    public void fireCommandStackChanged(@NotNull CommandStackSnapshot snapshot) {
+        pcs.firePropertyChange(TOPIC_COMMAND_STACK, null, snapshot);
     }
 
     /** Subscribes {@code listener} to events on {@code topic}. */

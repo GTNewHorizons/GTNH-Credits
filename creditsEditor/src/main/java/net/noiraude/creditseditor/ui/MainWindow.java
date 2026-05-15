@@ -18,6 +18,7 @@ import javax.swing.SwingWorker;
 
 import net.noiraude.creditseditor.bus.DocumentBus;
 import net.noiraude.creditseditor.command.CommandExecutor;
+import net.noiraude.creditseditor.command.CommandStackSnapshot;
 import net.noiraude.creditseditor.command.EditAbortedException;
 import net.noiraude.creditseditor.ui.dialog.AboutDialog;
 import net.noiraude.creditseditor.ui.dialog.ProgressDialog;
@@ -67,7 +68,7 @@ public final class MainWindow extends JFrame implements EditorActions.Handlers {
             afterCommand();
         };
 
-        EditorActions actions = new EditorActions(this, bus, () -> session);
+        EditorActions actions = new EditorActions(this, bus);
 
         @NotNull
         EditorView editorView = new EditorView(bus, onCommand);
@@ -142,6 +143,8 @@ public final class MainWindow extends JFrame implements EditorActions.Handlers {
 
         bus.setActiveLocale(session.defaultLocale());
         bus.setSession(session.creditsDoc(), session.langDocs());
+        bus.fireDirtyChanged(session.isDirty());
+        bus.fireCommandStackChanged(CommandStackSnapshot.of(session.stack));
         updateTitle();
     }
 
@@ -179,6 +182,7 @@ public final class MainWindow extends JFrame implements EditorActions.Handlers {
             ErrorPresenter.show(this, I18n.get("dialog.save.error.title"), ex);
             return false;
         }
+        bus.fireDirtyChanged(session.isDirty());
         updateTitle();
         return true;
     }
@@ -199,6 +203,7 @@ public final class MainWindow extends JFrame implements EditorActions.Handlers {
             ErrorPresenter.show(this, I18n.get("dialog.save_as.error.title"), ex);
             return;
         }
+        bus.fireDirtyChanged(session.isDirty());
         updateTitle();
     }
 
@@ -277,7 +282,10 @@ public final class MainWindow extends JFrame implements EditorActions.Handlers {
      * (so {@link EditorActions} updates Save/Undo/Redo) and refreshes the window title.
      */
     private void afterCommand() {
-        bus.fireCommandStackChanged();
+        if (session != null) {
+            bus.fireCommandStackChanged(CommandStackSnapshot.of(session.stack));
+            bus.fireDirtyChanged(session.isDirty());
+        }
         updateTitle();
     }
 

@@ -8,15 +8,17 @@ import static org.junit.jupiter.api.Assumptions.assumeFalse;
 import java.awt.GraphicsEnvironment;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Optional;
 
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 
 import net.noiraude.creditseditor.bus.DocumentBus;
-import net.noiraude.creditseditor.command.Command;
+import net.noiraude.creditseditor.command.CommandStackSnapshot;
 
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -33,91 +35,110 @@ public class EditorMenuBarTest {
         assumeFalse(GraphicsEnvironment.isHeadless(), "Swing menu bar tests require a graphics environment");
     }
 
-    @Test
-    public void noSession_allStatefulItemsDisabled_andLabelsAreBare() {
-        Fixture f = newFixture();
+    // -----------------------------------------------------------------------
+    // Save
+    // -----------------------------------------------------------------------
 
-        assertFalse(item(f.bar, "File", "Save").isEnabled(), "Save must be disabled with no session");
-        assertFalse(item(f.bar, "Edit", "Undo").isEnabled(), "Undo must be disabled with no session");
-        assertFalse(item(f.bar, "Edit", "Redo").isEnabled(), "Redo must be disabled with no session");
-        assertEquals("Undo", item(f.bar, "Edit", "Undo").getText());
-        assertEquals("Redo", item(f.bar, "Edit", "Redo").getText());
+    @Test
+    public void save_disabledBeforeAnyDirtyEvent() {
+        Fixture f = newFixture();
+        assertFalse(saveItem(f).isEnabled());
     }
 
     @Test
-    public void emptySessionLoaded_enablesSaveOnly() throws Exception {
+    public void save_enabledOnDirtyTrue() {
+        Fixture f = newFixture();
+        f.bus.fireDirtyChanged(true);
+        assertTrue(saveItem(f).isEnabled());
+    }
+
+    @Test
+    public void save_disabledOnDirtyFalse() {
+        Fixture f = newFixture();
+        f.bus.fireDirtyChanged(true);
+        f.bus.fireDirtyChanged(false);
+        assertFalse(saveItem(f).isEnabled());
+    }
+
+    // -----------------------------------------------------------------------
+    // Save As
+    // -----------------------------------------------------------------------
+
+    @Test
+    public void saveAs_disabledBeforeSessionLoaded() {
+        Fixture f = newFixture();
+        assertFalse(saveAsItem(f).isEnabled());
+    }
+
+    @Test
+    public void saveAs_enabledAfterSessionLoaded() throws Exception {
         Fixture f = newFixture();
         EditorSession session = newSession();
         try {
             f.setSession(session);
-
-            assertTrue(item(f.bar, "File", "Save").isEnabled(), "Save must be enabled whenever a session is loaded");
-            assertFalse(item(f.bar, "Edit", "Undo").isEnabled(), "Undo must be disabled with an empty command stack");
-            assertFalse(item(f.bar, "Edit", "Redo").isEnabled(), "Redo must be disabled with an empty command stack");
+            assertTrue(saveAsItem(f).isEnabled());
         } finally {
             session.close();
         }
     }
 
-    @Test
-    public void afterExecute_undoEnabled_withCommandNameInLabel() throws Exception {
-        Fixture f = newFixture();
-        EditorSession session = newSession();
-        try {
-            f.setSession(session);
-            session.stack.execute(new NamedCommand("Add Category"));
-            f.bus.fireCommandStackChanged();
+    // -----------------------------------------------------------------------
+    // Undo
+    // -----------------------------------------------------------------------
 
-            JMenuItem undo = item(f.bar, "Edit", "Undo");
-            assertTrue(undo.isEnabled(), "Undo must enable after executing a command");
-            assertEquals("Undo Add Category", undo.getText());
-            assertFalse(item(f.bar, "Edit", "Redo").isEnabled(), "Redo must remain disabled until something is undone");
-        } finally {
-            session.close();
-        }
+    @Test
+    public void undo_disabledBeforeAnyCommandStackEvent_labelBare() {
+        Fixture f = newFixture();
+        assertFalse(undoItem(f).isEnabled());
+        assertEquals("Undo", undoItem(f).getText());
     }
 
     @Test
-    public void afterUndo_redoEnabled_withCommandNameInLabel() throws Exception {
+    public void undo_disabledWhenStackEmpty_labelBare() {
         Fixture f = newFixture();
-        EditorSession session = newSession();
-        try {
-            f.setSession(session);
-            session.stack.execute(new NamedCommand("Rename Person"));
-            session.stack.undo();
-            f.bus.fireCommandStackChanged();
-
-            assertFalse(item(f.bar, "Edit", "Undo").isEnabled(), "Undo must be disabled when the undo stack is empty");
-            JMenuItem redo = item(f.bar, "Edit", "Redo");
-            assertTrue(redo.isEnabled(), "Redo must enable after undoing a command");
-            assertEquals("Redo Rename Person", redo.getText());
-        } finally {
-            session.close();
-        }
+        f.bus.fireCommandStackChanged(CommandStackSnapshot.EMPTY);
+        assertFalse(undoItem(f).isEnabled());
+        assertEquals("Undo", undoItem(f).getText());
     }
 
     @Test
-    public void busEvents_drivePostExecuteAndPostUndoTransitions() throws Exception {
+    public void undo_enabledWhenStackHasUndo_labelCarriesCommandName() {
         Fixture f = newFixture();
-        EditorSession session = newSession();
-        try {
-            f.setSession(session);
-            assertFalse(item(f.bar, "Edit", "Undo").isEnabled());
-
-            session.stack.execute(new NamedCommand("Move Role"));
-            f.bus.fireCommandStackChanged();
-            assertTrue(item(f.bar, "Edit", "Undo").isEnabled(), "Undo must reflect post-execute state once published");
-            assertEquals("Undo Move Role", item(f.bar, "Edit", "Undo").getText());
-
-            session.stack.undo();
-            f.bus.fireCommandStackChanged();
-            assertFalse(item(f.bar, "Edit", "Undo").isEnabled());
-            assertTrue(item(f.bar, "Edit", "Redo").isEnabled());
-            assertEquals("Redo Move Role", item(f.bar, "Edit", "Redo").getText());
-        } finally {
-            session.close();
-        }
+        f.bus.fireCommandStackChanged(snapshot(true, false, "Add Category", null));
+        assertTrue(undoItem(f).isEnabled());
+        assertEquals("Undo Add Category", undoItem(f).getText());
     }
+
+    // -----------------------------------------------------------------------
+    // Redo
+    // -----------------------------------------------------------------------
+
+    @Test
+    public void redo_disabledBeforeAnyCommandStackEvent_labelBare() {
+        Fixture f = newFixture();
+        assertFalse(redoItem(f).isEnabled());
+        assertEquals("Redo", redoItem(f).getText());
+    }
+
+    @Test
+    public void redo_disabledWhenStackEmpty_labelBare() {
+        Fixture f = newFixture();
+        f.bus.fireCommandStackChanged(CommandStackSnapshot.EMPTY);
+        assertFalse(redoItem(f).isEnabled());
+        assertEquals("Redo", redoItem(f).getText());
+    }
+
+    @Test
+    public void redo_enabledWhenStackHasRedo_labelCarriesCommandName() {
+        Fixture f = newFixture();
+        f.bus.fireCommandStackChanged(snapshot(false, true, null, "Rename Person"));
+        assertTrue(redoItem(f).isEnabled());
+        assertEquals("Redo Rename Person", redoItem(f).getText());
+    }
+
+    // -----------------------------------------------------------------------
+    // Helpers
+    // -----------------------------------------------------------------------
 
     @Contract(" -> new")
     private static @NotNull Fixture newFixture() {
@@ -129,6 +150,28 @@ public class EditorMenuBarTest {
         return EditorSession.open(
             Files.createTempDirectory(temp, "session")
                 .toString());
+    }
+
+    @Contract("_, _, _, _ -> new")
+    private static @NotNull CommandStackSnapshot snapshot(boolean canUndo, boolean canRedo, @Nullable String undoName,
+        @Nullable String redoName) {
+        return new CommandStackSnapshot(canUndo, canRedo, Optional.ofNullable(undoName), Optional.ofNullable(redoName));
+    }
+
+    private static @NotNull JMenuItem saveItem(@NotNull Fixture f) {
+        return item(f.bar, "File", "Save Resources");
+    }
+
+    private static @NotNull JMenuItem saveAsItem(@NotNull Fixture f) {
+        return item(f.bar, "File", "Save Resources As");
+    }
+
+    private static @NotNull JMenuItem undoItem(@NotNull Fixture f) {
+        return item(f.bar, "Edit", "Undo");
+    }
+
+    private static @NotNull JMenuItem redoItem(@NotNull Fixture f) {
+        return item(f.bar, "Edit", "Redo");
     }
 
     private static @NotNull JMenuItem item(@NotNull EditorMenuBar bar, @NotNull String menuName,
@@ -153,30 +196,13 @@ public class EditorMenuBarTest {
     private static final class Fixture {
 
         final @NotNull DocumentBus bus = new DocumentBus();
-        final EditorSession[] sessionHolder = new EditorSession[] { null };
-        final @NotNull EditorActions actions = new EditorActions(NOOP_HANDLERS, bus, () -> sessionHolder[0]);
+        final @NotNull EditorActions actions = new EditorActions(NOOP_HANDLERS, bus);
         final @NotNull EditorMenuBar bar = new EditorMenuBar(actions);
 
         void setSession(@NotNull EditorSession session) {
-            sessionHolder[0] = session;
             bus.setSession(session.creditsDoc(), session.langDoc());
-        }
-    }
-
-    private record NamedCommand(@NotNull String name) implements Command {
-
-        @Contract(pure = true)
-        @Override
-        public void execute() {}
-
-        @Contract(pure = true)
-        @Override
-        public void undo() {}
-
-        @Contract(pure = true)
-        @Override
-        public @NotNull String getDisplayName() {
-            return name;
+            bus.fireDirtyChanged(session.isDirty());
+            bus.fireCommandStackChanged(CommandStackSnapshot.of(session.stack));
         }
     }
 
