@@ -41,6 +41,7 @@ public final class LocaleSelector extends JComboBox<String> {
         syncing = true;
         try {
             removeAllItems();
+            setEnabled(bus.hasSession());
             for (String locale : bus.availableLocales()) {
                 addItem(locale);
             }

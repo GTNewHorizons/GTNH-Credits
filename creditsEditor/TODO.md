@@ -217,7 +217,7 @@ reference and cannot be removed.
   Done when: opening a resource pack populates the combo box with all
   detected locales and selecting one fires `TOPIC_LOCALE`.
 
-- [ ] **D.2 Toolbar integration** (`ui/EditorView.java`)
+- [x] **D.2 Toolbar integration** (`ui/EditorView.java`)
   Place the `LocaleSelector` at the right edge of the existing top toolbar,
   near the Save button. Width budgeted via `UiMetrics`. Disabled when no
   session is loaded.

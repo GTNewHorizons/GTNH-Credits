@@ -67,13 +67,15 @@ public final class MainWindow extends JFrame implements EditorActions.Handlers {
             afterCommand();
         };
 
+        EditorActions actions = new EditorActions(this, bus, () -> session);
+
         @NotNull
         EditorView editorView = new EditorView(bus, onCommand);
 
         setLayout(new BorderLayout());
+        add(new EditorToolBar(bus, actions.save), BorderLayout.NORTH);
         add(editorView, BorderLayout.CENTER);
 
-        EditorActions actions = new EditorActions(this, bus, () -> session);
         EditorMenuBar menuBar = new EditorMenuBar(actions);
         setJMenuBar(menuBar);
 
