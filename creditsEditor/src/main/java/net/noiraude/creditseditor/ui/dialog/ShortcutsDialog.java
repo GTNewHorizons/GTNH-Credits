@@ -94,16 +94,16 @@ public final class ShortcutsDialog extends JDialog {
     private static @NotNull @Unmodifiable List<Section> sections() {
         return List.of(
             new Section(
-                I18n.get("dialog.shortcuts.section.file"),
+                I18n.get("menu.file"),
                 List.of(
-                    new Shortcut("Ctrl+O", I18n.get("dialog.shortcuts.file.open")),
-                    new Shortcut("Ctrl+S", I18n.get("dialog.shortcuts.file.save")),
-                    new Shortcut("Ctrl+Shift+S", I18n.get("dialog.shortcuts.file.save_as")))),
+                    new Shortcut("Ctrl+O", I18n.get("action.open")),
+                    new Shortcut("Ctrl+S", I18n.get("action.save")),
+                    new Shortcut("Ctrl+Shift+S", I18n.get("action.save_as")))),
             new Section(
-                I18n.get("dialog.shortcuts.section.edit"),
+                I18n.get("menu.edit"),
                 List.of(
-                    new Shortcut("Ctrl+Z", I18n.get("dialog.shortcuts.edit.undo")),
-                    new Shortcut("Ctrl+Shift+Z", I18n.get("dialog.shortcuts.edit.redo")),
+                    new Shortcut("Ctrl+Z", I18n.get("action.undo")),
+                    new Shortcut("Ctrl+Shift+Z", I18n.get("action.redo")),
                     new Shortcut("Ctrl+X", I18n.get("dialog.shortcuts.edit.cut")),
                     new Shortcut("Ctrl+C", I18n.get("dialog.shortcuts.edit.copy")),
                     new Shortcut("Ctrl+V", I18n.get("dialog.shortcuts.edit.paste")),
