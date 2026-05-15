@@ -209,7 +209,7 @@ reference and cannot be removed.
 
 ## Phase D: Locale picker UI
 
-- [ ] **D.1 LocaleSelector component** (`ui/component/LocaleSelector.java`)
+- [x] **D.1 LocaleSelector component** (`ui/component/LocaleSelector.java`)
   Combo box that reads `ResourceManager.availableLocales()` and renders
   human labels combining the locale tag and `Locale.getDisplayLanguage` of
   the editor UI locale (e.g. `fr_FR -- French`). Selecting an entry calls

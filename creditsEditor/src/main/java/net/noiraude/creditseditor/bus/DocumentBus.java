@@ -7,6 +7,7 @@ import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 import net.noiraude.creditseditor.service.LangResolver;
 import net.noiraude.libcredits.lang.LangDocument;
@@ -17,6 +18,7 @@ import net.noiraude.libcredits.model.DocumentPerson;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.UnmodifiableView;
 
 /**
  * Application-wide event bus that publishes coarse-grained document mutations to
@@ -108,6 +110,16 @@ public final class DocumentBus {
     @Contract(pure = true)
     public boolean hasSession() {
         return creditsDoc != null;
+    }
+
+    /**
+     * Returns the locale tags loaded in the current session, in insertion order, or an empty
+     * set when no session is loaded.
+     */
+    @Contract(pure = true)
+    public @NotNull @UnmodifiableView Set<String> availableLocales() {
+        if (langDocs == null) return Collections.emptySet();
+        return Collections.unmodifiableSet(langDocs.keySet());
     }
 
     /**
