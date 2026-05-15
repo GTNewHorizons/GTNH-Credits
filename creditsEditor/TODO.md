@@ -201,7 +201,7 @@ reference and cannot be removed.
   and the plain key updated, and the editor's category detail field
   reflects both forms transparently.
 
-- [ ] **C.4 RoleDetailCard locale awareness**
+- [x] **C.4 RoleDetailCard locale awareness**
   (`ui/detail/RoleDetailCard.java`, `ui/detail/MembershipRolePanel.java`)
   Same change for the role display-name editor inside the role detail card.
   Done when: editing a role's display name in `fr_FR` does not touch the

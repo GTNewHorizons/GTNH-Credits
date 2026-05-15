@@ -8,6 +8,7 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.util.List;
+import java.util.Optional;
 
 import javax.swing.BorderFactory;
 import javax.swing.JPanel;
@@ -15,7 +16,9 @@ import javax.swing.JPanel;
 import net.noiraude.creditseditor.bus.DocumentBus;
 import net.noiraude.creditseditor.command.CommandExecutor;
 import net.noiraude.creditseditor.command.impl.DocumentEditCommand;
+import net.noiraude.creditseditor.service.LangResolver;
 import net.noiraude.creditseditor.ui.I18n;
+import net.noiraude.libcredits.lang.LangDocument;
 import net.noiraude.libcredits.model.DocumentMembership;
 import net.noiraude.libcredits.model.DocumentPerson;
 
@@ -42,12 +45,15 @@ public final class MembershipRolePanel extends JPanel {
         this.roleDetailCard = new RoleDetailCard(
             this::onDisplayNameChanged,
             e -> onCommand.execute(new DocumentEditCommand(I18n.get("command.edit.role_display_name"), e.getEdit())));
+        this.roleDetailCard.setEnglishValueSupplier(this::englishDisplayName);
+        this.roleDetailCard.setActiveLocale(bus.activeLocale());
 
         setBorder(BorderFactory.createTitledBorder(I18n.get("panel.memberships.roles.title")));
         setLayout(new GridBagLayout());
         assembleLayout();
 
         roleListPanel.setSelectionListener(this::refreshDetailForm);
+        bus.addListener(DocumentBus.TOPIC_LOCALE, e -> onLocaleChanged());
     }
 
     /**
@@ -99,12 +105,38 @@ public final class MembershipRolePanel extends JPanel {
         if (selected.size() == 1) {
             String role = selected.getFirst();
             String langKey = RoleListPanel.langKeyForRole(role);
-            String stored = bus.hasSession() ? bus.langDoc()
-                .get(langKey) : null;
-            roleDetailCard.load(role, langKey, stored);
+            roleDetailCard.load(role, langKey, resolveDisplayName(langKey));
         } else {
             roleDetailCard.clear();
         }
+    }
+
+    private void onLocaleChanged() {
+        roleDetailCard.setActiveLocale(bus.activeLocale());
+        refreshDetailForm();
+    }
+
+    private @NotNull String resolveDisplayName(@NotNull String langKey) {
+        if (!bus.hasSession()) return "";
+        String activeLocale = bus.activeLocale();
+        Optional<String> active = lookup(activeLocale, langKey);
+        if (active.isPresent()) return active.get();
+        if (LangResolver.DEFAULT_LOCALE.equals(activeLocale)) return "";
+        return lookup(LangResolver.DEFAULT_LOCALE, langKey).orElse("");
+    }
+
+    private @NotNull Optional<String> lookup(@NotNull String locale, @NotNull String langKey) {
+        LangDocument doc = bus.langDoc(locale);
+        if (doc == null) return Optional.empty();
+        String v = doc.get(langKey);
+        if (v == null || v.isEmpty()) return Optional.empty();
+        return Optional.of(v);
+    }
+
+    private @NotNull Optional<String> englishDisplayName() {
+        List<String> sel = roleListPanel.getSelectedRoles();
+        if (sel.size() != 1) return Optional.empty();
+        return lookup(LangResolver.DEFAULT_LOCALE, RoleListPanel.langKeyForRole(sel.getFirst()));
     }
 
     private void onDisplayNameChanged(@NotNull String value) {
@@ -112,10 +144,10 @@ public final class MembershipRolePanel extends JPanel {
         List<String> sel = roleListPanel.getSelectedRoles();
         if (sel.size() != 1) return;
         String langKey = RoleListPanel.langKeyForRole(sel.getFirst());
-        if (value.isEmpty()) bus.langDoc()
-            .remove(langKey);
-        else bus.langDoc()
-            .set(langKey, value);
+        LangDocument target = bus.langDoc(bus.activeLocale());
+        if (target == null) return;
+        if (value.isEmpty()) target.remove(langKey);
+        else target.set(langKey, value);
         bus.fireLangChanged(langKey);
     }
 }
