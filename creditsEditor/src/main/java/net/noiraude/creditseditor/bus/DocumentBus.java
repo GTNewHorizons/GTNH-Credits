@@ -107,6 +107,9 @@ public final class DocumentBus {
     /** The user requested to add a new editing locale to the active session. */
     public static final @NotNull String TOPIC_REQUEST_ADD_LOCALE = "request.addLocale";
 
+    /** The user requested to remove the active editing locale from the session. */
+    public static final @NotNull String TOPIC_REQUEST_REMOVE_LOCALE = "request.removeLocale";
+
     private final @NotNull PropertyChangeSupport pcs = new PropertyChangeSupport(this);
 
     private @Nullable DocumentSession session;
@@ -233,6 +236,11 @@ public final class DocumentBus {
     /** Fires {@link #TOPIC_REQUEST_ADD_LOCALE}. */
     public void fireAddLocaleRequested() {
         pcs.firePropertyChange(TOPIC_REQUEST_ADD_LOCALE, null, Boolean.TRUE);
+    }
+
+    /** Fires {@link #TOPIC_REQUEST_REMOVE_LOCALE}. */
+    public void fireRemoveLocaleRequested() {
+        pcs.firePropertyChange(TOPIC_REQUEST_REMOVE_LOCALE, null, Boolean.TRUE);
     }
 
     /** Binds the bus to the active session and fires {@link #TOPIC_SESSION}. */

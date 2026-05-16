@@ -14,16 +14,18 @@ import javax.swing.JList;
 import javax.swing.JPanel;
 
 import net.noiraude.creditseditor.bus.DocumentBus;
+import net.noiraude.creditseditor.service.LangResolver;
 import net.noiraude.creditseditor.ui.I18n;
 
 import org.jetbrains.annotations.NotNull;
 
-/** Combo box plus add a button for the active editing locale of the current session. */
+/** Combo box plus add and remove buttons for the active editing locale of the current session. */
 public final class LocaleSelector extends JPanel {
 
     private final @NotNull DocumentBus bus;
     private final @NotNull JComboBox<String> combo = new JComboBox<>();
     private final @NotNull JButton addButton = new JButton("+");
+    private final @NotNull JButton removeButton = new JButton("−");
     private boolean syncing;
 
     public LocaleSelector(@NotNull DocumentBus bus) {
@@ -31,8 +33,11 @@ public final class LocaleSelector extends JPanel {
         this.bus = bus;
         addButton.setMargin(new Insets(0, gapTiny, 0, gapTiny));
         addButton.setToolTipText(I18n.get("action.add_locale"));
-        addButton.setEnabled(bus.hasSession());
         addButton.addActionListener(e -> bus.fireAddLocaleRequested());
+
+        removeButton.setMargin(new Insets(0, gapTiny, 0, gapTiny));
+        removeButton.setToolTipText(I18n.get("action.remove_locale"));
+        removeButton.addActionListener(e -> bus.fireRemoveLocaleRequested());
 
         combo.setRenderer(new LocaleLabelRenderer());
         combo.addActionListener(e -> {
@@ -42,25 +47,16 @@ public final class LocaleSelector extends JPanel {
             bus.setActiveLocale(selected.toString());
         });
 
+        JPanel buttons = new JPanel(new BorderLayout(gapTiny, 0));
+        buttons.add(addButton, BorderLayout.WEST);
+        buttons.add(removeButton, BorderLayout.EAST);
+
         add(combo, BorderLayout.CENTER);
-        add(addButton, BorderLayout.EAST);
+        add(buttons, BorderLayout.EAST);
 
         bus.addListener(DocumentBus.TOPIC_SESSION, e -> rebuild());
-        bus.addListener(DocumentBus.TOPIC_LOCALE, e -> {
-            Object nv = e.getNewValue();
-            if (nv == null) return;
-            String locale = nv.toString();
-            if (containsItem(locale)) syncSelection(locale);
-            else rebuild();
-        });
+        bus.addListener(DocumentBus.TOPIC_LOCALE, e -> rebuild());
         rebuild();
-    }
-
-    private boolean containsItem(@NotNull String locale) {
-        for (int i = 0; i < combo.getItemCount(); i++) {
-            if (locale.equals(combo.getItemAt(i))) return true;
-        }
-        return false;
     }
 
     private void rebuild() {
@@ -70,23 +66,13 @@ public final class LocaleSelector extends JPanel {
             boolean hasSession = bus.hasSession();
             combo.setEnabled(hasSession);
             addButton.setEnabled(hasSession);
+            removeButton.setEnabled(hasSession && !LangResolver.DEFAULT_LOCALE.equals(bus.activeLocale()));
             for (String locale : bus.availableLocales()) {
                 combo.addItem(locale);
             }
             if (combo.getItemCount() > 0) {
                 combo.setSelectedItem(bus.activeLocale());
             }
-        } finally {
-            syncing = false;
-        }
-    }
-
-    private void syncSelection(@NotNull String locale) {
-        Object current = combo.getSelectedItem();
-        if (current != null && locale.equals(current.toString())) return;
-        syncing = true;
-        try {
-            combo.setSelectedItem(locale);
         } finally {
             syncing = false;
         }

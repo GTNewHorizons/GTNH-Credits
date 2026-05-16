@@ -20,6 +20,7 @@ import net.noiraude.creditseditor.bus.DocumentBus;
 import net.noiraude.creditseditor.command.CommandExecutor;
 import net.noiraude.creditseditor.command.CommandStackSnapshot;
 import net.noiraude.creditseditor.command.EditAbortedException;
+import net.noiraude.creditseditor.service.LangResolver;
 import net.noiraude.creditseditor.ui.dialog.AboutDialog;
 import net.noiraude.creditseditor.ui.dialog.AddLocaleDialog;
 import net.noiraude.creditseditor.ui.dialog.ProgressDialog;
@@ -79,6 +80,7 @@ public final class MainWindow extends JFrame {
         bus.addListener(DocumentBus.TOPIC_REQUEST_SHORTCUTS, e -> doShortcuts());
         bus.addListener(DocumentBus.TOPIC_REQUEST_ABOUT, e -> doAbout());
         bus.addListener(DocumentBus.TOPIC_REQUEST_ADD_LOCALE, e -> doAddLocale());
+        bus.addListener(DocumentBus.TOPIC_REQUEST_REMOVE_LOCALE, e -> doRemoveLocale());
         bus.addListener(DocumentBus.TOPIC_DIRTY, e -> updateTitle());
         bus.addListener(DocumentBus.TOPIC_SESSION, e -> updateTitle());
 
@@ -257,6 +259,26 @@ public final class MainWindow extends JFrame {
         session.addLocale(code);
         bus.setActiveLocale(code);
         bus.fireDirtyChanged(session.isDirty());
+    }
+
+    private void doRemoveLocale() {
+        if (session == null) return;
+        String code = bus.activeLocale();
+        if (LangResolver.DEFAULT_LOCALE.equals(code)) return;
+        if (!confirmRemoveLocale(code)) return;
+        session.removeLocale(code);
+        bus.setActiveLocale(LangResolver.DEFAULT_LOCALE);
+        bus.fireDirtyChanged(session.isDirty());
+    }
+
+    private boolean confirmRemoveLocale(@NotNull String code) {
+        int choice = JOptionPane.showConfirmDialog(
+            this,
+            I18n.get("dialog.remove_locale.message", MsgArg.text(code)),
+            I18n.get("dialog.remove_locale.title"),
+            JOptionPane.OK_CANCEL_OPTION,
+            JOptionPane.WARNING_MESSAGE);
+        return choice == JOptionPane.OK_OPTION;
     }
 
     // -----------------------------------------------------------------------

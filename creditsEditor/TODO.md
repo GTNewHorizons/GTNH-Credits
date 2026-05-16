@@ -235,7 +235,7 @@ reference and cannot be removed.
   Done when: adding `de_DE` produces an empty `de_DE.lang` on save and the
   selector immediately switches to it.
 
-- [ ] **D.4 Remove-language flow** (`ui/EditorActions.java`,
+- [x] **D.4 Remove-language flow** (`ui/EditorActions.java`,
   `ui/component/LocaleSelector.java`)
   Trash-can button on the `LocaleSelector`. Confirm dialog warning that the
   file will be deleted on the next save. Refuses removal of `en_US`. The

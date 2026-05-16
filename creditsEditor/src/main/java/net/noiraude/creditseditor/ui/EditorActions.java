@@ -15,6 +15,7 @@ final class EditorActions {
     final @NotNull UndoAction undo;
     final @NotNull RedoAction redo;
     final @NotNull AddLocaleAction addLocale;
+    final @NotNull RemoveLocaleAction removeLocale;
     final @NotNull ShortcutsAction shortcuts;
     final @NotNull AboutAction about;
 
@@ -27,6 +28,7 @@ final class EditorActions {
         undo = new UndoAction(bus);
         redo = new RedoAction(bus);
         addLocale = new AddLocaleAction(bus);
+        removeLocale = new RemoveLocaleAction(bus);
         shortcuts = new ShortcutsAction(bus);
         about = new AboutAction(bus);
     }

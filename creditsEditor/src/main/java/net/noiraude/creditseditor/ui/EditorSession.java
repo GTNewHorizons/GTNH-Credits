@@ -124,6 +124,11 @@ final class EditorSession implements DocumentSession {
         resourceManager.addLocale(locale);
     }
 
+    /** Marks {@code locale} for deletion on the next save. */
+    void removeLocale(@NotNull String locale) {
+        resourceManager.removeLocale(locale);
+    }
+
     /**
      * Returns the lang basename that best matches {@link Locale#getDefault()} among the
      * loaded locales, falling back to {@link LangResolver#DEFAULT_LOCALE} when nothing
