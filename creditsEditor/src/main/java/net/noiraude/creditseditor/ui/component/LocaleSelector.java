@@ -1,52 +1,80 @@
 package net.noiraude.creditseditor.ui.component;
 
+import static net.noiraude.creditseditor.ui.ScaledMetrics.gapTiny;
+
+import java.awt.BorderLayout;
 import java.awt.Component;
+import java.awt.Insets;
 import java.util.Locale;
 
 import javax.swing.DefaultListCellRenderer;
+import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JList;
+import javax.swing.JPanel;
 
 import net.noiraude.creditseditor.bus.DocumentBus;
+import net.noiraude.creditseditor.ui.I18n;
 
 import org.jetbrains.annotations.NotNull;
 
-/**
- * Combo box for the active editing locale.
- */
-public final class LocaleSelector extends JComboBox<String> {
+/** Combo box plus add a button for the active editing locale of the current session. */
+public final class LocaleSelector extends JPanel {
 
     private final @NotNull DocumentBus bus;
+    private final @NotNull JComboBox<String> combo = new JComboBox<>();
+    private final @NotNull JButton addButton = new JButton("+");
     private boolean syncing;
 
     public LocaleSelector(@NotNull DocumentBus bus) {
+        super(new BorderLayout(gapTiny, 0));
         this.bus = bus;
-        setRenderer(new LocaleLabelRenderer());
-        addActionListener(e -> {
+        addButton.setMargin(new Insets(0, gapTiny, 0, gapTiny));
+        addButton.setToolTipText(I18n.get("action.add_locale"));
+        addButton.setEnabled(bus.hasSession());
+        addButton.addActionListener(e -> bus.fireAddLocaleRequested());
+
+        combo.setRenderer(new LocaleLabelRenderer());
+        combo.addActionListener(e -> {
             if (syncing) return;
-            Object selected = getSelectedItem();
+            Object selected = combo.getSelectedItem();
             if (selected == null) return;
             bus.setActiveLocale(selected.toString());
         });
+
+        add(combo, BorderLayout.CENTER);
+        add(addButton, BorderLayout.EAST);
+
         bus.addListener(DocumentBus.TOPIC_SESSION, e -> rebuild());
         bus.addListener(DocumentBus.TOPIC_LOCALE, e -> {
             Object nv = e.getNewValue();
             if (nv == null) return;
-            syncSelection(nv.toString());
+            String locale = nv.toString();
+            if (containsItem(locale)) syncSelection(locale);
+            else rebuild();
         });
         rebuild();
+    }
+
+    private boolean containsItem(@NotNull String locale) {
+        for (int i = 0; i < combo.getItemCount(); i++) {
+            if (locale.equals(combo.getItemAt(i))) return true;
+        }
+        return false;
     }
 
     private void rebuild() {
         syncing = true;
         try {
-            removeAllItems();
-            setEnabled(bus.hasSession());
+            combo.removeAllItems();
+            boolean hasSession = bus.hasSession();
+            combo.setEnabled(hasSession);
+            addButton.setEnabled(hasSession);
             for (String locale : bus.availableLocales()) {
-                addItem(locale);
+                combo.addItem(locale);
             }
-            if (getItemCount() > 0) {
-                setSelectedItem(bus.activeLocale());
+            if (combo.getItemCount() > 0) {
+                combo.setSelectedItem(bus.activeLocale());
             }
         } finally {
             syncing = false;
@@ -54,11 +82,11 @@ public final class LocaleSelector extends JComboBox<String> {
     }
 
     private void syncSelection(@NotNull String locale) {
-        Object current = getSelectedItem();
+        Object current = combo.getSelectedItem();
         if (current != null && locale.equals(current.toString())) return;
         syncing = true;
         try {
-            setSelectedItem(locale);
+            combo.setSelectedItem(locale);
         } finally {
             syncing = false;
         }

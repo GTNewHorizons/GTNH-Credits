@@ -3,9 +3,7 @@ package net.noiraude.creditseditor.bus;
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
@@ -33,9 +31,8 @@ import org.jetbrains.annotations.UnmodifiableView;
  *
  * <p>
  * The bus is constructed once by the main window and lives for the whole application.
- * Opening a new resource replaces the documents via
- * {@link #setSession(CreditsDocument, Map)}, which fires {@link #TOPIC_SESSION} so every
- * subscriber rebuilds against the new documents.
+ * Opening a new resource replaces the documents via {@link #setSession}, which fires
+ * {@link #TOPIC_SESSION} so every subscriber rebuilds against the new documents.
  */
 public final class DocumentBus {
 
@@ -107,16 +104,18 @@ public final class DocumentBus {
     /** The user requested to view the about dialog. */
     public static final @NotNull String TOPIC_REQUEST_ABOUT = "request.about";
 
+    /** The user requested to add a new editing locale to the active session. */
+    public static final @NotNull String TOPIC_REQUEST_ADD_LOCALE = "request.addLocale";
+
     private final @NotNull PropertyChangeSupport pcs = new PropertyChangeSupport(this);
 
-    private @Nullable CreditsDocument creditsDoc;
-    private @Nullable Map<String, LangDocument> langDocs;
+    private @Nullable DocumentSession session;
     private @NotNull String activeLocale = LangResolver.DEFAULT_LOCALE;
 
     /** Returns the current credits document. Throws when no session is loaded. */
     @Contract(pure = true)
     public @NotNull CreditsDocument creditsDoc() {
-        return Objects.requireNonNull(creditsDoc, "No session loaded");
+        return requireSession().creditsDoc();
     }
 
     /**
@@ -125,7 +124,8 @@ public final class DocumentBus {
      */
     @Contract(pure = true)
     public @NotNull LangDocument langDoc() {
-        LangDocument doc = langDocs(LangResolver.DEFAULT_LOCALE);
+        LangDocument doc = requireSession().langDocs()
+            .get(LangResolver.DEFAULT_LOCALE);
         return Objects.requireNonNull(doc, "No " + LangResolver.DEFAULT_LOCALE + " lang document loaded");
     }
 
@@ -135,18 +135,18 @@ public final class DocumentBus {
      */
     @Contract(pure = true)
     public @Nullable LangDocument langDoc(@NotNull String locale) {
-        return langDocs(locale);
+        return requireSession().langDocs()
+            .get(locale);
     }
 
-    private @Nullable LangDocument langDocs(@NotNull String locale) {
-        return Objects.requireNonNull(langDocs, "No session loaded")
-            .get(locale);
+    private @NotNull DocumentSession requireSession() {
+        return Objects.requireNonNull(session, "No session loaded");
     }
 
     /** Returns {@code true} once a session has been loaded via {@link #setSession}. */
     @Contract(pure = true)
     public boolean hasSession() {
-        return creditsDoc != null;
+        return session != null;
     }
 
     /**
@@ -155,8 +155,10 @@ public final class DocumentBus {
      */
     @Contract(pure = true)
     public @NotNull @UnmodifiableView Set<String> availableLocales() {
-        if (langDocs == null) return Collections.emptySet();
-        return Collections.unmodifiableSet(langDocs.keySet());
+        if (session == null) return Collections.emptySet();
+        return Collections.unmodifiableSet(
+            session.langDocs()
+                .keySet());
     }
 
     /**
@@ -228,28 +230,14 @@ public final class DocumentBus {
         pcs.firePropertyChange(TOPIC_REQUEST_ABOUT, null, Boolean.TRUE);
     }
 
-    /**
-     * Convenience for callers that only have a single (default-locale) lang document,
-     * such as unit tests. Delegates to {@link #setSession(CreditsDocument, Map)} with a
-     * single-entry map keyed by {@link Locale#US}.
-     */
-    public void setSession(@NotNull CreditsDocument credits, @NotNull LangDocument lang) {
-        setSession(credits, Collections.singletonMap(LangResolver.DEFAULT_LOCALE, lang));
+    /** Fires {@link #TOPIC_REQUEST_ADD_LOCALE}. */
+    public void fireAddLocaleRequested() {
+        pcs.firePropertyChange(TOPIC_REQUEST_ADD_LOCALE, null, Boolean.TRUE);
     }
 
-    /**
-     * Swaps the current documents and fires {@link #TOPIC_SESSION}. All subscribers that
-     * hold references to the old documents should re-read from this bus.
-     *
-     * <p>
-     * The supplied {@code langDocs} map is copied defensively so subsequent edits to the
-     * caller's map do not leak into the bus. Per-document edits (via {@link LangDocument}
-     * mutators) flow through normally because the {@link LangDocument} references stay
-     * shared.
-     */
-    public void setSession(@NotNull CreditsDocument credits, @NotNull Map<String, LangDocument> langDocs) {
-        this.creditsDoc = credits;
-        this.langDocs = new LinkedHashMap<>(langDocs);
+    /** Binds the bus to the active session and fires {@link #TOPIC_SESSION}. */
+    public void setSession(@NotNull DocumentSession session) {
+        this.session = session;
         pcs.firePropertyChange(TOPIC_SESSION, null, Boolean.TRUE);
     }
 

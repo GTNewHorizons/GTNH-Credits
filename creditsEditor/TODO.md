@@ -224,7 +224,7 @@ reference and cannot be removed.
   Done when: the selector is visible at all times when a session is loaded
   and disabled otherwise.
 
-- [ ] **D.3 Add-language flow** (`ui/dialog/AddLocaleDialog.java`,
+- [x] **D.3 Add-language flow** (`ui/dialog/AddLocaleDialog.java`,
   `ui/EditorActions.java`, `ui/EditorMenuBar.java`)
   Action wired into the Edit menu and an inline "+" button on the
   `LocaleSelector`. Opens a dialog asking for a Minecraft lang code,

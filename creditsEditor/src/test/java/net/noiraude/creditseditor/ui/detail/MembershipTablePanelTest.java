@@ -16,10 +16,10 @@ import javax.swing.JButton;
 import javax.swing.JTable;
 
 import net.noiraude.creditseditor.bus.DocumentBus;
+import net.noiraude.creditseditor.bus.TestDocumentSession;
 import net.noiraude.creditseditor.command.CommandStack;
 import net.noiraude.creditseditor.command.impl.AddMembershipCommand;
 import net.noiraude.creditseditor.command.impl.RemoveMembershipCommand;
-import net.noiraude.libcredits.lang.LangParser;
 import net.noiraude.libcredits.model.CreditsDocument;
 import net.noiraude.libcredits.model.DocumentMembership;
 import net.noiraude.libcredits.model.DocumentPerson;
@@ -147,7 +147,7 @@ public class MembershipTablePanelTest {
 
     private static @NotNull DocumentBus newBus() {
         DocumentBus bus = new DocumentBus();
-        bus.setSession(CreditsDocument.empty(), LangParser.empty());
+        bus.setSession(TestDocumentSession.of(CreditsDocument.empty()));
         return bus;
     }
 

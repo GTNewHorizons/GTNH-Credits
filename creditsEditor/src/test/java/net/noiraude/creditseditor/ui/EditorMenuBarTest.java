@@ -196,7 +196,7 @@ public class EditorMenuBarTest {
         final @NotNull EditorMenuBar bar = new EditorMenuBar(actions);
 
         void setSession(@NotNull EditorSession session) {
-            bus.setSession(session.creditsDoc(), session.langDoc());
+            bus.setSession(session);
             bus.fireDirtyChanged(session.isDirty());
             bus.fireCommandStackChanged(CommandStackSnapshot.of(session.stack));
         }

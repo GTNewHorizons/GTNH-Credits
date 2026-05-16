@@ -5,7 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import net.noiraude.creditseditor.bus.DocumentBus;
-import net.noiraude.libcredits.lang.LangParser;
+import net.noiraude.creditseditor.bus.TestDocumentSession;
 import net.noiraude.libcredits.model.CreditsDocument;
 import net.noiraude.libcredits.model.DocumentCategory;
 import net.noiraude.libcredits.model.DocumentMembership;
@@ -25,7 +25,7 @@ public class CategoryCommandsTest {
     public void setUp() {
         creditsDoc = CreditsDocument.empty();
         bus = new DocumentBus();
-        bus.setSession(creditsDoc, LangParser.empty());
+        bus.setSession(TestDocumentSession.of(creditsDoc));
         team = new DocumentCategory("team");
         dev = new DocumentCategory("dev");
         DocumentCategory contrib = new DocumentCategory("contrib");

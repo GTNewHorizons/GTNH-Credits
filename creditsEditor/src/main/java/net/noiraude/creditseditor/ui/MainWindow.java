@@ -21,6 +21,7 @@ import net.noiraude.creditseditor.command.CommandExecutor;
 import net.noiraude.creditseditor.command.CommandStackSnapshot;
 import net.noiraude.creditseditor.command.EditAbortedException;
 import net.noiraude.creditseditor.ui.dialog.AboutDialog;
+import net.noiraude.creditseditor.ui.dialog.AddLocaleDialog;
 import net.noiraude.creditseditor.ui.dialog.ProgressDialog;
 import net.noiraude.creditseditor.ui.dialog.ShortcutsDialog;
 
@@ -77,6 +78,7 @@ public final class MainWindow extends JFrame {
         bus.addListener(DocumentBus.TOPIC_REQUEST_REDO, e -> doRedo());
         bus.addListener(DocumentBus.TOPIC_REQUEST_SHORTCUTS, e -> doShortcuts());
         bus.addListener(DocumentBus.TOPIC_REQUEST_ABOUT, e -> doAbout());
+        bus.addListener(DocumentBus.TOPIC_REQUEST_ADD_LOCALE, e -> doAddLocale());
         bus.addListener(DocumentBus.TOPIC_DIRTY, e -> updateTitle());
         bus.addListener(DocumentBus.TOPIC_SESSION, e -> updateTitle());
 
@@ -142,7 +144,7 @@ public final class MainWindow extends JFrame {
         session = newSession;
 
         bus.setActiveLocale(session.defaultLocale());
-        bus.setSession(session.creditsDoc(), session.langDocs());
+        bus.setSession(session);
         bus.fireDirtyChanged(session.isDirty());
         bus.fireCommandStackChanged(CommandStackSnapshot.of(session.stack));
     }
@@ -242,6 +244,19 @@ public final class MainWindow extends JFrame {
 
     private void doAbout() {
         new AboutDialog(this).setVisible(true);
+    }
+
+    private void doAddLocale() {
+        if (session == null) return;
+        new AddLocaleDialog(this, session.availableLocales()).showDialog()
+            .ifPresent(this::installLocale);
+    }
+
+    private void installLocale(@NotNull String code) {
+        if (session == null) return;
+        session.addLocale(code);
+        bus.setActiveLocale(code);
+        bus.fireDirtyChanged(session.isDirty());
     }
 
     // -----------------------------------------------------------------------

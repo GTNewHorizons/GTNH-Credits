@@ -181,6 +181,12 @@ public final class ResourceManager implements Closeable {
         return Collections.unmodifiableSet(langDocs.keySet());
     }
 
+    /** Returns every loaded lang document keyed by locale tag. */
+    @Contract(pure = true)
+    public @NotNull @UnmodifiableView Map<String, LangDocument> langDocs() {
+        return Collections.unmodifiableMap(langDocs);
+    }
+
     /**
      * Adds an empty lang document for {@code locale} if absent and returns the document
      * registered for it. The new locale's file is not created on disk until the next save.

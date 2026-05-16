@@ -9,8 +9,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.List;
 
 import net.noiraude.creditseditor.bus.DocumentBus;
+import net.noiraude.creditseditor.bus.TestDocumentSession;
 import net.noiraude.creditseditor.command.Command;
-import net.noiraude.libcredits.lang.LangParser;
 import net.noiraude.libcredits.model.CreditsDocument;
 import net.noiraude.libcredits.model.DocumentCategory;
 import net.noiraude.libcredits.model.DocumentMembership;
@@ -23,7 +23,7 @@ public class CompoundCommandTest {
 
     private static @NotNull DocumentBus busFor(CreditsDocument doc) {
         DocumentBus bus = new DocumentBus();
-        bus.setSession(doc, LangParser.empty());
+        bus.setSession(TestDocumentSession.of(doc));
         return bus;
     }
 
