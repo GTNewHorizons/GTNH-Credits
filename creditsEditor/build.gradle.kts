@@ -68,6 +68,75 @@ tasks.named<ProcessResources>("processResources") {
     filesMatching("version.properties") {
         expand("version" to rootProject.version)
     }
+    dependsOn("generateActionIcons")
+}
+
+// ---------------------------------------------------------------------------
+// generateActionIcons
+//
+// Rasterizes Tango SVG sources in src/main/icons/tango/ into PNG icons at
+// 16/24/32/48 pixels under src/main/resources/icons/tango/<size>x<size>/.
+// Uses rsvg-convert and optipng; both must be on PATH for icon authors.
+// The generated PNGs are committed so contributors without the tools can
+// still build.
+// ---------------------------------------------------------------------------
+
+val actionIconSizes = listOf(16, 24, 32, 48)
+val actionIconSvgDir: File = file("src/main/icons/tango")
+val actionIconPngDir: File = file("src/main/resources/icons/tango")
+
+tasks.register("generateActionIcons") {
+    group = "build"
+    description = "Rasterize Tango SVG action icons to PNG via rsvg-convert + optipng."
+
+    val svgs = fileTree(actionIconSvgDir) { include("*.svg") }
+    inputs.files(svgs)
+    inputs.property("sizes", actionIconSizes)
+
+    val outFiles = svgs.files.flatMap { svg ->
+        actionIconSizes.map { size ->
+            actionIconPngDir.resolve("${size}x${size}").resolve("${svg.nameWithoutExtension}.png")
+        }
+    }
+    outputs.files(outFiles)
+
+    doLast {
+        if (!hasCommand("rsvg-convert")) {
+            throw GradleException(
+                "generateActionIcons requires 'rsvg-convert' on PATH. " +
+                "Install librsvg (e.g. 'apt install librsvg2-bin' or 'brew install librsvg')."
+            )
+        }
+        if (!hasCommand("optipng")) {
+            throw GradleException(
+                "generateActionIcons requires 'optipng' on PATH. " +
+                "Install optipng (e.g. 'apt install optipng' or 'brew install optipng')."
+            )
+        }
+        svgs.files.forEach { svg ->
+            actionIconSizes.forEach { size ->
+                val out = actionIconPngDir
+                    .resolve("${size}x${size}")
+                    .resolve("${svg.nameWithoutExtension}.png")
+                out.parentFile.mkdirs()
+                val rc1 = ProcessBuilder(
+                    "rsvg-convert",
+                    "-w", "$size", "-h", "$size",
+                    "-o", out.absolutePath,
+                    svg.absolutePath
+                ).inheritIO().start().waitFor()
+                if (rc1 != 0) {
+                    throw GradleException("rsvg-convert failed for ${svg.name} at ${size}x${size}")
+                }
+                val rc2 = ProcessBuilder(
+                    "optipng", "-quiet", "-o7", "-strip", "all", out.absolutePath
+                ).inheritIO().start().waitFor()
+                if (rc2 != 0) {
+                    throw GradleException("optipng failed for ${out.name}")
+                }
+            }
+        }
+    }
 }
 
 tasks.named<JavaExec>("run") {

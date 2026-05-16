@@ -27,6 +27,7 @@ final class SaveAsAction extends AbstractAction {
         putValue(
             Action.ACCELERATOR_KEY,
             KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK));
+        putValue(Action.SHORT_DESCRIPTION, I18n.get("action.save_as"));
         setEnabled(false);
         bus.addListener(DocumentBus.TOPIC_SESSION, e -> setEnabled((Boolean) e.getNewValue()));
     }

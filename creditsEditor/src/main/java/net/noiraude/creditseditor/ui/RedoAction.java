@@ -28,6 +28,7 @@ final class RedoAction extends AbstractAction {
         putValue(
             Action.ACCELERATOR_KEY,
             KeyStroke.getKeyStroke(KeyEvent.VK_Z, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK));
+        putValue(Action.SHORT_DESCRIPTION, I18n.get("action.redo"));
         setEnabled(false);
         bus.addListener(DocumentBus.TOPIC_COMMAND_STACK, e -> {
             CommandStackSnapshot snapshot = (CommandStackSnapshot) e.getNewValue();

@@ -26,6 +26,7 @@ final class UndoAction extends AbstractAction {
             putValue(Action.MNEMONIC_KEY, (int) Character.toUpperCase(mnemonic.charAt(0)));
         }
         putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_Z, InputEvent.CTRL_DOWN_MASK));
+        putValue(Action.SHORT_DESCRIPTION, I18n.get("action.undo"));
         setEnabled(false);
         bus.addListener(DocumentBus.TOPIC_COMMAND_STACK, e -> {
             CommandStackSnapshot snapshot = (CommandStackSnapshot) e.getNewValue();

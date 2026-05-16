@@ -10,6 +10,7 @@ import java.awt.FlowLayout;
 
 import javax.swing.Action;
 import javax.swing.Box;
+import javax.swing.Icon;
 import javax.swing.JButton;
 import javax.swing.JPanel;
 
@@ -25,12 +26,12 @@ final class EditorToolBar extends JPanel {
         super(new BorderLayout());
 
         JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, gapSmall, gapSmall));
-        left.add(new JButton(actions.open));
-        left.add(new JButton(actions.save));
-        left.add(new JButton(actions.saveAs));
+        left.add(iconButton(actions.open, ActionIcons.open()));
+        left.add(iconButton(actions.save, ActionIcons.save()));
+        left.add(iconButton(actions.saveAs, ActionIcons.saveAs()));
         left.add(Box.createHorizontalStrut(gapMedium));
-        left.add(staticTextButton(actions.undo, I18n.get("action.undo")));
-        left.add(staticTextButton(actions.redo, I18n.get("action.redo")));
+        left.add(iconButton(actions.undo, ActionIcons.undo()));
+        left.add(iconButton(actions.redo, ActionIcons.redo()));
 
         LocaleSelector localeSelector = new LocaleSelector(bus);
         localeSelector.setPreferredSize(new Dimension(localeSelectorWidth, localeSelector.getPreferredSize().height));
@@ -41,10 +42,10 @@ final class EditorToolBar extends JPanel {
         add(right, BorderLayout.EAST);
     }
 
-    private static @NotNull JButton staticTextButton(@NotNull Action action, @NotNull String label) {
+    private static @NotNull JButton iconButton(@NotNull Action action, @NotNull Icon icon) {
         JButton btn = new JButton(action);
         btn.setHideActionText(true);
-        btn.setText(label);
+        btn.setIcon(icon);
         return btn;
     }
 }

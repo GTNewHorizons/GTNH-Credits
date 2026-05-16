@@ -25,6 +25,7 @@ final class SaveAction extends AbstractAction {
             putValue(Action.MNEMONIC_KEY, (int) Character.toUpperCase(mnemonic.charAt(0)));
         }
         putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK));
+        putValue(Action.SHORT_DESCRIPTION, I18n.get("action.save"));
         setEnabled(false);
         bus.addListener(DocumentBus.TOPIC_DIRTY, e -> setEnabled((Boolean) e.getNewValue()));
     }
