@@ -43,6 +43,10 @@ tasks.named<Test>("test") {
     useJUnitPlatform()
     systemProperty("user.language", "en")
     systemProperty("user.country", "US")
+    // Force the test JVM into AWT headless mode so the suite survives an
+    // unavailable or saturated X display. Swing tests that need a real
+    // graphics environment skip themselves via assumeFalse(isHeadless()).
+    systemProperty("java.awt.headless", "true")
 }
 
 java {
