@@ -267,7 +267,7 @@ reference and cannot be removed.
 
 ## Phase F: Tests, polish, i18n
 
-- [ ] **F.1 LangResolverTest** (`src/test/.../service/LangResolverTest.java`)
+- [x] **F.1 LangResolverTest** (`src/test/.../service/LangResolverTest.java`)
   One case per fallback-tier transition (active hit, active empty -> EN
   hit, both empty -> sanitized key, missing key entirely).
   Done when: the test class runs headlessly and every tier is covered.
