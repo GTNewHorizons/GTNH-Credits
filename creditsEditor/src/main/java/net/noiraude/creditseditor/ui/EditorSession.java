@@ -10,6 +10,8 @@ import java.util.Map;
 import java.util.Optional;
 
 import net.noiraude.creditseditor.bus.DocumentSession;
+import net.noiraude.creditseditor.bus.LocaleEditor;
+import net.noiraude.creditseditor.bus.LocaleSnapshot;
 import net.noiraude.creditseditor.command.CommandStack;
 import net.noiraude.creditseditor.resource.ResourceManager;
 import net.noiraude.creditseditor.service.LangResolver;
@@ -38,7 +40,7 @@ import org.jetbrains.annotations.Unmodifiable;
  * No other class should access {@link ResourceManager} directly. All file I/O flow
  * through this facade.
  */
-final class EditorSession implements DocumentSession {
+final class EditorSession implements DocumentSession, LocaleEditor {
 
     private static final Logger LOG = System.getLogger(EditorSession.class.getName());
 
@@ -120,14 +122,25 @@ final class EditorSession implements DocumentSession {
         return resourceManager.availableLocales();
     }
 
-    /** Registers {@code locale} for editing. */
-    void addLocale(@NotNull String locale) {
+    @Override
+    public void addLocale(@NotNull String locale) {
         resourceManager.addLocale(locale);
     }
 
-    /** Marks {@code locale} for credits-owned key removal on the next save. */
-    void removeLocale(@NotNull String locale) {
+    @Override
+    public void removeLocale(@NotNull String locale) {
         resourceManager.removeLocale(locale);
+    }
+
+    @Override
+    @Contract(pure = true)
+    public @NotNull LocaleSnapshot snapshotLocale(@NotNull String locale) {
+        return resourceManager.snapshotLocale(locale);
+    }
+
+    @Override
+    public void applyLocaleSnapshot(@NotNull String locale, @NotNull LocaleSnapshot snapshot) {
+        resourceManager.applyLocaleSnapshot(locale, snapshot);
     }
 
     /**

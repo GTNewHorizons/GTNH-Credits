@@ -256,7 +256,7 @@ reference and cannot be removed.
   Done when: editing a category name in `fr_FR`, undoing, redoing, and
   switching locales preserves all values across both locales correctly.
 
-- [ ] **E.2 AddLocaleCommand and RemoveLocaleCommand**
+- [x] **E.2 AddLocaleCommand and RemoveLocaleCommand**
   (`command/impl/AddLocaleCommand.java`,
   `command/impl/RemoveLocaleCommand.java`)
   Undoable wrappers around `ResourceManager.addLocale` and `removeLocale`.

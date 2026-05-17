@@ -17,9 +17,12 @@ import javax.swing.JOptionPane;
 import javax.swing.SwingWorker;
 
 import net.noiraude.creditseditor.bus.DocumentBus;
+import net.noiraude.creditseditor.command.Command;
 import net.noiraude.creditseditor.command.CommandExecutor;
 import net.noiraude.creditseditor.command.CommandStackSnapshot;
 import net.noiraude.creditseditor.command.EditAbortedException;
+import net.noiraude.creditseditor.command.impl.AddLocaleCommand;
+import net.noiraude.creditseditor.command.impl.RemoveLocaleCommand;
 import net.noiraude.creditseditor.service.LangResolver;
 import net.noiraude.creditseditor.ui.dialog.AboutDialog;
 import net.noiraude.creditseditor.ui.dialog.AddLocaleDialog;
@@ -48,15 +51,7 @@ public final class MainWindow extends JFrame {
             }
         });
 
-        CommandExecutor onCommand = cmd -> {
-            if (session == null) return;
-            try {
-                session.stack.execute(cmd);
-            } catch (EditAbortedException ex) {
-                showEditAborted(ex);
-            }
-            afterCommand();
-        };
+        CommandExecutor onCommand = this::executeCommand;
 
         EditorActions actions = new EditorActions(bus);
 
@@ -250,15 +245,9 @@ public final class MainWindow extends JFrame {
 
     private void doAddLocale() {
         if (session == null) return;
-        new AddLocaleDialog(this, session.availableLocales()).showDialog()
-            .ifPresent(this::installLocale);
-    }
-
-    private void installLocale(@NotNull String code) {
-        if (session == null) return;
-        session.addLocale(code);
-        bus.setActiveLocale(code);
-        bus.fireDirtyChanged(session.isDirty());
+        EditorSession s = session;
+        new AddLocaleDialog(this, s.availableLocales()).showDialog()
+            .ifPresent(code -> executeCommand(AddLocaleCommand.create(s, bus, code)));
     }
 
     private void doRemoveLocale() {
@@ -266,9 +255,17 @@ public final class MainWindow extends JFrame {
         String code = bus.activeLocale();
         if (LangResolver.DEFAULT_LOCALE.equals(code)) return;
         if (!confirmRemoveLocale(code)) return;
-        session.removeLocale(code);
-        bus.setActiveLocale(LangResolver.DEFAULT_LOCALE);
-        bus.fireDirtyChanged(session.isDirty());
+        executeCommand(RemoveLocaleCommand.create(session, bus, code));
+    }
+
+    private void executeCommand(@NotNull Command cmd) {
+        if (session == null) return;
+        try {
+            session.stack.execute(cmd);
+        } catch (EditAbortedException ex) {
+            showEditAborted(ex);
+        }
+        afterCommand();
     }
 
     private boolean confirmRemoveLocale(@NotNull String code) {

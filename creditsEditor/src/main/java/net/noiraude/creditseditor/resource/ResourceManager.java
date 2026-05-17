@@ -17,6 +17,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
 
+import net.noiraude.creditseditor.bus.LocaleSnapshot;
 import net.noiraude.creditseditor.service.LangResolver;
 import net.noiraude.libcredits.lang.LangDocument;
 import net.noiraude.libcredits.lang.LangParser;
@@ -210,6 +211,26 @@ public final class ResourceManager implements Closeable {
         if (langDocs.remove(locale) != null) {
             removedLocales.add(locale);
         }
+    }
+
+    /** Returns the current state of {@code locale} sufficient to restore it verbatim. */
+    @Contract(pure = true)
+    public @NotNull LocaleSnapshot snapshotLocale(@NotNull String locale) {
+        return new LocaleSnapshot(Optional.ofNullable(langDocs.get(locale)), removedLocales.contains(locale));
+    }
+
+    /** Restores {@code locale} to the state captured in {@code snapshot}. */
+    public void applyLocaleSnapshot(@NotNull String locale, @NotNull LocaleSnapshot snapshot) {
+        if (
+            snapshot.doc()
+                .isPresent()
+        ) langDocs.put(
+            locale,
+            snapshot.doc()
+                .get());
+        else langDocs.remove(locale);
+        if (snapshot.pendingRemoval()) removedLocales.add(locale);
+        else removedLocales.remove(locale);
     }
 
     /**
