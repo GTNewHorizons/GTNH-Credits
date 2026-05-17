@@ -119,12 +119,12 @@ final class EditorSession implements DocumentSession {
         return resourceManager.availableLocales();
     }
 
-    /** Registers {@code locale} for inclusion in future saves. */
+    /** Registers {@code locale} for editing. */
     void addLocale(@NotNull String locale) {
         resourceManager.addLocale(locale);
     }
 
-    /** Marks {@code locale} for deletion on the next save. */
+    /** Marks {@code locale} for credits-owned key removal on the next save. */
     void removeLocale(@NotNull String locale) {
         resourceManager.removeLocale(locale);
     }

@@ -188,12 +188,14 @@ public class ResourceManagerTest {
             rm.loadDocuments();
             assertEquals(Set.of("en_US"), rm.availableLocales());
 
-            LangDocument added = rm.addLocale("de_DE");
+            rm.addLocale("de_DE");
+            LangDocument added = rm.langDoc("de_DE");
             assertNotNull(added);
             assertFalse(added.contains("credits.category.team"));
             assertEquals(Set.of("en_US", "de_DE"), rm.availableLocales());
 
-            assertSame(added, rm.addLocale("de_DE"), "addLocale must be idempotent");
+            rm.addLocale("de_DE");
+            assertSame(added, rm.langDoc("de_DE"), "addLocale must be idempotent");
         }
     }
 
@@ -210,15 +212,18 @@ public class ResourceManagerTest {
 
         try (ResourceManager rm = ResourceManager.open(dir.toString())) {
             rm.loadDocuments();
-            LangDocument removed = rm.removeLocale("fr_FR");
+            LangDocument frBeforeRemoval = rm.langDoc("fr_FR");
+            assertNotNull(frBeforeRemoval);
+            assertEquals("Equipe", frBeforeRemoval.get("credits.category.team"));
 
-            assertNotNull(removed);
-            assertEquals("Equipe", removed.get("credits.category.team"));
+            rm.removeLocale("fr_FR");
             assertEquals(Set.of("en_US"), rm.availableLocales());
             assertNull(rm.langDoc("fr_FR"));
-            assertNull(rm.removeLocale("fr_FR"), "second removeLocale returns null");
 
-            assertTrue(rm.isDirty(), "pending deletion must mark the manager dirty");
+            rm.removeLocale("fr_FR"); // second call is a no-op
+            assertEquals(Set.of("en_US"), rm.availableLocales());
+
+            assertTrue(rm.isDirty(), "pending removal must mark the manager dirty");
             rm.writeLang();
 
             Path frPath = langDir.resolve("fr_FR.lang");
@@ -236,8 +241,10 @@ public class ResourceManagerTest {
 
         try (ResourceManager rm = ResourceManager.open(dir.toString())) {
             rm.loadDocuments();
-            rm.addLocale("fr_FR")
-                .set("credits.category.team", "Equipe");
+            rm.addLocale("fr_FR");
+            LangDocument fr = rm.langDoc("fr_FR");
+            assertNotNull(fr);
+            fr.set("credits.category.team", "Equipe");
             rm.removeLocale("fr_FR");
 
             rm.writeLang();

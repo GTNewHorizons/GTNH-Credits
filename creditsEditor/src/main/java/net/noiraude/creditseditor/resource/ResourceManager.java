@@ -53,8 +53,11 @@ public final class ResourceManager implements Closeable {
      */
     private final @NotNull Map<String, LangDocument> langDocs = new LinkedHashMap<>();
 
-    /** Locales removed since the last successful save; their files are deleted on save. */
-    private final @NotNull Set<String> pendingDeletions = new HashSet<>();
+    /**
+     * Locales the user has removed since the last save; their credits-owned keys will be
+     * stripped from the on-disk file on the next save while foreign keys are preserved.
+     */
+    private final @NotNull Set<String> removedLocales = new HashSet<>();
 
     public ResourceManager(@NotNull ResourceStorage storage) {
         this.storage = storage;
@@ -117,7 +120,7 @@ public final class ResourceManager implements Closeable {
         }
 
         langDocs.clear();
-        pendingDeletions.clear();
+        removedLocales.clear();
         List<String> langFiles;
         try (Stream<String> entries = storage.listFiles(CreditsLayout.LANG_DIR.get())) {
             langFiles = entries.filter(name -> name.endsWith(CreditsLayout.LANG_EXT))
@@ -147,7 +150,7 @@ public final class ResourceManager implements Closeable {
         this.langDocs.clear();
         this.langDocs.putAll(langs);
         this.langDocs.computeIfAbsent(LangResolver.DEFAULT_LOCALE, k -> LangParser.empty());
-        this.pendingDeletions.clear();
+        this.removedLocales.clear();
     }
 
     /** Returns the mutable credits document loaded by {@link #loadDocuments()}. */
@@ -188,37 +191,36 @@ public final class ResourceManager implements Closeable {
     }
 
     /**
-     * Adds an empty lang document for {@code locale} if absent and returns the document
-     * registered for it. The new locale's file is not created on disk until the next save.
+     * Registers {@code locale} for editing, restoring it if previously marked removed.
+     * Idempotent. The on-disk file is unchanged until the next save persists
+     * credits-owned edits.
      */
-    public @NotNull LangDocument addLocale(@NotNull String locale) {
-        pendingDeletions.remove(locale);
-        return langDocs.computeIfAbsent(locale, k -> LangParser.empty());
+    public void addLocale(@NotNull String locale) {
+        removedLocales.remove(locale);
+        langDocs.computeIfAbsent(locale, k -> LangParser.empty());
     }
 
     /**
-     * Removes the in-memory lang document for {@code locale} and returns it, or
-     * {@code null} if the locale was not loaded. The next save deletes the corresponding file from
-     * the disk.
+     * Drops {@code locale} from the in-memory document set. On the next save, the
+     * credits-owned keys are stripped from the on-disk file; foreign content is
+     * preserved. No-op when {@code locale} was not loaded.
      */
-    public @Nullable LangDocument removeLocale(@NotNull String locale) {
-        LangDocument removed = langDocs.remove(locale);
-        if (removed != null) {
-            pendingDeletions.add(locale);
+    public void removeLocale(@NotNull String locale) {
+        if (langDocs.remove(locale) != null) {
+            removedLocales.add(locale);
         }
-        return removed;
     }
 
     /**
      * Returns {@code true} if any loaded document has unsaved changes or any locale is
-     * pending on-disk deletion. Returns {@code false} if {@link #loadDocuments()} has not
-     * been called yet.
+     * pending credits-owned key removal. Returns {@code false} if {@link #loadDocuments()}
+     * has not been called yet.
      */
     @Contract(pure = true)
     public boolean isDirty() {
         if (creditsDoc == null) return false;
         if (creditsDoc.isDirty()) return true;
-        if (!pendingDeletions.isEmpty()) return true;
+        if (!removedLocales.isEmpty()) return true;
         for (LangDocument doc : langDocs.values()) {
             if (doc.isDirty()) return true;
         }
@@ -298,7 +300,7 @@ public final class ResourceManager implements Closeable {
                 }
             }
         }
-        for (String locale : pendingDeletions) {
+        for (String locale : removedLocales) {
             String langPath = CreditsLayout.getLangPath(locale);
             if (storage.hasNoFile(langPath)) continue;
             LangDocument onDisk = readOnDiskLang(langPath);
@@ -307,7 +309,7 @@ public final class ResourceManager implements Closeable {
                 LangSerializer.write(onDisk, out);
             }
         }
-        pendingDeletions.clear();
+        removedLocales.clear();
     }
 
     private @NotNull LangDocument readOnDiskLang(@NotNull String langPath) throws IOException {

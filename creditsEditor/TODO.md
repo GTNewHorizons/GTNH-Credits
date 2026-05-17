@@ -18,8 +18,8 @@
 
 - [x] **BulkPersonView** (`ui/detail/BulkPersonView.java`, spec 7.4)
   Detail panel card for multi-person selection. Shows "N persons selected" with
-  bulk operation buttons: assign to category, add role in category, remove from
-  category, delete all. Each button dispatches a `CompoundCommand`.
+  bulk operation buttons: assign to category, add a role in the category, remove
+  from the category, delete all. Each button dispatches a `CompoundCommand`.
 
 - [x] **DetailPanel integration** (`ui/panel/DetailPanel.java`)
   Add a `showBulkPersons(List<DocumentPerson>)` card that displays the
@@ -46,7 +46,7 @@
 
 - [x] **ImportTsvDialog** (`ui/dialog/ImportTsvDialog.java`, spec 9)
   JDialog with file chooser, target category dropdown, preview table, and import
-  button. Preview table shows parsed TSV lines with a computed action column
+  button. The preview table shows parsed TSV lines with a computed action column
   (Create / Add / Complete / No change).
 
 - [x] **ImportTsvCommand** (compound, integrated into `ImportTsvDialog`, spec 9 + 12.2)
@@ -65,7 +65,7 @@
 
 # Translation Editing Support
 
-Add per-language editing for credits content (category names, descriptions,
+Add per-language editing for credit content (category names, descriptions,
 indexed detail paragraphs, role display names). The active editing locale is
 global (one selector for the whole window), defaults to the editor UI locale,
 and resolves keys through a three-tier fallback chain:
@@ -103,22 +103,22 @@ reference and cannot be removed.
   Method `resolve(String key, String activeLocale)` returns
   `Optional<String>`: the active locale's value if present and non-empty;
   else the `en_US` value if present and non-empty; else `Optional.empty()`.
-  Empty-string values are treated as absent at every tier so a translator
+  Empty-string values are treated as absent at every tier, so a translator
   leaving an entry blank in a non-default locale falls through. Tier-3
   placeholder selection is the caller's responsibility: each call site
   picks `cat.id`, the role string, empty UI text, or whatever fits its
   context via `Optional.orElse(...)`.
-  Done when: a unit test exercises all locale tiers including the
-  empty-string vs missing-key distinction, the active==default short
+  Done when: a unit test exercises all locale tiers, including the
+  empty-string vs. missing-key distinction, the active==default short
   circuit, and live-map updates being observed.
 
 - [x] **A.3 Atomic multi-locale save** (`ResourceManager.writeLang()`,
   `ui/EditorSession.java`)
   Iterate over every entry in the locale map and write each `<locale>.lang`
-  whose `LangDocument.isDirty()` is true. Each write merges only owned-prefix
+  whose `LangDocument.isDirty()` is true. Each writing merges only owned-prefix
   keys onto the destination file's existing content, so foreign keys (other
   mods', GUI strings) are preserved exactly. Removed locales have their owned
-  keys stripped from the on-disk file but the file is left in place when it
+  keys stripped from the on-disk file, but the file is left in place when it
   carries any foreign content. `EditorSession.save()` keeps a single entry
   point; the iteration lives inside `ResourceManager`.
   Done when: an integration test mutates two locales, calls save, reopens,
@@ -131,7 +131,7 @@ reference and cannot be removed.
   `activeLocale()` getter, `setActiveLocale(String)` setter, and a new
   `TOPIC_LOCALE` topic fired by the setter. `langDoc()` keeps its current
   meaning (English document); new code uses `langDoc(String)`.
-  Done when: the bus exposes the topic and a no-op default works without any
+  Done when: the bus exposes the topic, and a no-op default works without any
   UI change.
 
 - [x] **B.2 Default editing locale = UI locale** (`ui/EditorSession.java`,
@@ -153,7 +153,7 @@ reference and cannot be removed.
   the read-only `en_US` value (resolved through `LangResolver`) and a
   "Copy to <locale>" button appears beside the toggle. The Copy button
   loads the English value into the pending value of the editor and toggles
-  EN view back off. The EN toggle and Copy button are hidden when the
+  the EN view back off. The EN toggle and Copy button are hidden when the
   active locale is `en_US`. Reads go through `LangResolver`, writes go
   through a locale-targeted `EditFieldCommand`.
   Done when: the wrapper renders correctly in single- and multi-line modes,
@@ -189,7 +189,7 @@ reference and cannot be removed.
   Hide the indexed-paragraph syntax from all callers. On read, a query
   for `credits.category.{id}.detail` returns the plain value joined with
   any `credits.category.{id}.detail.{n}` siblings (natural-sorted by
-  suffix), separated by `\n`, as a single string. On write, `set` for
+  suffix), separated by `\n`, as a single string. On writing, `set` for
   the `.detail` key writes only the plain key and removes every
   `.detail.{n}` sibling. Different locales may legitimately use
   different paragraph counts; the indexed form remains a
@@ -227,20 +227,23 @@ reference and cannot be removed.
 - [x] **D.3 Add-language flow** (`ui/dialog/AddLocaleDialog.java`,
   `ui/EditorActions.java`, `ui/EditorMenuBar.java`)
   Action wired into the Edit menu and an inline "+" button on the
-  `LocaleSelector`. Opens a dialog asking for a Minecraft lang code,
-  validated against `[a-z]{2}_[A-Z]{2}` and a known-locale list. Calls
-  `ResourceManager.addLocale(code)`, sets the active locale to the new
-  one, and fires `TOPIC_LOCALE`. The new file is created on disk on the
-  next save.
-  Done when: adding `de_DE` produces an empty `de_DE.lang` on save and the
-  selector immediately switches to it.
+  `LocaleSelector`. Opens a dialog presenting JDK-known locales to pick
+  from; the Minecraft basename (`aa_BB`) is constructed from the picked
+  locale. Calls `ResourceManager.addLocale(code)`, sets the active locale
+  to the new one, and fires `TOPIC_LOCALE`. libCredits writes credits-owned
+  keys into the lang file on the next save (creating or merging) and never
+  touches foreign keys.
+  Done when: picking `de_DE` selects it immediately; the lang file is
+  touched on save only if credits-owned edits exist for it.
 
 - [x] **D.4 Remove-language flow** (`ui/EditorActions.java`,
   `ui/component/LocaleSelector.java`)
   Trash-can button on the `LocaleSelector`. Confirm dialog warning that the
-  file will be deleted on the next save. Refuses removal of `en_US`. The
-  active locale falls back to `en_US` if the removed locale was active.
-  Done when: removing `fr_FR` deletes the file on save and the selector
+  Credits translations for that locale will be deleted on the next save.
+  Refuses removal of `en_US`. The active locale falls back to `en_US` if
+  the removed locale was active.
+  Done when: removing `fr_FR` strips its credits-owned keys on the next
+  save while preserving any foreign keys in the file, and the selector
   switches to `en_US`.
 
 ## Phase E: Commands
@@ -271,8 +274,8 @@ reference and cannot be removed.
 
 - [ ] **F.2 Multi-locale ResourceManagerTest**
   (`src/test/.../ResourceManagerTest.java`)
-  Cover load with two locales, add a third, remove one, save round-trip,
-  reload round-trip.
+  Cover a load with two locales, add a third, remove one, save a round-trip,
+  reload a round-trip.
   Done when: every API path on the new `ResourceManager` surface is
   exercised at least once.
 
