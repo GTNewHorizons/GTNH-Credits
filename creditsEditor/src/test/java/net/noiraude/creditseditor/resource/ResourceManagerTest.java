@@ -15,11 +15,14 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
+import net.noiraude.creditseditor.bus.LocaleSnapshot;
 import net.noiraude.libcredits.lang.LangDocument;
 import net.noiraude.libcredits.lang.LangParser;
 import net.noiraude.libcredits.model.CreditsDocument;
+import net.noiraude.libcredits.model.DocumentCategory;
 import net.noiraude.libcredits.pack.CreditsLayout;
 
 import org.junit.jupiter.api.Test;
@@ -312,6 +315,160 @@ public class ResourceManagerTest {
         assertFalse(
             written.contains("credits.category.team=DestOld"),
             "destination's old owned value must be replaced");
+    }
+
+    @Test
+    public void loadAddRemoveSaveReload_threeLocales_roundTrip() throws Exception {
+        Path dir = Files.createDirectory(temp.resolve("root"));
+        Path langDir = dir.resolve(CreditsLayout.LANG_DIR.get());
+        Files.createDirectories(langDir);
+        Files.writeString(langDir.resolve("en_US.lang"), "credits.category.team=Team\n", StandardCharsets.UTF_8);
+        Files.writeString(
+            langDir.resolve("fr_FR.lang"),
+            "gui.credits.title=Credits\ncredits.category.team=Equipe\n",
+            StandardCharsets.UTF_8);
+
+        try (ResourceManager rm = ResourceManager.open(dir.toString())) {
+            rm.loadDocuments();
+            assertEquals(Set.of("en_US", "fr_FR"), rm.availableLocales());
+
+            rm.addLocale("de_DE");
+            rm.langDoc("de_DE")
+                .orElseThrow()
+                .set("credits.category.team", "Mannschaft");
+            assertEquals(Set.of("en_US", "fr_FR", "de_DE"), rm.availableLocales());
+
+            rm.removeLocale("fr_FR");
+            assertEquals(Set.of("en_US", "de_DE"), rm.availableLocales());
+            assertTrue(rm.isDirty());
+
+            rm.writeLang();
+            assertEquals(
+                Set.of("en_US", "de_DE"),
+                rm.availableLocales(),
+                "save must not change the in-memory locale set");
+        }
+
+        try (ResourceManager reloaded = ResourceManager.open(dir.toString())) {
+            reloaded.loadDocuments();
+
+            assertEquals(Set.of("en_US", "fr_FR", "de_DE"), reloaded.availableLocales());
+            assertEquals(
+                "Mannschaft",
+                reloaded.langDoc("de_DE")
+                    .orElseThrow()
+                    .get("credits.category.team"));
+
+            LangDocument fr = reloaded.langDoc("fr_FR")
+                .orElseThrow();
+            assertEquals("Credits", fr.get("gui.credits.title"), "foreign key must survive locale removal");
+            assertFalse(fr.contains("credits.category.team"), "removed locale must lose its owned keys on disk");
+
+            assertFalse(reloaded.isDirty());
+        }
+    }
+
+    @Test
+    public void langDocs_returnsEveryLoadedLocale() throws Exception {
+        Path dir = Files.createDirectory(temp.resolve("root"));
+        Path langDir = dir.resolve(CreditsLayout.LANG_DIR.get());
+        Files.createDirectories(langDir);
+        Files.writeString(langDir.resolve("en_US.lang"), "", StandardCharsets.UTF_8);
+        Files.writeString(langDir.resolve("fr_FR.lang"), "", StandardCharsets.UTF_8);
+
+        try (ResourceManager rm = ResourceManager.open(dir.toString())) {
+            rm.loadDocuments();
+            Map<String, LangDocument> view = rm.langDocs();
+            assertEquals(Set.of("en_US", "fr_FR"), view.keySet());
+            assertSame(rm.getLangDoc(), view.get("en_US"));
+        }
+    }
+
+    @Test
+    public void snapshotAndApplyLocaleSnapshot_restoreLoadedLocaleAfterRemoval() throws Exception {
+        Path dir = Files.createDirectory(temp.resolve("root"));
+        Path langDir = dir.resolve(CreditsLayout.LANG_DIR.get());
+        Files.createDirectories(langDir);
+        Files.writeString(langDir.resolve("en_US.lang"), "", StandardCharsets.UTF_8);
+        Files.writeString(langDir.resolve("fr_FR.lang"), "credits.category.team=Equipe\n", StandardCharsets.UTF_8);
+
+        try (ResourceManager rm = ResourceManager.open(dir.toString())) {
+            rm.loadDocuments();
+
+            LocaleSnapshot snapshot = rm.snapshotLocale("fr_FR");
+            assertTrue(
+                snapshot.doc()
+                    .isPresent());
+            assertFalse(snapshot.pendingRemoval());
+
+            rm.removeLocale("fr_FR");
+            assertTrue(
+                rm.langDoc("fr_FR")
+                    .isEmpty());
+
+            rm.applyLocaleSnapshot("fr_FR", snapshot);
+            assertEquals(Set.of("en_US", "fr_FR"), rm.availableLocales());
+            assertEquals(
+                "Equipe",
+                rm.langDoc("fr_FR")
+                    .orElseThrow()
+                    .get("credits.category.team"));
+        }
+    }
+
+    @Test
+    public void applyLocaleSnapshot_restoresPendingRemovalForUnloadedLocale() throws Exception {
+        Path dir = Files.createDirectory(temp.resolve("root"));
+
+        try (ResourceManager rm = ResourceManager.open(dir.toString())) {
+            rm.loadDocuments();
+            rm.applyLocaleSnapshot("fr_FR", new LocaleSnapshot(Optional.empty(), true));
+
+            assertTrue(
+                rm.langDoc("fr_FR")
+                    .isEmpty());
+            assertTrue(rm.isDirty(), "restoring a pending-removal snapshot must mark the manager dirty");
+        }
+    }
+
+    @Test
+    public void displayPath_returnsContainerFileName() throws Exception {
+        Path dir = Files.createDirectory(temp.resolve("my-pack"));
+
+        try (ResourceManager rm = ResourceManager.open(dir.toString())) {
+            assertEquals("my-pack", rm.displayPath());
+        }
+    }
+
+    @Test
+    public void location_returnsContainerPath() throws Exception {
+        Path dir = Files.createDirectory(temp.resolve("root"));
+
+        try (ResourceManager rm = ResourceManager.open(dir.toString())) {
+            assertEquals(
+                dir.toRealPath(),
+                rm.location()
+                    .toRealPath());
+        }
+    }
+
+    @Test
+    public void writeCredits_persistsDocumentAndRoundTrips() throws Exception {
+        Path dir = Files.createDirectory(temp.resolve("root"));
+
+        try (ResourceManager rm = ResourceManager.open(dir.toString())) {
+            rm.loadDocuments();
+            CreditsDocument doc = rm.getCreditsDoc();
+            doc.categories.add(new DocumentCategory("team"));
+
+            rm.writeCredits();
+        }
+
+        try (ResourceManager reloaded = ResourceManager.open(dir.toString())) {
+            reloaded.loadDocuments();
+            assertEquals(1, reloaded.getCreditsDoc().categories.size());
+            assertEquals("team", reloaded.getCreditsDoc().categories.get(0).id);
+        }
     }
 
     @Test

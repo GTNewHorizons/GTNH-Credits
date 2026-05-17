@@ -272,20 +272,14 @@ reference and cannot be removed.
   hit, both empty -> sanitized key, missing key entirely).
   Done when: the test class runs headlessly and every tier is covered.
 
-- [ ] **F.2 Multi-locale ResourceManagerTest**
+- [x] **F.2 Multi-locale ResourceManagerTest**
   (`src/test/.../ResourceManagerTest.java`)
   Cover a load with two locales, add a third, remove one, save a round-trip,
   reload a round-trip.
   Done when: every API path on the new `ResourceManager` surface is
   exercised at least once.
 
-- [ ] **F.3 Title bar shows active locale** (`ui/MainWindow.java`)
-  Append ` [fr_FR]` to the window title when the active locale is not
-  `en_US`. Updates on `TOPIC_LOCALE`.
-  Done when: switching locale updates the title without restarting the
-  editor.
-
-- [ ] **F.4 i18n strings for new UI**
+- [ ] **F.3 i18n strings for new UI**
   (`src/main/resources/messages_*.properties`)
   Add every new user-visible string (locale selector tooltip, EN-toggle
   label, "Copy to <locale>" button, add-locale dialog, remove-locale
@@ -297,7 +291,7 @@ reference and cannot be removed.
 ## Suggested implementation order
 
 A.1 -> A.2 -> A.3 -> B.1 -> B.2 -> C.1 -> C.2 -> C.3 -> C.4 -> D.1 -> D.2 ->
-D.3 -> D.4 -> E.1 -> E.2 -> F.1 -> F.2 -> F.3 -> F.4.
+D.3 -> D.4 -> E.1 -> E.2 -> F.1 -> F.2 -> F.3.
 
 One commit per task. Run `./gradlew spotlessApply :creditsEditor:test
 :creditsEditor:b
