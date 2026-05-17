@@ -52,8 +52,7 @@ public final class RoleDetailCard {
     private final @NotNull LocalizedMcEditor displayNameEditor = new LocalizedMcEditor(false);
     private boolean loading;
 
-    RoleDetailCard(@NotNull Consumer<String> onDisplayNameChanged,
-        @NotNull Consumer<UndoableEditEvent> onUndoableEdit) {
+    RoleDetailCard(@NotNull Consumer<UndoableEditEvent> onUndoableEdit) {
         roleValueField.setEditable(false);
         roleValueField.setBackground(UIManager.getColor("Panel.background"));
         langKeyLabel.setForeground(UIManager.getColor("Label.disabledForeground"));
@@ -61,8 +60,23 @@ public final class RoleDetailCard {
         buildDetailCard();
         clear();
 
-        displayNameEditor.addTextChangeListener(v -> { if (!loading) onDisplayNameChanged.accept(v); });
         displayNameEditor.addUndoableEditListener(e -> { if (!loading) onUndoableEdit.accept(e); });
+    }
+
+    @Contract(pure = true)
+    @NotNull
+    String getDisplayNameText() {
+        return displayNameEditor.getText();
+    }
+
+    /** Replaces the displayed value without firing the undoable-edit listener. */
+    void setDisplayNameSilently(@NotNull String text) {
+        loading = true;
+        try {
+            displayNameEditor.setText(text);
+        } finally {
+            loading = false;
+        }
     }
 
     void setActiveLocale(@NotNull String locale) {

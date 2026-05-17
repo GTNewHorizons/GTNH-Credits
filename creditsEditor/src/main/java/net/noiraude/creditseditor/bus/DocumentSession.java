@@ -1,6 +1,7 @@
 package net.noiraude.creditseditor.bus;
 
 import java.util.Map;
+import java.util.Optional;
 
 import net.noiraude.libcredits.lang.LangDocument;
 import net.noiraude.libcredits.model.CreditsDocument;
@@ -15,4 +16,8 @@ public interface DocumentSession {
 
     @NotNull
     Map<String, LangDocument> langDocs();
+
+    /** Returns the lang document registered for {@code locale}, if loaded. */
+    @NotNull
+    Optional<LangDocument> langDoc(@NotNull String locale);
 }

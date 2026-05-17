@@ -7,6 +7,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 
 import net.noiraude.creditseditor.bus.DocumentSession;
 import net.noiraude.creditseditor.command.CommandStack;
@@ -100,9 +101,9 @@ final class EditorSession implements DocumentSession {
         return resourceManager.getLangDoc();
     }
 
-    /** Returns the lang document registered for {@code locale}, or {@code null} if absent. */
+    @Override
     @Contract(pure = true)
-    LangDocument langDoc(@NotNull String locale) {
+    public @NotNull Optional<LangDocument> langDoc(@NotNull String locale) {
         return resourceManager.langDoc(locale);
     }
 
@@ -181,10 +182,8 @@ final class EditorSession implements DocumentSession {
 
         resourceManager.writeLang();
         for (String locale : resourceManager.availableLocales()) {
-            LangDocument doc = resourceManager.langDoc(locale);
-            if (doc != null) {
-                doc.markClean();
-            }
+            resourceManager.langDoc(locale)
+                .ifPresent(LangDocument::markClean);
         }
     }
 

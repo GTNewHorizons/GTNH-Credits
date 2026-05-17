@@ -18,14 +18,15 @@ import javax.swing.UIManager;
 
 import net.noiraude.creditseditor.bus.DocumentBus;
 import net.noiraude.creditseditor.command.CommandExecutor;
-import net.noiraude.creditseditor.command.impl.DocumentEditCommand;
+import net.noiraude.creditseditor.command.LangFieldWriter;
+import net.noiraude.creditseditor.command.impl.EditCategoryDetailsCommand;
+import net.noiraude.creditseditor.command.impl.EditCategoryDisplayNameCommand;
 import net.noiraude.creditseditor.command.impl.EditFieldCommand;
 import net.noiraude.creditseditor.service.KeySanitizer;
 import net.noiraude.creditseditor.service.LangResolver;
 import net.noiraude.creditseditor.ui.I18n;
 import net.noiraude.creditseditor.ui.component.mc.LocalizedMcEditor;
 import net.noiraude.libcredits.lang.DetailLangKey;
-import net.noiraude.libcredits.lang.LangDocument;
 import net.noiraude.libcredits.lang.LangKey;
 import net.noiraude.libcredits.model.DocumentCategory;
 
@@ -36,15 +37,12 @@ import org.jetbrains.annotations.NotNull;
  *
  * <p>
  * Subscribes to {@link DocumentBus#TOPIC_CATEGORY} to reload the current category when it
- * is the one that changed and to {@link DocumentBus#TOPIC_LOCALE} to rebuild the display
- * name and description from the active locale. Removal of the current category is detected
- * by the owning {@code DetailPanel}, which calls {@link #clear()} and switches the card
- * away from this view; this view therefore does not listen for {@code TOPIC_CATEGORIES}.
- * Lang-derived fields (display name, description) are read from and written to the active
- * locale's {@link LangDocument}, falling back to the default locale via the resolver chain
- * when the active locale has no value. Class checkboxes are delegated to
- * {@link CategoryClassSelector}; the description row is delegated to
- * {@link CategoryDescriptionSection}.
+ * is the one that changed, to {@link DocumentBus#TOPIC_LOCALE} to rebuild the display
+ * name and description from the active locale, and to {@link DocumentBus#TOPIC_LANG} to
+ * refresh the rendered text after an undo or redo writes to the active locale's lang
+ * document. Removal of the current category is detected by the owning
+ * {@code DetailPanel}, which calls {@link #clear()} and switches the card away from this
+ * view; this view therefore does not listen for {@code TOPIC_CATEGORIES}.
  */
 public final class CategoryDetailView extends DetailView<DocumentCategory> {
 
@@ -56,6 +54,13 @@ public final class CategoryDetailView extends DetailView<DocumentCategory> {
     private final @NotNull CategoryClassSelector classSelector = new CategoryClassSelector();
     private final @NotNull CategoryDescriptionSection descriptionSection = new CategoryDescriptionSection();
     private final @NotNull Component spacer = Box.createVerticalGlue();
+
+    private @NotNull String shadowDisplayName = "";
+    private @NotNull String shadowDescription = "";
+
+    private @NotNull Optional<CategoryKeys> categoryKeys = Optional.empty();
+
+    private record CategoryKeys(@NotNull LangKey name, @NotNull DetailLangKey detail) {}
 
     public CategoryDetailView(@NotNull DocumentBus bus, @NotNull CommandExecutor onCommand) {
         super(onCommand);
@@ -71,45 +76,40 @@ public final class CategoryDetailView extends DetailView<DocumentCategory> {
         wireEvents();
         updateDescriptionVisibility();
 
-        // The display-name and description editors stay in sync with their underlying Swing
-        // documents (undoable edits mutate the document directly); calling setText on them
-        // would reset the caret while the user is typing. Only the class checkboxes need
-        // event-driven updates.
         bus.addListener(
             DocumentBus.TOPIC_CATEGORY,
             e -> { if (current != null && e.getNewValue() == current) reloadClassCheckboxes(); });
         bus.addListener(DocumentBus.TOPIC_LOCALE, e -> onLocaleChanged());
+        bus.addListener(DocumentBus.TOPIC_LANG, e -> {
+            Object nv = e.getNewValue();
+            if (nv != null) onLangChanged(nv.toString());
+        });
     }
 
     private void buildLayout() {
         GridBagConstraints label = labelConstraints();
         GridBagConstraints field = fieldConstraints();
 
-        // Row 0: ID
         label.gridy = 0;
         add(new JLabel(I18n.get("view.category.id.label")), label);
         field.gridy = 0;
         add(idField, field);
 
-        // Row 1: Lang key (derived, read-only)
         label.gridy = 1;
         add(new JLabel(I18n.get("view.category.lang_key.label")), label);
         field.gridy = 1;
         add(langKeyLabel, field);
 
-        // Row 2: Display name
         label.gridy = 2;
         add(new JLabel(I18n.get("view.category.display_name.label")), label);
         field.gridy = 2;
         add(displayNameEditor, field);
 
-        // Row 3: Classes
         label.gridy = 3;
         add(new JLabel(I18n.get("view.category.classes.label")), label);
         field.gridy = 3;
         add(classSelector, field);
 
-        // Row 4: Details text (visible only when "detail" class is checked)
         label.gridy = 4;
         label.anchor = GridBagConstraints.NORTHWEST;
         label.insets = new Insets(gapMedium, gapMedium, gapSmall, gapSmall);
@@ -119,9 +119,6 @@ public final class CategoryDetailView extends DetailView<DocumentCategory> {
         field.weighty = 0;
         add(descriptionSection.editor(), field);
 
-        // Row 5: Spacer always presents; absorbs extra vertical space when description is
-        // hidden so rows stay top-aligned. Weight is swapped to the description editor when
-        // the description row is visible, so the editor expands to fill the panel instead.
         GridBagConstraints spacerGbc = new GridBagConstraints();
         spacerGbc.gridy = 5;
         spacerGbc.gridx = 0;
@@ -141,36 +138,34 @@ public final class CategoryDetailView extends DetailView<DocumentCategory> {
     }
 
     private void wireDisplayNameEvents() {
-        displayNameEditor.addTextChangeListener(value -> {
-            if (loading || current == null) return;
-            LangKey nameKey = new LangKey(categoryPrefix(current));
-            LangDocument target = bus.langDoc(bus.activeLocale());
-            if (target == null) return;
-            if (value.isEmpty()) nameKey.remove(target);
-            else nameKey.write(target, value);
-            bus.fireLangChanged(nameKey.key());
-        });
         displayNameEditor.addUndoableEditListener(e -> {
-            if (!loading && current != null) {
-                onCommand.execute(new DocumentEditCommand(I18n.get("command.edit.display_name"), e.getEdit()));
-            }
+            if (loading) return;
+            categoryKeys.ifPresent(
+                keys -> bus.langDoc(bus.activeLocale())
+                    .ifPresent(target -> {
+                        String newValue = displayNameEditor.getText();
+                        String oldValue = shadowDisplayName;
+                        shadowDisplayName = newValue;
+                        onCommand.execute(
+                            EditCategoryDisplayNameCommand
+                                .create(LangFieldWriter.ofBus(bus, target, keys.name()), oldValue, newValue));
+                    }));
         });
     }
 
     private void wireDescriptionEvents() {
-        descriptionSection.addTextChangeListener(value -> {
-            if (loading || current == null) return;
-            DetailLangKey detailKey = new DetailLangKey(categoryPrefix(current));
-            LangDocument target = bus.langDoc(bus.activeLocale());
-            if (target == null) return;
-            if (value.isEmpty()) detailKey.remove(target);
-            else detailKey.write(target, value);
-            bus.fireLangChanged(detailKey.key());
-        });
         descriptionSection.addUndoableEditListener(e -> {
-            if (!loading && current != null) {
-                onCommand.execute(new DocumentEditCommand(I18n.get("command.edit.details"), e.getEdit()));
-            }
+            if (loading) return;
+            categoryKeys.ifPresent(
+                keys -> bus.langDoc(bus.activeLocale())
+                    .ifPresent(target -> {
+                        String newValue = descriptionSection.getText();
+                        String oldValue = shadowDescription;
+                        shadowDescription = newValue;
+                        onCommand.execute(
+                            EditCategoryDetailsCommand
+                                .create(LangFieldWriter.ofBus(bus, target, keys.detail()), oldValue, newValue));
+                    }));
         });
     }
 
@@ -191,6 +186,9 @@ public final class CategoryDetailView extends DetailView<DocumentCategory> {
      */
     public void clear() {
         current = null;
+        categoryKeys = Optional.empty();
+        shadowDisplayName = "";
+        shadowDescription = "";
     }
 
     /**
@@ -199,15 +197,21 @@ public final class CategoryDetailView extends DetailView<DocumentCategory> {
      */
     public void load(@NotNull DocumentCategory cat) {
         current = cat;
+        String prefix = categoryPrefix(cat);
+        CategoryKeys keys = new CategoryKeys(new LangKey(prefix), new DetailLangKey(prefix));
+        categoryKeys = Optional.of(keys);
         loading = true;
         try {
-            String prefix = categoryPrefix(cat);
             idField.setText(cat.id);
             langKeyLabel.setText(prefix);
             displayNameEditor.setActiveLocale(bus.activeLocale());
-            displayNameEditor.setText(resolveLangValue(new LangKey(prefix)));
+            String displayName = resolveLangValue(keys.name());
+            displayNameEditor.setText(displayName);
+            shadowDisplayName = displayName;
             descriptionSection.setActiveLocale(bus.activeLocale());
-            descriptionSection.setText(resolveLangValue(new DetailLangKey(prefix)));
+            String description = resolveLangValue(keys.detail());
+            descriptionSection.setText(description);
+            shadowDescription = description;
             classSelector.setClasses(cat.classes);
         } finally {
             loading = false;
@@ -218,8 +222,7 @@ public final class CategoryDetailView extends DetailView<DocumentCategory> {
     /**
      * Returns the active locale's value for {@code key}, falling back to the default-locale
      * value when the active locale has no non-empty entry. An empty string represents both
-     * "absent everywhere" and "intentionally cleared in the default locale", so the editor
-     * shows nothing for the user to translate from.
+     * "absent everywhere" and "intentionally cleared in the default locale".
      */
     private @NotNull String resolveLangValue(@NotNull LangKey key) {
         String activeLocale = bus.activeLocale();
@@ -230,32 +233,78 @@ public final class CategoryDetailView extends DetailView<DocumentCategory> {
     }
 
     private @NotNull Optional<String> lookup(@NotNull String locale, @NotNull LangKey key) {
-        LangDocument doc = bus.langDoc(locale);
-        return Optional.ofNullable(doc)
+        return bus.langDoc(locale)
             .flatMap(key::read)
             .filter(v -> !v.isEmpty());
     }
 
     private @NotNull Optional<String> englishDisplayName() {
-        if (current == null) return Optional.empty();
-        return lookup(LangResolver.DEFAULT_LOCALE, new LangKey(categoryPrefix(current)));
+        return categoryKeys.flatMap(keys -> lookup(LangResolver.DEFAULT_LOCALE, keys.name()));
     }
 
     private @NotNull Optional<String> englishDescription() {
-        if (current == null) return Optional.empty();
-        return lookup(LangResolver.DEFAULT_LOCALE, new DetailLangKey(categoryPrefix(current)));
+        return categoryKeys.flatMap(keys -> lookup(LangResolver.DEFAULT_LOCALE, keys.detail()));
     }
 
     private void onLocaleChanged() {
         String activeLocale = bus.activeLocale();
         displayNameEditor.setActiveLocale(activeLocale);
         descriptionSection.setActiveLocale(activeLocale);
-        if (current == null) return;
-        String prefix = categoryPrefix(current);
+        categoryKeys.ifPresent(keys -> {
+            loading = true;
+            try {
+                String displayName = resolveLangValue(keys.name());
+                displayNameEditor.setText(displayName);
+                shadowDisplayName = displayName;
+                String description = resolveLangValue(keys.detail());
+                descriptionSection.setText(description);
+                shadowDescription = description;
+            } finally {
+                loading = false;
+            }
+        });
+    }
+
+    private void onLangChanged(@NotNull String changedKey) {
+        categoryKeys.ifPresent(keys -> {
+            if (
+                changedKey.equals(
+                    keys.name()
+                        .key())
+            ) refreshDisplayName(keys.name());
+            else if (
+                changedKey.equals(
+                    keys.detail()
+                        .key())
+            ) refreshDescription(keys.detail());
+        });
+    }
+
+    private void refreshDisplayName(@NotNull LangKey nameKey) {
+        String resolved = resolveLangValue(nameKey);
+        if (resolved.equals(displayNameEditor.getText())) {
+            shadowDisplayName = resolved;
+            return;
+        }
         loading = true;
         try {
-            displayNameEditor.setText(resolveLangValue(new LangKey(prefix)));
-            descriptionSection.setText(resolveLangValue(new DetailLangKey(prefix)));
+            displayNameEditor.setText(resolved);
+            shadowDisplayName = resolved;
+        } finally {
+            loading = false;
+        }
+    }
+
+    private void refreshDescription(@NotNull DetailLangKey detailKey) {
+        String resolved = resolveLangValue(detailKey);
+        if (resolved.equals(descriptionSection.getText())) {
+            shadowDescription = resolved;
+            return;
+        }
+        loading = true;
+        try {
+            descriptionSection.setText(resolved);
+            shadowDescription = resolved;
         } finally {
             loading = false;
         }
@@ -282,7 +331,6 @@ public final class CategoryDetailView extends DetailView<DocumentCategory> {
         boolean visible = classSelector.isDetailSelected();
         descriptionSection.setVisible(visible);
 
-        // Transfer weighty to whichever component should absorb extra vertical space.
         GridBagLayout gbl = (GridBagLayout) getLayout();
         GridBagConstraints descGbc = gbl.getConstraints(descriptionSection.editor());
         descGbc.weighty = visible ? 1.0 : 0;

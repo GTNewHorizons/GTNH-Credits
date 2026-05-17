@@ -2,6 +2,7 @@ package net.noiraude.creditseditor.bus;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.Optional;
 
 import net.noiraude.creditseditor.service.LangResolver;
 import net.noiraude.libcredits.lang.LangDocument;
@@ -20,5 +21,10 @@ public record TestDocumentSession(@NotNull CreditsDocument creditsDoc, @NotNull 
 
     public static @NotNull DocumentSession of(@NotNull CreditsDocument creditsDoc, @NotNull LangDocument lang) {
         return new TestDocumentSession(creditsDoc, Collections.singletonMap(LangResolver.DEFAULT_LOCALE, lang));
+    }
+
+    @Override
+    public @NotNull Optional<LangDocument> langDoc(@NotNull String locale) {
+        return Optional.ofNullable(langDocs.get(locale));
     }
 }

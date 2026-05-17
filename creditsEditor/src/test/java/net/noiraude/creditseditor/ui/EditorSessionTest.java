@@ -153,7 +153,8 @@ public class EditorSessionTest {
 
         EditorSession reopened = EditorSession.open(destZip.toString());
         try {
-            LangDocument fr = reopened.langDoc("fr_FR");
+            LangDocument fr = reopened.langDoc("fr_FR")
+                .orElseThrow();
             assertTrue(
                 reopened.availableLocales()
                     .contains("fr_FR"),

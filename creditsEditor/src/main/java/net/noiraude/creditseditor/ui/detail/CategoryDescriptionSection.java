@@ -32,6 +32,11 @@ public final class CategoryDescriptionSection {
         editor.setText(text);
     }
 
+    @Contract(pure = true)
+    public @NotNull String getText() {
+        return editor.getText();
+    }
+
     public void setActiveLocale(@NotNull String locale) {
         editor.setActiveLocale(locale);
     }

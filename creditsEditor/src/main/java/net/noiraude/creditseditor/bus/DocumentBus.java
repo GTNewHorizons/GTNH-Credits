@@ -5,6 +5,7 @@ import java.beans.PropertyChangeSupport;
 import java.util.Collections;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 import net.noiraude.creditseditor.command.CommandStackSnapshot;
@@ -132,14 +133,10 @@ public final class DocumentBus {
         return Objects.requireNonNull(doc, "No " + LangResolver.DEFAULT_LOCALE + " lang document loaded");
     }
 
-    /**
-     * Returns the lang document for {@code locale}, or {@code null} if that locale is
-     * not loaded. Throws when no session is loaded.
-     */
+    /** Returns the lang document for {@code locale}, if loaded. Throws when no session is loaded. */
     @Contract(pure = true)
-    public @Nullable LangDocument langDoc(@NotNull String locale) {
-        return requireSession().langDocs()
-            .get(locale);
+    public @NotNull Optional<LangDocument> langDoc(@NotNull String locale) {
+        return requireSession().langDoc(locale);
     }
 
     private @NotNull DocumentSession requireSession() {

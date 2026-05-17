@@ -248,7 +248,7 @@ reference and cannot be removed.
 
 ## Phase E: Commands
 
-- [ ] **E.1 Locale-targeted EditFieldCommand**
+- [x] **E.1 Locale-targeted EditFieldCommand**
   (`command/impl/EditFieldCommand.java`)
   Add a `String locale` field. Every detail-view write routes through it.
   Undo and redo restore the locale-specific value. Existing call sites

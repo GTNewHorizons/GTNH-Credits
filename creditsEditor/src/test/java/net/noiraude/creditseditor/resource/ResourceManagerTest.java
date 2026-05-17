@@ -2,8 +2,6 @@ package net.noiraude.creditseditor.resource;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -167,15 +165,17 @@ public class ResourceManagerTest {
 
             assertEquals(Set.of("en_US", "fr_FR"), rm.availableLocales());
 
-            LangDocument en = rm.langDoc("en_US");
-            LangDocument fr = rm.langDoc("fr_FR");
-            assertNotNull(en);
-            assertNotNull(fr);
+            LangDocument en = rm.langDoc("en_US")
+                .orElseThrow();
+            LangDocument fr = rm.langDoc("fr_FR")
+                .orElseThrow();
             assertEquals("Team", en.get("credits.category.team"));
             assertEquals("Equipe", fr.get("credits.category.team"));
             assertSame(en, rm.getLangDoc(), "no-arg getLangDoc() must return the en_US document");
 
-            assertNull(rm.langDoc("de_DE"));
+            assertTrue(
+                rm.langDoc("de_DE")
+                    .isEmpty());
             assertFalse(rm.isDirty(), "freshly loaded documents must not be dirty");
         }
     }
@@ -189,13 +189,17 @@ public class ResourceManagerTest {
             assertEquals(Set.of("en_US"), rm.availableLocales());
 
             rm.addLocale("de_DE");
-            LangDocument added = rm.langDoc("de_DE");
-            assertNotNull(added);
+            LangDocument added = rm.langDoc("de_DE")
+                .orElseThrow();
             assertFalse(added.contains("credits.category.team"));
             assertEquals(Set.of("en_US", "de_DE"), rm.availableLocales());
 
             rm.addLocale("de_DE");
-            assertSame(added, rm.langDoc("de_DE"), "addLocale must be idempotent");
+            assertSame(
+                added,
+                rm.langDoc("de_DE")
+                    .orElseThrow(),
+                "addLocale must be idempotent");
         }
     }
 
@@ -212,13 +216,15 @@ public class ResourceManagerTest {
 
         try (ResourceManager rm = ResourceManager.open(dir.toString())) {
             rm.loadDocuments();
-            LangDocument frBeforeRemoval = rm.langDoc("fr_FR");
-            assertNotNull(frBeforeRemoval);
+            LangDocument frBeforeRemoval = rm.langDoc("fr_FR")
+                .orElseThrow();
             assertEquals("Equipe", frBeforeRemoval.get("credits.category.team"));
 
             rm.removeLocale("fr_FR");
             assertEquals(Set.of("en_US"), rm.availableLocales());
-            assertNull(rm.langDoc("fr_FR"));
+            assertTrue(
+                rm.langDoc("fr_FR")
+                    .isEmpty());
 
             rm.removeLocale("fr_FR"); // second call is a no-op
             assertEquals(Set.of("en_US"), rm.availableLocales());
@@ -242,8 +248,8 @@ public class ResourceManagerTest {
         try (ResourceManager rm = ResourceManager.open(dir.toString())) {
             rm.loadDocuments();
             rm.addLocale("fr_FR");
-            LangDocument fr = rm.langDoc("fr_FR");
-            assertNotNull(fr);
+            LangDocument fr = rm.langDoc("fr_FR")
+                .orElseThrow();
             fr.set("credits.category.team", "Equipe");
             rm.removeLocale("fr_FR");
 
@@ -318,11 +324,11 @@ public class ResourceManagerTest {
 
         try (ResourceManager rm = ResourceManager.open(dir.toString())) {
             rm.loadDocuments();
-            // noinspection DataFlowIssue
             rm.langDoc("en_US")
+                .orElseThrow()
                 .set("credits.category.team", "Team!");
-            // noinspection DataFlowIssue
             rm.langDoc("fr_FR")
+                .orElseThrow()
                 .set("credits.category.team", "Equipe!");
 
             rm.writeLang();
@@ -330,15 +336,15 @@ public class ResourceManagerTest {
 
         try (ResourceManager rm2 = ResourceManager.open(dir.toString())) {
             rm2.loadDocuments();
-            // noinspection DataFlowIssue
             assertEquals(
                 "Team!",
                 rm2.langDoc("en_US")
+                    .orElseThrow()
                     .get("credits.category.team"));
-            // noinspection DataFlowIssue
             assertEquals(
                 "Equipe!",
                 rm2.langDoc("fr_FR")
+                    .orElseThrow()
                     .get("credits.category.team"));
             assertFalse(rm2.isDirty(), "freshly reloaded manager must not be dirty");
         }

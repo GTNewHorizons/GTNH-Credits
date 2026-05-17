@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
 
@@ -169,10 +170,10 @@ public final class ResourceManager implements Closeable {
         return Objects.requireNonNull(doc, "call loadDocuments() first");
     }
 
-    /** Returns the lang document for {@code locale}, or {@code null} if not loaded. */
+    /** Returns the lang document registered for {@code locale}, if loaded. */
     @Contract(pure = true)
-    public @Nullable LangDocument langDoc(@NotNull String locale) {
-        return langDocs.get(locale);
+    public @NotNull Optional<LangDocument> langDoc(@NotNull String locale) {
+        return Optional.ofNullable(langDocs.get(locale));
     }
 
     /**
