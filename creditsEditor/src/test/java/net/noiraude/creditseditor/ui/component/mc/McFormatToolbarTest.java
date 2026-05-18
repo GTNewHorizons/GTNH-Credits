@@ -24,7 +24,7 @@ public class McFormatToolbarTest {
     @Test
     public void boldButton_selected_whenCaretIsInBoldRunAtConnectTime() {
         McWysiwygPane pane = new McWysiwygPane(true);
-        pane.setText("§lHello§rWorld");
+        pane.setStyledText("§lHello§rWorld");
         pane.setCaretPosition(3);
 
         McFormatToolbar toolbar = new McFormatToolbar();
@@ -37,7 +37,7 @@ public class McFormatToolbarTest {
     @Test
     public void boldButton_notSelected_whenCaretIsInPlainRunAtConnectTime() {
         McWysiwygPane pane = new McWysiwygPane(true);
-        pane.setText("§lHello§rWorld");
+        pane.setStyledText("§lHello§rWorld");
         pane.setCaretPosition(8); // inside plain "World"
 
         McFormatToolbar toolbar = new McFormatToolbar();
@@ -50,7 +50,7 @@ public class McFormatToolbarTest {
     @Test
     public void boldButton_updatesAfterCaretMove_whenConnectedBeforeMove() {
         McWysiwygPane pane = new McWysiwygPane(true);
-        pane.setText("§lHello§rWorld");
+        pane.setStyledText("§lHello§rWorld");
         // Caret starts in the plain "World" run before the toolbar attaches.
         pane.setCaretPosition(8);
 
@@ -71,7 +71,7 @@ public class McFormatToolbarTest {
     @Test
     public void italicButton_selected_whenCaretIsInItalicRunAtConnectTime() {
         McWysiwygPane pane = new McWysiwygPane(true);
-        pane.setText("§oHello");
+        pane.setStyledText("§oHello");
         pane.setCaretPosition(3);
 
         McFormatToolbar toolbar = new McFormatToolbar();

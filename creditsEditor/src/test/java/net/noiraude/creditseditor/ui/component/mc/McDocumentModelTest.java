@@ -18,36 +18,35 @@ public class McDocumentModelTest {
     @Test
     public void roundTrip_plainText_preserved() throws javax.swing.text.BadLocationException {
         McDocumentModel model = new McDocumentModel(true);
-        model.setText("Hello World");
+        model.setStyledText("Hello World");
         assertEquals("Hello World", model.getText());
     }
 
     @Test
     public void roundTrip_singleColor_preserved() throws javax.swing.text.BadLocationException {
         McDocumentModel model = new McDocumentModel(true);
-        model.setText("§aHello");
+        model.setStyledText("§aHello");
         assertEquals("§aHello", model.getText());
     }
 
     @Test
     public void roundTrip_multipleParagraphs_preserved() throws javax.swing.text.BadLocationException {
         McDocumentModel model = new McDocumentModel(true);
-        model.setText("§aLine one\n§bLine two");
+        model.setStyledText("§aLine one\n§bLine two");
         assertEquals("§aLine one\n§bLine two", model.getText());
     }
 
     @Test
-    public void rawMode_returnsLiteralText() throws javax.swing.text.BadLocationException {
+    public void setPlainText_preservesVerbatim() throws javax.swing.text.BadLocationException {
         McDocumentModel model = new McDocumentModel(true);
-        model.setText("§aHello");
-        model.setRawMode(true);
+        model.setPlainText("§aHello");
         assertEquals("§aHello", model.getText());
     }
 
     @Test
     public void applyCode_noSelection_togglesPendingCarry() throws javax.swing.text.BadLocationException {
         McDocumentModel model = new McDocumentModel(true);
-        model.setText("");
+        model.setStyledText("");
         assertFalse(
             model.getPendingCodes()
                 .contains(McFormatCode.BOLD));
@@ -66,7 +65,7 @@ public class McDocumentModelTest {
     @Test
     public void applyReset_noSelection_clearsCarry() throws javax.swing.text.BadLocationException {
         McDocumentModel model = new McDocumentModel(true);
-        model.setText("");
+        model.setStyledText("");
         model.applyCode(McFormatCode.BOLD, true, 0, 0);
         model.applyCode(McFormatCode.RED, true, 0, 0);
 
@@ -80,7 +79,7 @@ public class McDocumentModelTest {
     @Test
     public void applyColorReset_noSelection_keepsModifiers() throws javax.swing.text.BadLocationException {
         McDocumentModel model = new McDocumentModel(true);
-        model.setText("");
+        model.setStyledText("");
         model.applyCode(McFormatCode.BOLD, true, 0, 0);
         model.applyCode(McFormatCode.RED, true, 0, 0);
 
@@ -94,7 +93,7 @@ public class McDocumentModelTest {
     @Test
     public void syncPendingFromCaret_readsPrecedingChar() throws javax.swing.text.BadLocationException {
         McDocumentModel model = new McDocumentModel(true);
-        model.setText("§aHello§cWorld");
+        model.setStyledText("§aHello§cWorld");
         // Document content is "HelloWorld" (codes removed). Caret at position 5 sits between
         // the last green char ('o') and the first red char ('W'); syncing from caret should
         // read attrs at position 4 ('o'), so the carry must be GREEN.
@@ -108,7 +107,7 @@ public class McDocumentModelTest {
     @Test
     public void getCaretStyle_noSelection_readsDocumentDirectly() throws javax.swing.text.BadLocationException {
         McDocumentModel model = new McDocumentModel(true);
-        model.setText("§lHello§rWorld");
+        model.setStyledText("§lHello§rWorld");
         // Caret at position 3 sits in the bold "Hello" run. getCaretStyle reads the document
         // directly (without consulting the carry), so it must return BOLD even when the carry
         // has not yet been synced.
@@ -119,7 +118,7 @@ public class McDocumentModelTest {
     @Test
     public void getCaretStyle_withSelection_readsAtSelectionStart() throws javax.swing.text.BadLocationException {
         McDocumentModel model = new McDocumentModel(true);
-        model.setText("§lHello§rWorld");
+        model.setStyledText("§lHello§rWorld");
         // Selection [3, 8) starts inside the bold run; getCaretStyle should report BOLD.
         EnumSet<McFormatCode> codes = model.getCaretStyle(3, 8);
         assertTrue(codes.contains(McFormatCode.BOLD));
@@ -128,7 +127,7 @@ public class McDocumentModelTest {
     @Test
     public void applyCode_onSelection_writesAttributesToDocument() throws javax.swing.text.BadLocationException {
         McDocumentModel model = new McDocumentModel(true);
-        model.setText("Hello");
+        model.setStyledText("Hello");
         StyledDocument doc = model.getDocument();
 
         model.applyCode(McFormatCode.BOLD, true, 1, 4);

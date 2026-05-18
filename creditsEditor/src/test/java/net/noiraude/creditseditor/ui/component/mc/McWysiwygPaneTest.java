@@ -22,14 +22,14 @@ public class McWysiwygPaneTest {
     @Test
     public void setText_thenGetText_delegatesToModel() {
         McWysiwygPane pane = new McWysiwygPane(true);
-        pane.setText("§aHello");
+        pane.setStyledText("§aHello");
         assertEquals("§aHello", pane.getText());
     }
 
     @Test
     public void applyCode_onSelection_preservesSelectionBounds() {
         McWysiwygPane pane = new McWysiwygPane(true);
-        pane.setText("Hello");
+        pane.setStyledText("Hello");
         pane.select(1, 4); // "ell"
 
         pane.applyCode(McFormatCode.BOLD, true);
@@ -41,7 +41,7 @@ public class McWysiwygPaneTest {
     @Test
     public void caretMove_syncsPendingForInputAttributes() {
         McWysiwygPane pane = new McWysiwygPane(true);
-        pane.setText("§aHello§cWorld");
+        pane.setStyledText("§aHello§cWorld");
         // Caret at position 5 sits between green 'o' (pos 4) and red 'W' (pos 5). Moving the
         // caret triggers the pane's listener, which syncs the carry from caret-1 ('o') and
         // flushes it to the input-attributes map. getCaretStyle reads the document directly

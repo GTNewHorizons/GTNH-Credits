@@ -43,7 +43,6 @@ public final class McDocumentModel {
 
     private final @NotNull StyledDocument doc = new DefaultStyledDocument();
     private final boolean multiLine;
-    private boolean rawMode;
     private @NotNull EnumSet<McFormatCode> pendingCodes = EnumSet.noneOf(McFormatCode.class);
 
     @Contract(pure = true)
@@ -56,11 +55,6 @@ public final class McDocumentModel {
         return doc;
     }
 
-    @Contract(pure = true)
-    public boolean isRawMode() {
-        return rawMode;
-    }
-
     /** Returns a defensive copy of the pending-codes carry. */
     @Contract(" -> new")
     public @NotNull EnumSet<McFormatCode> getPendingCodes() {
@@ -71,18 +65,10 @@ public final class McDocumentModel {
     // Text I/O
     // ------------------------------------------------------------------
 
-    /**
-     * Replaces the document content from a {@code §x} display string.
-     *
-     * <p>
-     * In multi-line mode, paragraphs separated by {@code '\n'} are inserted with the separator
-     * carrying no formatting. In raw mode the string is inserted verbatim.
-     */
-    public void setText(@NotNull String displayText) throws BadLocationException {
+    /** Replaces the document content from a {@code §x} display string, parsed into styled runs. */
+    public void setStyledText(@NotNull String displayText) throws BadLocationException {
         doc.remove(0, doc.getLength());
-        if (rawMode) {
-            doc.insertString(0, displayText, SimpleAttributeSet.EMPTY);
-        } else if (multiLine) {
+        if (multiLine) {
             String[] paras = displayText.split("\n", -1);
             for (int i = 0; i < paras.length; i++) {
                 if (i > 0) doc.insertString(doc.getLength(), "\n", SimpleAttributeSet.EMPTY);
@@ -93,31 +79,15 @@ public final class McDocumentModel {
         }
     }
 
-    /**
-     * Returns the document content as a {@code §x} string in display format.
-     *
-     * <p>
-     * In multi-line mode, paragraphs are separated by actual {@code '\n'} characters. The
-     * implicit trailing {@code '\n'} that {@link DefaultStyledDocument} maintains is stripped.
-     */
-    public @NotNull String getText() throws BadLocationException {
-        if (rawMode) {
-            String text = doc.getText(0, doc.getLength());
-            return text.endsWith("\n") ? text.substring(0, text.length() - 1) : text;
-        }
-        return styledDocToRaw();
+    /** Replaces the document content with {@code text} inserted verbatim, with no attributes. */
+    public void setPlainText(@NotNull String text) throws BadLocationException {
+        doc.remove(0, doc.getLength());
+        doc.insertString(0, text, SimpleAttributeSet.EMPTY);
     }
 
-    /**
-     * Switches between rendered (WYSIWYG) and raw (literal {@code §x}) display mode, preserving
-     * the current text across the switch and clearing the pending-codes carry.
-     */
-    public void setRawMode(boolean raw) throws BadLocationException {
-        if (this.rawMode == raw) return;
-        String text = getText();
-        this.rawMode = raw;
-        pendingCodes.clear();
-        setText(text);
+    /** Returns the document content as a {@code §x} string in display format. */
+    public @NotNull String getText() throws BadLocationException {
+        return styledDocToRaw();
     }
 
     // ------------------------------------------------------------------
@@ -149,7 +119,6 @@ public final class McDocumentModel {
      * not depend on the order in which caret listeners run.
      */
     public @NotNull EnumSet<McFormatCode> getCaretStyle(int selStart, int selEnd) {
-        if (rawMode) return EnumSet.noneOf(McFormatCode.class);
         if (selStart != selEnd) {
             return McSwingStyle.fromAttributes(
                 doc.getCharacterElement(selStart)
@@ -176,7 +145,6 @@ public final class McDocumentModel {
      */
     public void applyCode(@NotNull McFormatCode mc, boolean active, int selStart, int selEnd)
         throws BadLocationException {
-        if (rawMode) return;
         if (selStart != selEnd) {
             SimpleAttributeSet attrs = new SimpleAttributeSet();
             if (active) McSwingStyle.applyTo(attrs, mc);
@@ -190,7 +158,6 @@ public final class McDocumentModel {
 
     /** Removes all formatting from the selection if non-empty, otherwise clears the carry. */
     public void applyReset(int selStart, int selEnd) throws BadLocationException {
-        if (rawMode) return;
         if (selStart != selEnd) {
             applyAttrsToSelectionRange(new SimpleAttributeSet(), true, selStart, selEnd);
         } else {
@@ -203,7 +170,6 @@ public final class McDocumentModel {
      * color from the carry while leaving modifiers intact.
      */
     public void applyColorReset(int selStart, int selEnd) throws BadLocationException {
-        if (rawMode) return;
         if (selStart != selEnd) {
             int offset = selStart;
             while (offset < selEnd) {

@@ -22,28 +22,10 @@ import net.noiraude.creditseditor.ui.component.AnyChangeListener;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
-/**
- * Editable {@link JTextPane} that renders and edits Minecraft {@code §x} formatting codes in
- * WYSIWYG style. All document state and {@code §x} conversion live in the underlying
- * {@link McDocumentModel}; this class is the Swing wiring on top.
- *
- * <p>
- * In multi-line mode, paragraphs are separated by the literal two-character sequence
- * {@code \n} (backslash-n) in {@link #getText}/{@link #setText}; internally the document uses
- * actual {@code '\n'} characters. In single-line mode Enter is suppressed.
- *
- * <p>
- * Fires a {@code "text"} {@link java.beans.PropertyChangeEvent} whenever the value changes due
- * to user input (typed text or toolbar formatting). Programmatic {@link #setText} calls do not
- * fire the event.
- *
- * <p>
- * Connect a {@link McFormatToolbar} via {@link #connectToolbar} to keep toolbar state in sync
- * with the caret and route toolbar actions back to this pane.
- */
+/** Editable {@link JTextPane} for Minecraft {@code §x}-formatted text. */
 public final class McWysiwygPane extends JTextPane implements McFormatTarget {
 
-    /** Property name fired when the text value changes due to user input. */
+    /** Property name fired on user-driven text changes. */
     public static final @NotNull String PROP_TEXT = "text";
 
     private final @NotNull McDocumentModel model;
@@ -81,7 +63,7 @@ public final class McWysiwygPane extends JTextPane implements McFormatTarget {
     }
 
     private void onCaretMoved() {
-        if (settingText || model.isRawMode()) return;
+        if (settingText) return;
         if (getSelectionStart() == getSelectionEnd()) {
             model.syncPendingFromCaret(getCaretPosition());
             flushPendingToInputAttributes();
@@ -92,10 +74,6 @@ public final class McWysiwygPane extends JTextPane implements McFormatTarget {
         if (!settingText) firePropertyChange(PROP_TEXT, null, getText());
     }
 
-    /**
-     * Writes the model's pending-codes carry to the Swing input-attributes map so that the next
-     * character typed inherits the carry.
-     */
     private void flushPendingToInputAttributes() {
         MutableAttributeSet input = getInputAttributes();
         input.removeAttributes(input);
@@ -106,29 +84,11 @@ public final class McWysiwygPane extends JTextPane implements McFormatTarget {
     // Public API
     // ------------------------------------------------------------------
 
-    /**
-     * Switches between rendered (WYSIWYG) and raw (literal {@code §x} codes) display mode.
-     *
-     * <p>
-     * The current text is preserved across the switch. Does not fire a {@code "text"} event.
-     */
-    public void setRawMode(boolean raw) {
+    /** Replaces the displayed text by parsing {@code §x} codes into styled runs. */
+    public void setStyledText(@NotNull String displayText) {
         settingText = true;
         try {
-            model.setRawMode(raw);
-        } catch (BadLocationException ex) {
-            throw new EditAbortedException("Cannot switch raw/rendered mode", ex);
-        } finally {
-            settingText = false;
-        }
-        setCaretPosition(0);
-    }
-
-    @Override
-    public void setText(@NotNull String displayText) {
-        settingText = true;
-        try {
-            model.setText(displayText);
+            model.setStyledText(displayText);
         } catch (BadLocationException ex) {
             throw new EditAbortedException("Cannot replace document text", ex);
         } finally {
@@ -137,27 +97,40 @@ public final class McWysiwygPane extends JTextPane implements McFormatTarget {
         setCaretPosition(0);
     }
 
-    /**
-     * Replaces the displayed text the same way {@link #setText} does, but lets the underlying
-     * document fire its {@link java.beans.PropertyChangeEvent} and {@link UndoableEditListener}
-     * events so the change is observed by listeners as if the user had typed it.
-     */
-    public void setTextAsUserInput(@NotNull String displayText) {
+    /** Replaces the displayed text with verbatim plain characters and no attributes. */
+    public void setPlainText(@NotNull String text) {
+        settingText = true;
         try {
-            model.setText(displayText);
+            model.setPlainText(text);
+        } catch (BadLocationException ex) {
+            throw new EditAbortedException("Cannot replace document text", ex);
+        } finally {
+            settingText = false;
+        }
+        setCaretPosition(0);
+    }
+
+    /** Replaces the displayed styled text and fires user-input events. */
+    public void setStyledTextAsUserInput(@NotNull String displayText) {
+        try {
+            model.setStyledText(displayText);
         } catch (BadLocationException ex) {
             throw new EditAbortedException("Cannot replace document text", ex);
         }
         setCaretPosition(0);
     }
 
-    /**
-     * Returns the current value as a {@code §x} string in display format.
-     *
-     * <p>
-     * In multi-line mode, paragraphs are separated by actual {@code '\n'} characters.
-     * Backslash characters are literal.
-     */
+    /** Replaces the displayed plain text and fires user-input events. */
+    public void setPlainTextAsUserInput(@NotNull String text) {
+        try {
+            model.setPlainText(text);
+        } catch (BadLocationException ex) {
+            throw new EditAbortedException("Cannot replace document text", ex);
+        }
+        setCaretPosition(0);
+    }
+
+    /** Returns the current value as a {@code §x} string in display format. */
     @Override
     public @NotNull String getText() {
         try {
@@ -183,28 +156,18 @@ public final class McWysiwygPane extends JTextPane implements McFormatTarget {
         return model.computeSelectionPresence(getSelectionStart(), getSelectionEnd());
     }
 
-    /**
-     * Registers an {@link UndoableEditListener} that is notified of document edits caused by user
-     * input. Events generated by programmatic {@link #setText} calls are suppressed.
-     */
+    /** Registers an {@link UndoableEditListener} notified of user-driven document edits. */
     public void addUndoableEditListener(@NotNull UndoableEditListener l) {
         getDocument().addUndoableEditListener(e -> { if (!settingText) l.undoableEditHappened(e); });
     }
 
-    /**
-     * Registers a typed text-change listener invoked with the current display-format text after
-     * every user-driven document mutation. Programmatic {@link #setText} calls are suppressed
-     * the same way the {@code "text"} property change is.
-     */
+    /** Registers a typed text-change listener invoked after every user-driven document mutation. */
     public void addTextChangeListener(@NotNull Consumer<@NotNull String> listener) {
         getStyledDocument()
             .addDocumentListener(new AnyChangeListener(() -> { if (!settingText) listener.accept(getText()); }));
     }
 
-    /**
-     * Connects a {@link McFormatToolbar} so its state tracks the caret and its buttons apply
-     * formatting to this pane.
-     */
+    /** Connects a {@link McFormatToolbar} that drives this pane's formatting. */
     public void connectToolbar(@NotNull McFormatToolbar toolbar) {
         toolbar.connectTo(this);
     }

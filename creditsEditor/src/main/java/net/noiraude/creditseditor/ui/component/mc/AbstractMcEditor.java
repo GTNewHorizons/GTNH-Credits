@@ -26,21 +26,10 @@ import net.noiraude.creditseditor.ui.I18n;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
-/**
- * Abstract base for Minecraft-formatted text editors.
- *
- * <p>
- * Wraps a {@link McWysiwygPane} together with a {@link McFormatToolbar} and a toggle button
- * that switches the pane between rendered (WYSIWYG) and raw ({@code §x} literal) mode.
- *
- * <p>
- * Fires a {@code "text"} {@link java.beans.PropertyChangeEvent} whenever the value changes
- * due to user input. The event value is in Minecraft lang file format. Programmatic calls
- * to {@link #setText} do not fire the event.
- */
+/** Abstract base for Minecraft-formatted text editors. */
 class AbstractMcEditor extends JPanel {
 
-    /** Property name fired when the text value changes due to user input. */
+    /** Property name fired on user-driven text changes. */
     public static final @NotNull String PROP_TEXT = "text";
 
     private final @NotNull McWysiwygPane wysiwygPane;
@@ -101,45 +90,44 @@ class AbstractMcEditor extends JPanel {
         setBodyComponent(defaultBody);
     }
 
-    /** Installs the clipboard handler used for copy and paste on the underlying text pane. */
+    /** Installs the clipboard handler on the underlying text pane. */
     final void setPaneTransferHandler(@NotNull javax.swing.TransferHandler handler) {
         wysiwygPane.setTransferHandler(handler);
     }
+
+    /** Pushes {@code displayText} to {@code pane} in the controller's current content form. */
+    protected final void pushContentTo(@NotNull McWysiwygPane pane, @NotNull String displayText) {
+        if (rawMode) pane.setPlainText(displayText);
+        else pane.setStyledText(displayText);
+    }
+
+    /** Pushes {@code displayText} to {@code pane} in the current form with user-input events. */
+    protected final void pushContentToAsUserInput(@NotNull McWysiwygPane pane, @NotNull String displayText) {
+        if (rawMode) pane.setPlainTextAsUserInput(displayText);
+        else pane.setStyledTextAsUserInput(displayText);
+    }
+
+    /** Subclass hook for refreshing additional panes owned by the subclass after a state change. */
+    protected void refreshOwnedPanes() {}
 
     // ------------------------------------------------------------------
     // Public API
     // ------------------------------------------------------------------
 
-    /**
-     * Sets the displayed text from a value in Minecraft lang file format.
-     *
-     * <p>
-     * Does not fire a {@code "text"} property change event.
-     *
-     * @param langValue the value in lang file format; pass an empty string for empty
-     */
+    /** Sets the displayed text from a value in Minecraft lang file format. */
     public void setText(@NotNull String langValue) {
-        wysiwygPane.setText(McText.decodeLang(langValue));
+        pushContentTo(wysiwygPane, McText.decodeLang(langValue));
     }
 
-    /**
-     * Replaces the displayed text the same way {@link #setText} does, but lets the underlying
-     * document fire its {@code "text"} property change event and undoable edit events so the
-     * change is observed by listeners as if the user had typed it.
-     *
-     * @param langValue the value in lang file format; pass an empty string for empty
-     */
+    /** Sets the displayed text from a lang-file value and fires user-input events. */
     public void setTextAsUserInput(@NotNull String langValue) {
-        wysiwygPane.setTextAsUserInput(McText.decodeLang(langValue));
+        pushContentToAsUserInput(wysiwygPane, McText.decodeLang(langValue));
     }
 
-    /**
-     * Sets whether the editor accepts user input. When {@code false}, the underlying text pane
-     * is non-editable and the formatting toolbar is disabled.
-     */
+    /** Sets whether the editor accepts user input. */
     public void setEditable(boolean editable) {
         wysiwygPane.setEditable(editable);
-        setEnabledRecursive(toolbar, editable);
+        updateToolbarEnabled();
     }
 
     /** Returns {@code true} when the editor accepts user input. */
@@ -169,27 +157,18 @@ class AbstractMcEditor extends JPanel {
         }
     }
 
-    /**
-     * Returns the current value in Minecraft lang file format.
-     */
+    /** Returns the current value in Minecraft lang file format. */
     @Contract(pure = true)
     public @NotNull String getText() {
         return McText.encodeLang(wysiwygPane.getText());
     }
 
-    /**
-     * Registers an {@link UndoableEditListener} notified of document edits caused by user
-     * input. Events from programmatic {@link #setText} calls are suppressed.
-     */
+    /** Registers an {@link UndoableEditListener} notified of user-driven document edits. */
     public void addUndoableEditListener(@NotNull UndoableEditListener l) {
         wysiwygPane.addUndoableEditListener(l);
     }
 
-    /**
-     * Registers a typed text-change listener invoked with the current value (in lang file
-     * format) after every user-driven document mutation. Programmatic {@link #setText} calls
-     * are suppressed; {@link #setTextAsUserInput} is observed.
-     */
+    /** Registers a typed text-change listener invoked after every user-driven document mutation. */
     public void addTextChangeListener(@NotNull Consumer<@NotNull String> listener) {
         wysiwygPane.addTextChangeListener(displayText -> listener.accept(McText.encodeLang(displayText)));
     }
@@ -219,17 +198,21 @@ class AbstractMcEditor extends JPanel {
     // ------------------------------------------------------------------
 
     private void setRawMode(boolean raw) {
+        if (raw == rawMode) return;
+        String canonical = wysiwygPane.getText();
         rawMode = raw;
+        pushContentTo(wysiwygPane, canonical);
+        updateToolbarEnabled();
+        refreshOwnedPanes();
         toggleButton.setText(raw ? "Aa" : "<>");
-        wysiwygPane.setRawMode(raw);
         wysiwygPane.requestFocusInWindow();
     }
 
-    /**
-     * Inserts {@code c} into the top bar's trailing group, immediately to the left of the
-     * raw/rendered toggle. Each call adds a small gap before the previous leading component, so
-     * later insertions stack rightward, and the toggle stays at the far edge.
-     */
+    private void updateToolbarEnabled() {
+        setEnabledRecursive(toolbar, !rawMode && wysiwygPane.isEditable());
+    }
+
+    /** Inserts {@code c} into the top bar trailing group, before the raw/rendered toggle. */
     final void addTopBarLeadingComponent(@NotNull Component c) {
         int toggleIdx = topBarTrailing.getComponentCount() - 1;
         topBarTrailing.add(c, toggleIdx);
@@ -242,10 +225,7 @@ class AbstractMcEditor extends JPanel {
     // Package-private utility shared with McWysiwygPane
     // ------------------------------------------------------------------
 
-    /**
-     * Removes the L&F-installed {@code UndoManager} from the document of {@code c} so it does
-     * not maintain a parallel undo history that conflicts with the application command stack.
-     */
+    /** Removes the L&amp;F-installed {@code UndoManager} from the document of {@code c}. */
     static void removeLafUndoManager(javax.swing.text.@NotNull JTextComponent c) {
         if (c.getClientProperty("JTextField.undoManager") instanceof UndoableEditListener listener) {
             c.getDocument()

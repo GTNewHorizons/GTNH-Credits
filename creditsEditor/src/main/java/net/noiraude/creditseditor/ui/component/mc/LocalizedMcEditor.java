@@ -1,17 +1,8 @@
 package net.noiraude.creditseditor.ui.component.mc;
 
-import net.noiraude.creditseditor.mc.McText;
-import net.noiraude.creditseditor.service.LangResolver;
-import net.noiraude.creditseditor.ui.I18n;
-import org.jetbrains.annotations.Contract;
-import org.jetbrains.annotations.NotNull;
+import static net.noiraude.creditseditor.ui.ScaledMetrics.gapHair;
+import static net.noiraude.creditseditor.ui.ScaledMetrics.gapSmall;
 
-import javax.swing.JComponent;
-import javax.swing.JScrollPane;
-import javax.swing.JToggleButton;
-import javax.swing.ScrollPaneConstants;
-import javax.swing.TransferHandler;
-import javax.swing.text.JTextComponent;
 import java.awt.Insets;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.StringSelection;
@@ -19,37 +10,41 @@ import java.awt.datatransfer.Transferable;
 import java.util.Optional;
 import java.util.function.Supplier;
 
-import static net.noiraude.creditseditor.ui.ScaledMetrics.gapHair;
-import static net.noiraude.creditseditor.ui.ScaledMetrics.gapSmall;
+import javax.swing.JComponent;
+import javax.swing.JScrollPane;
+import javax.swing.JToggleButton;
+import javax.swing.ScrollPaneConstants;
+import javax.swing.TransferHandler;
+import javax.swing.text.JTextComponent;
 
-/**
- * Locale-aware editor that lets the user peek at the English source of the currently edited
- * field by replacing the editing pane with a short-lived read-only pane that exists only while
- * the EN view is active.
- */
+import net.noiraude.creditseditor.mc.McText;
+import net.noiraude.creditseditor.service.LangResolver;
+import net.noiraude.creditseditor.ui.I18n;
+
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
+
+/** Locale-aware editor with a read-only EN view of the English source value. */
 public final class LocalizedMcEditor extends AbstractMcEditor {
 
-    private sealed interface ViewState permits Editing,EnViewing {
-    }
-
-    private record Editing() implements ViewState {}
-
-    private record EnViewing(@NotNull McWysiwygPane pane, @NotNull JScrollPane scroll) implements ViewState {}
-
-    private static final @NotNull ViewState EDITING = new Editing();
-
-    private final boolean multiLine;
     private final @NotNull JToggleButton enToggle = new JToggleButton(I18n.get("editor.localized.en_toggle.label"));
+    private final @NotNull McWysiwygPane enPane;
+    private final @NotNull JScrollPane enScroll;
 
     private @NotNull Supplier<@NotNull Optional<@NotNull String>> englishValueSupplier = Optional::empty;
     private @NotNull String activeLocale = LangResolver.DEFAULT_LOCALE;
-    private @NotNull ViewState state = EDITING;
+    private boolean enViewVisible;
 
     public LocalizedMcEditor(boolean multiLine) {
         super(multiLine);
-        this.multiLine = multiLine;
         setOpaque(false);
         setPaneTransferHandler(new PlainTextOnly());
+
+        enPane = new McWysiwygPane(multiLine);
+        enPane.setEditable(false);
+        enPane.setTransferHandler(new PlainTextExportOnly());
+        enScroll = new JScrollPane(enPane);
+        enScroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
 
         enToggle.setToolTipText(I18n.get("editor.localized.en_toggle.tooltip"));
         enToggle.setMargin(new Insets(gapHair, gapSmall, gapHair, gapSmall));
@@ -74,20 +69,24 @@ public final class LocalizedMcEditor extends AbstractMcEditor {
 
     @Contract(pure = true)
     boolean isEnViewing() {
-        return state instanceof EnViewing;
+        return enViewVisible;
     }
 
-    /** Returns the read-only pane used to display the English source while EN view is active. */
     @Contract(pure = true)
     @NotNull
     Optional<@NotNull McWysiwygPane> enPaneForTest() {
-        return state instanceof EnViewing v ? Optional.of(v.pane()) : Optional.empty();
+        return enViewVisible ? Optional.of(enPane) : Optional.empty();
     }
 
     @Contract(pure = true)
     @NotNull
     JToggleButton enToggleForTest() {
         return enToggle;
+    }
+
+    @Override
+    protected void refreshOwnedPanes() {
+        pushContentTo(enPane, enPane.getText());
     }
 
     private void onEnToggleClicked() {
@@ -104,28 +103,23 @@ public final class LocalizedMcEditor extends AbstractMcEditor {
     }
 
     private void enterEnView(@NotNull String englishValue) {
-        if (state instanceof EnViewing) return;
-        McWysiwygPane pane = new McWysiwygPane(multiLine);
-        pane.setEditable(false);
-        pane.setTransferHandler(new PlainTextExportOnly());
-        pane.setText(McText.decodeLang(englishValue));
-        JScrollPane scroll = new JScrollPane(pane);
-        scroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-        setBodyComponent(scroll);
+        if (enViewVisible) return;
+        pushContentTo(enPane, McText.decodeLang(englishValue));
+        setBodyComponent(enScroll);
         setEditable(false);
-        state = new EnViewing(pane, scroll);
+        enViewVisible = true;
     }
 
     private void exitEnView() {
-        if (!(state instanceof EnViewing)) return;
+        if (!enViewVisible) return;
         restoreDefaultBody();
         setEditable(true);
-        state = EDITING;
+        enViewVisible = false;
     }
 
     private void applyLocaleVisibility() {
         boolean isDefault = LangResolver.DEFAULT_LOCALE.equals(activeLocale);
-        if (isDefault && state instanceof EnViewing) {
+        if (isDefault && enViewVisible) {
             enToggle.setSelected(false);
             exitEnView();
         }
