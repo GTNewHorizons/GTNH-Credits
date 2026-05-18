@@ -10,7 +10,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import javax.swing.JButton;
+import javax.swing.JToggleButton;
+import javax.swing.text.BadLocationException;
+
 import net.noiraude.creditseditor.service.LangResolver;
+import net.noiraude.creditseditor.ui.SwingFinder;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -20,6 +25,33 @@ public class LocalizedMcEditorTest {
     @BeforeEach
     public void requireGraphicsEnvironment() {
         assumeFalse(GraphicsEnvironment.isHeadless(), "Swing components require a graphics environment");
+    }
+
+    private static JToggleButton enToggle(LocalizedMcEditor editor) {
+        return SwingFinder.findByName(editor, LocalizedMcEditor.COMPONENT_NAME_EN_TOGGLE, JToggleButton.class)
+            .orElseThrow();
+    }
+
+    private static JButton rawToggle(LocalizedMcEditor editor) {
+        return SwingFinder.findByName(editor, LocalizedMcEditor.COMPONENT_NAME_RAW_TOGGLE, JButton.class)
+            .orElseThrow();
+    }
+
+    private static Optional<McWysiwygPane> enPane(LocalizedMcEditor editor) {
+        return SwingFinder.findByName(editor, LocalizedMcEditor.COMPONENT_NAME_EN_PANE, McWysiwygPane.class);
+    }
+
+    private static McWysiwygPane mainPane(LocalizedMcEditor editor) {
+        return SwingFinder.findByName(editor, LocalizedMcEditor.COMPONENT_NAME_MAIN_PANE, McWysiwygPane.class)
+            .orElseThrow();
+    }
+
+    private static String docText(McWysiwygPane pane) throws BadLocationException {
+        return pane.getDocument()
+            .getText(
+                0,
+                pane.getDocument()
+                    .getLength());
     }
 
     @Test
@@ -51,27 +83,16 @@ public class LocalizedMcEditorTest {
         editor.setActiveLocale("fr_FR");
         editor.setText("Bonjour");
 
-        editor.enToggleForTest()
-            .doClick();
+        enToggle(editor).doClick();
 
-        assertTrue(editor.isEnViewing());
-        assertEquals(
-            "Hello",
-            editor.enPaneForTest()
-                .orElseThrow()
-                .getText(),
-            "EN viewer shows english value");
-        assertFalse(
-            editor.enPaneForTest()
-                .orElseThrow()
-                .isEditable(),
-            "EN viewer is read-only");
+        McWysiwygPane en = enPane(editor).orElseThrow();
+        assertEquals("Hello", en.getText(), "EN viewer shows english value");
+        assertFalse(en.isEditable(), "EN viewer is read-only");
         assertEquals("Bonjour", editor.getText(), "locale editor still holds the editing-locale value");
 
-        editor.enToggleForTest()
-            .doClick();
+        enToggle(editor).doClick();
 
-        assertFalse(editor.isEnViewing());
+        assertTrue(enPane(editor).isEmpty(), "EN viewer is detached after exit");
         assertEquals("Bonjour", editor.getText(), "locale editor untouched across EN round-trip");
         assertTrue(editor.isEditable(), "locale editor is editable");
     }
@@ -82,14 +103,10 @@ public class LocalizedMcEditorTest {
         editor.setActiveLocale("fr_FR");
         editor.setText("Bonjour");
 
-        editor.enToggleForTest()
-            .doClick();
+        enToggle(editor).doClick();
 
-        assertFalse(editor.isEnViewing(), "EN view stays closed when no English source is available");
-        assertFalse(
-            editor.enToggleForTest()
-                .isSelected(),
-            "toggle snaps back to unselected");
+        assertTrue(enPane(editor).isEmpty(), "EN view stays closed when no English source is available");
+        assertFalse(enToggle(editor).isSelected(), "toggle snaps back to unselected");
         assertEquals("Bonjour", editor.getText(), "locale editor untouched");
     }
 
@@ -103,10 +120,9 @@ public class LocalizedMcEditorTest {
         List<String> received = new ArrayList<>();
         editor.addTextChangeListener(received::add);
 
-        editor.enToggleForTest()
-            .doClick();
+        enToggle(editor).doClick();
 
-        assertTrue(editor.isEnViewing(), "EN view engages when an English source is available");
+        assertTrue(enPane(editor).isPresent(), "EN view engages when an English source is available");
         assertTrue(received.isEmpty(), "entering EN view must not notify text listeners");
         assertEquals("Bonjour", editor.getText(), "editing-locale value is preserved while EN view is on");
     }
@@ -117,18 +133,14 @@ public class LocalizedMcEditorTest {
         editor.setEnglishValueSupplier(() -> Optional.of("Hello"));
         editor.setActiveLocale("fr_FR");
         editor.setText("Bonjour");
-        editor.enToggleForTest()
-            .doClick();
-        assertTrue(editor.isEnViewing());
+        enToggle(editor).doClick();
+        assertTrue(enPane(editor).isPresent());
 
         editor.setActiveLocale(LangResolver.DEFAULT_LOCALE);
 
-        assertFalse(editor.isEnViewing(), "switching to default locale closes EN view");
+        assertTrue(enPane(editor).isEmpty(), "switching to default locale closes EN view");
         assertEquals("Bonjour", editor.getText(), "editing-locale value is preserved");
-        assertFalse(
-            editor.enToggleForTest()
-                .isVisible(),
-            "EN toggle hidden when active locale is en_US");
+        assertFalse(enToggle(editor).isVisible(), "EN toggle hidden when active locale is en_US");
     }
 
     @Test
@@ -137,22 +149,42 @@ public class LocalizedMcEditorTest {
         editor.setEnglishValueSupplier(() -> Optional.of("Hello"));
         editor.setActiveLocale("fr_FR");
         editor.setText("Bonjour");
-        editor.enToggleForTest()
-            .doClick();
+        enToggle(editor).doClick();
 
         editor.setText("Salut");
 
         assertEquals(
             "Hello",
-            editor.enPaneForTest()
-                .orElseThrow()
+            enPane(editor).orElseThrow()
                 .getText(),
             "EN viewer still shows English while EN is on");
         assertEquals("Salut", editor.getText(), "locale editor reflects the new editing-locale value");
 
-        editor.enToggleForTest()
-            .doClick();
+        enToggle(editor).doClick();
 
         assertEquals("Salut", editor.getText(), "locale editor value is shown after EN is turned off");
+    }
+
+    @Test
+    public void rawToggle_appliesToBothPanes_whileEnViewing() throws BadLocationException {
+        LocalizedMcEditor editor = new LocalizedMcEditor(false);
+        editor.setEnglishValueSupplier(() -> Optional.of("§lHello"));
+        editor.setActiveLocale("fr_FR");
+        editor.setText("§lBonjour");
+
+        enToggle(editor).doClick();
+        rawToggle(editor).doClick();
+
+        McWysiwygPane en = enPane(editor).orElseThrow();
+        assertTrue(docText(en).contains("§"), "EN pane shows literal § in raw mode");
+
+        rawToggle(editor).doClick();
+
+        assertFalse(docText(en).contains("§"), "EN pane shows styled text in rendered mode");
+
+        rawToggle(editor).doClick();
+        enToggle(editor).doClick();
+
+        assertTrue(docText(mainPane(editor)).contains("§"), "main pane stays in raw mode after EN view exit");
     }
 }

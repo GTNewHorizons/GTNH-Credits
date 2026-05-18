@@ -32,6 +32,12 @@ class AbstractMcEditor extends JPanel {
     /** Property name fired on user-driven text changes. */
     public static final @NotNull String PROP_TEXT = "text";
 
+    /** Stable identifier for the raw/rendered toggle button. */
+    public static final @NotNull String COMPONENT_NAME_RAW_TOGGLE = "creditsEditor.mc.rawToggle";
+
+    /** Stable identifier for the main editing pane. */
+    public static final @NotNull String COMPONENT_NAME_MAIN_PANE = "creditsEditor.mc.mainPane";
+
     private final @NotNull McWysiwygPane wysiwygPane;
     private final @NotNull McFormatToolbar toolbar;
     private final @NotNull JPanel topBarTrailing;
@@ -45,9 +51,11 @@ class AbstractMcEditor extends JPanel {
         setLayout(new BorderLayout(0, 0));
 
         wysiwygPane = new McWysiwygPane(multiLine);
+        wysiwygPane.setName(COMPONENT_NAME_MAIN_PANE);
         toolbar = new McFormatToolbar();
         wysiwygPane.connectToolbar(toolbar);
 
+        toggleButton.setName(COMPONENT_NAME_RAW_TOGGLE);
         toggleButton.setMargin(new Insets(gapHair, gapSmall, gapHair, gapSmall));
         toggleButton.setFocusable(false);
         toggleButton.setToolTipText(I18n.get("toolbar.raw_rendered.toggle.tooltip"));

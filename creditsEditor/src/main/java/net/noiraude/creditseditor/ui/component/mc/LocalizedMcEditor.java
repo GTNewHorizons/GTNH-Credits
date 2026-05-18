@@ -27,6 +27,12 @@ import org.jetbrains.annotations.NotNull;
 /** Locale-aware editor with a read-only EN view of the English source value. */
 public final class LocalizedMcEditor extends AbstractMcEditor {
 
+    /** Stable identifier for the EN toggle button. */
+    public static final @NotNull String COMPONENT_NAME_EN_TOGGLE = "creditsEditor.mc.enToggle";
+
+    /** Stable identifier for the EN read-only pane. */
+    public static final @NotNull String COMPONENT_NAME_EN_PANE = "creditsEditor.mc.enPane";
+
     private final @NotNull JToggleButton enToggle = new JToggleButton(I18n.get("editor.localized.en_toggle.label"));
     private final @NotNull McWysiwygPane enPane;
     private final @NotNull JScrollPane enScroll;
@@ -41,11 +47,13 @@ public final class LocalizedMcEditor extends AbstractMcEditor {
         setPaneTransferHandler(new PlainTextOnly());
 
         enPane = new McWysiwygPane(multiLine);
+        enPane.setName(COMPONENT_NAME_EN_PANE);
         enPane.setEditable(false);
         enPane.setTransferHandler(new PlainTextExportOnly());
         enScroll = new JScrollPane(enPane);
         enScroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
 
+        enToggle.setName(COMPONENT_NAME_EN_TOGGLE);
         enToggle.setToolTipText(I18n.get("editor.localized.en_toggle.tooltip"));
         enToggle.setMargin(new Insets(gapHair, gapSmall, gapHair, gapSmall));
         enToggle.setFocusable(false);
@@ -65,23 +73,6 @@ public final class LocalizedMcEditor extends AbstractMcEditor {
     public void setActiveLocale(@NotNull String locale) {
         this.activeLocale = locale;
         applyLocaleVisibility();
-    }
-
-    @Contract(pure = true)
-    boolean isEnViewing() {
-        return enViewVisible;
-    }
-
-    @Contract(pure = true)
-    @NotNull
-    Optional<@NotNull McWysiwygPane> enPaneForTest() {
-        return enViewVisible ? Optional.of(enPane) : Optional.empty();
-    }
-
-    @Contract(pure = true)
-    @NotNull
-    JToggleButton enToggleForTest() {
-        return enToggle;
     }
 
     @Override
