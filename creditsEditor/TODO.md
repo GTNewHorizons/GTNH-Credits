@@ -150,15 +150,15 @@ reference and cannot be removed.
   Composes a `MinecraftTextEditor` or `MinecraftTextAreaEditor` with an
   extra "EN" toggle button placed in the editor's top bar next to the
   existing raw/rendered toggle. While the EN toggle is on, the pane shows
-  the read-only `en_US` value (resolved through `LangResolver`) and a
-  "Copy to <locale>" button appears beside the toggle. The Copy button
-  loads the English value into the pending value of the editor and toggles
-  the EN view back off. The EN toggle and Copy button are hidden when the
-  active locale is `en_US`. Reads go through `LangResolver`, writes go
-  through a locale-targeted `EditFieldCommand`.
-  Done when: the wrapper renders correctly in single- and multi-line modes,
-  the EN toggle round-trips, and "Copy to <locale>" replaces the editing
-  locale's pending value with the English source.
+  the read-only `en_US` value (resolved through `LangResolver`); selection
+  and clipboard copy stay available so the user can lift the English text
+  into the system clipboard if they want it. Turning the toggle off
+  restores the editing-locale pending value untouched. The EN toggle is
+  hidden when the active locale is `en_US`. Reads go through
+  `LangResolver`, writes go through a locale-targeted `EditFieldCommand`.
+  Done when: the wrapper renders correctly in single- and multi-line
+  modes, the EN toggle round-trips, and toggling EN never mutates the
+  editing-locale value or fires the wrapper's text listeners.
 
 - [x] **C.2 CategoryDetailView locale awareness**
   (`ui/detail/CategoryDetailView.java`)
@@ -279,7 +279,7 @@ reference and cannot be removed.
   Done when: every API path on the new `ResourceManager` surface is
   exercised at least once.
 
-- [ ] **F.3 i18n strings for new UI**
+- [x] **F.3 i18n strings for new UI**
   (`src/main/resources/messages_*.properties`)
   Add every new user-visible string (locale selector tooltip, EN-toggle
   label, "Copy to <locale>" button, add-locale dialog, remove-locale

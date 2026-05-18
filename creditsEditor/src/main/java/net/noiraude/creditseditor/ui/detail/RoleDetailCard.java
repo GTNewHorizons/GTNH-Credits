@@ -10,7 +10,6 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.util.Optional;
-import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import javax.swing.Box;
@@ -19,7 +18,6 @@ import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 import javax.swing.UIManager;
-import javax.swing.event.UndoableEditEvent;
 
 import net.noiraude.creditseditor.ui.I18n;
 import net.noiraude.creditseditor.ui.component.mc.LocalizedMcEditor;
@@ -52,7 +50,7 @@ public final class RoleDetailCard {
     private final @NotNull LocalizedMcEditor displayNameEditor = new LocalizedMcEditor(false);
     private boolean loading;
 
-    RoleDetailCard(@NotNull Consumer<UndoableEditEvent> onUndoableEdit) {
+    RoleDetailCard(@NotNull Runnable onDisplayNameChanged) {
         roleValueField.setEditable(false);
         roleValueField.setBackground(UIManager.getColor("Panel.background"));
         langKeyLabel.setForeground(UIManager.getColor("Label.disabledForeground"));
@@ -60,13 +58,22 @@ public final class RoleDetailCard {
         buildDetailCard();
         clear();
 
-        displayNameEditor.addUndoableEditListener(e -> { if (!loading) onUndoableEdit.accept(e); });
+        displayNameEditor.addTextChangeListener(text -> { if (!loading) onDisplayNameChanged.run(); });
     }
 
     @Contract(pure = true)
     @NotNull
     String getDisplayNameText() {
         return displayNameEditor.getText();
+    }
+
+    @Contract(pure = true)
+    int getDisplayNameCaret() {
+        return displayNameEditor.getCaretPosition();
+    }
+
+    void setDisplayNameCaret(int position) {
+        displayNameEditor.setCaretPosition(position);
     }
 
     /** Replaces the displayed value without firing the undoable-edit listener. */

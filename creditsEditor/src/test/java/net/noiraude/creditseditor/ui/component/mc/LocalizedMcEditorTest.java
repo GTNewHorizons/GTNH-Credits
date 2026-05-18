@@ -31,8 +31,7 @@ public class LocalizedMcEditorTest {
         List<String> received = new ArrayList<>();
         editor.addTextChangeListener(received::add);
 
-        editor.inner()
-            .setTextAsUserInput("Salut");
+        editor.setTextAsUserInput("Salut");
 
         assertFalse(received.isEmpty(), "user-input replacement should fire the text listener");
         assertEquals("Salut", received.get(received.size() - 1));
@@ -46,7 +45,7 @@ public class LocalizedMcEditorTest {
     }
 
     @Test
-    public void enToggle_swapsToEnglishAndPreservesEditingValue() {
+    public void enToggle_swapsBodyAndPreservesEditingValue() {
         LocalizedMcEditor editor = new LocalizedMcEditor(false);
         editor.setEnglishValueSupplier(() -> Optional.of("Hello"));
         editor.setActiveLocale("fr_FR");
@@ -58,29 +57,23 @@ public class LocalizedMcEditorTest {
         assertTrue(editor.isEnViewing());
         assertEquals(
             "Hello",
-            editor.inner()
+            editor.enPaneForTest()
+                .orElseThrow()
                 .getText(),
-            "EN view shows english value");
+            "EN viewer shows english value");
         assertFalse(
-            editor.inner()
+            editor.enPaneForTest()
+                .orElseThrow()
                 .isEditable(),
-            "EN view is read-only");
-        assertEquals("Bonjour", editor.getText(), "wrapper still exposes the editing-locale value through the buffer");
+            "EN viewer is read-only");
+        assertEquals("Bonjour", editor.getText(), "locale editor still holds the editing-locale value");
 
         editor.enToggleForTest()
             .doClick();
 
         assertFalse(editor.isEnViewing());
-        assertEquals(
-            "Bonjour",
-            editor.inner()
-                .getText(),
-            "editing-locale value restored on EN-off");
-        assertTrue(
-            editor.inner()
-                .isEditable(),
-            "editing mode is editable again");
-        assertEquals("Bonjour", editor.getText());
+        assertEquals("Bonjour", editor.getText(), "locale editor untouched across EN round-trip");
+        assertTrue(editor.isEditable(), "locale editor is editable");
     }
 
     @Test
@@ -97,15 +90,11 @@ public class LocalizedMcEditorTest {
             editor.enToggleForTest()
                 .isSelected(),
             "toggle snaps back to unselected");
-        assertEquals(
-            "Bonjour",
-            editor.inner()
-                .getText(),
-            "inner editor untouched");
+        assertEquals("Bonjour", editor.getText(), "locale editor untouched");
     }
 
     @Test
-    public void copy_replacesEditingValueWithEnglishAndExitsEnView() {
+    public void enView_doesNotFireListenersAndPreservesLocaleValue() {
         LocalizedMcEditor editor = new LocalizedMcEditor(false);
         editor.setEnglishValueSupplier(() -> Optional.of("Hello"));
         editor.setActiveLocale("fr_FR");
@@ -116,21 +105,14 @@ public class LocalizedMcEditorTest {
 
         editor.enToggleForTest()
             .doClick();
-        assertTrue(
-            editor.copyButtonForTest()
-                .isVisible(),
-            "Copy button revealed by EN toggle");
-        editor.copyButtonForTest()
-            .doClick();
 
-        assertFalse(editor.isEnViewing(), "Copy turns EN view off");
-        assertEquals("Hello", editor.getText(), "editing-locale value is replaced with the English source");
-        assertFalse(received.isEmpty(), "Copy fires the text listener so observers see the change");
-        assertEquals("Hello", received.get(received.size() - 1));
+        assertTrue(editor.isEnViewing(), "EN view engages when an English source is available");
+        assertTrue(received.isEmpty(), "entering EN view must not notify text listeners");
+        assertEquals("Bonjour", editor.getText(), "editing-locale value is preserved while EN view is on");
     }
 
     @Test
-    public void setActiveLocale_default_hidesEnControlsAndExitsEnView() {
+    public void setActiveLocale_default_hidesEnToggleAndExitsEnView() {
         LocalizedMcEditor editor = new LocalizedMcEditor(false);
         editor.setEnglishValueSupplier(() -> Optional.of("Hello"));
         editor.setActiveLocale("fr_FR");
@@ -142,23 +124,15 @@ public class LocalizedMcEditorTest {
         editor.setActiveLocale(LangResolver.DEFAULT_LOCALE);
 
         assertFalse(editor.isEnViewing(), "switching to default locale closes EN view");
-        assertEquals(
-            "Bonjour",
-            editor.inner()
-                .getText(),
-            "editing-locale value is restored");
+        assertEquals("Bonjour", editor.getText(), "editing-locale value is preserved");
         assertFalse(
             editor.enToggleForTest()
                 .isVisible(),
             "EN toggle hidden when active locale is en_US");
-        assertFalse(
-            editor.copyButtonForTest()
-                .isVisible(),
-            "Copy button hidden when active locale is en_US");
     }
 
     @Test
-    public void setText_whileEnViewing_updatesBufferOnly() {
+    public void setText_whileEnViewing_updatesLocaleEditorOnly() {
         LocalizedMcEditor editor = new LocalizedMcEditor(false);
         editor.setEnglishValueSupplier(() -> Optional.of("Hello"));
         editor.setActiveLocale("fr_FR");
@@ -170,18 +144,15 @@ public class LocalizedMcEditorTest {
 
         assertEquals(
             "Hello",
-            editor.inner()
+            editor.enPaneForTest()
+                .orElseThrow()
                 .getText(),
-            "inner editor still shows English while EN is on");
-        assertEquals("Salut", editor.getText(), "wrapper buffer reflects the new editing-locale value");
+            "EN viewer still shows English while EN is on");
+        assertEquals("Salut", editor.getText(), "locale editor reflects the new editing-locale value");
 
         editor.enToggleForTest()
             .doClick();
 
-        assertEquals(
-            "Salut",
-            editor.inner()
-                .getText(),
-            "buffered value is shown after EN is turned off");
+        assertEquals("Salut", editor.getText(), "locale editor value is shown after EN is turned off");
     }
 }

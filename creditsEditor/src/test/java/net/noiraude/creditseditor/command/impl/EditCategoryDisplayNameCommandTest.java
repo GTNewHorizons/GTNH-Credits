@@ -3,6 +3,8 @@ package net.noiraude.creditseditor.command.impl;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
+import java.util.function.IntConsumer;
+
 import net.noiraude.creditseditor.bus.DocumentBus;
 import net.noiraude.creditseditor.bus.TestDocumentSession;
 import net.noiraude.creditseditor.command.Command;
@@ -16,6 +18,8 @@ import org.junit.jupiter.api.Test;
 
 public class EditCategoryDisplayNameCommandTest {
 
+    private static final IntConsumer NO_CARET = position -> {};
+
     @Test
     public void execute_undo_redo_targetsCapturedLocaleOnly() {
         LangDocument en = LangParser.empty();
@@ -27,7 +31,7 @@ public class EditCategoryDisplayNameCommandTest {
         LangKey key = new LangKey("credits.category.team");
         LangFieldWriter writer = LangFieldWriter.ofBus(bus, fr, key);
 
-        Command cmd = EditCategoryDisplayNameCommand.create(writer, "", "Equipe");
+        Command cmd = EditCategoryDisplayNameCommand.create(writer, "", "Equipe", NO_CARET, 0);
 
         cmd.execute();
         assertEquals("Equipe", fr.get("credits.category.team"));

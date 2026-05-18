@@ -4,6 +4,7 @@ import static net.noiraude.creditseditor.ui.ScaledMetrics.gapMedium;
 import static net.noiraude.creditseditor.ui.ScaledMetrics.gapSmall;
 
 import java.awt.Component;
+import java.awt.EventQueue;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
@@ -57,6 +58,8 @@ public final class CategoryDetailView extends DetailView<DocumentCategory> {
 
     private @NotNull String shadowDisplayName = "";
     private @NotNull String shadowDescription = "";
+    private boolean displayNameCommitPending;
+    private boolean descriptionCommitPending;
 
     private @NotNull Optional<CategoryKeys> categoryKeys = Optional.empty();
 
@@ -138,35 +141,76 @@ public final class CategoryDetailView extends DetailView<DocumentCategory> {
     }
 
     private void wireDisplayNameEvents() {
-        displayNameEditor.addUndoableEditListener(e -> {
-            if (loading) return;
-            categoryKeys.ifPresent(
-                keys -> bus.langDoc(bus.activeLocale())
-                    .ifPresent(target -> {
-                        String newValue = displayNameEditor.getText();
-                        String oldValue = shadowDisplayName;
-                        shadowDisplayName = newValue;
-                        onCommand.execute(
-                            EditCategoryDisplayNameCommand
-                                .create(LangFieldWriter.ofBus(bus, target, keys.name()), oldValue, newValue));
-                    }));
+        displayNameEditor.addTextChangeListener(text -> {
+            if (loading || displayNameCommitPending) return;
+            displayNameCommitPending = true;
+            EventQueue.invokeLater(() -> {
+                displayNameCommitPending = false;
+                if (loading) return;
+                commitDisplayName();
+            });
         });
     }
 
     private void wireDescriptionEvents() {
-        descriptionSection.addUndoableEditListener(e -> {
-            if (loading) return;
-            categoryKeys.ifPresent(
-                keys -> bus.langDoc(bus.activeLocale())
-                    .ifPresent(target -> {
-                        String newValue = descriptionSection.getText();
-                        String oldValue = shadowDescription;
-                        shadowDescription = newValue;
-                        onCommand.execute(
-                            EditCategoryDetailsCommand
-                                .create(LangFieldWriter.ofBus(bus, target, keys.detail()), oldValue, newValue));
-                    }));
+        descriptionSection.addTextChangeListener(text -> {
+            if (loading || descriptionCommitPending) return;
+            descriptionCommitPending = true;
+            EventQueue.invokeLater(() -> {
+                descriptionCommitPending = false;
+                if (loading) return;
+                commitDescription();
+            });
         });
+    }
+
+    private void commitDisplayName() {
+        categoryKeys.ifPresent(
+            keys -> bus.langDoc(bus.activeLocale())
+                .ifPresent(target -> {
+                    String newValue = displayNameEditor.getText();
+                    String oldValue = shadowDisplayName;
+                    if (oldValue.equals(newValue)) return;
+                    int caretAfter = displayNameEditor.getCaretPosition();
+                    shadowDisplayName = newValue;
+                    loading = true;
+                    try {
+                        onCommand.execute(
+                            EditCategoryDisplayNameCommand.create(
+                                LangFieldWriter.ofBus(bus, target, keys.name()),
+                                oldValue,
+                                newValue,
+                                displayNameEditor::setCaretPosition,
+                                caretAfter));
+                    } finally {
+                        loading = false;
+                    }
+                }));
+    }
+
+    private void commitDescription() {
+        categoryKeys.ifPresent(
+            keys -> bus.langDoc(bus.activeLocale())
+                .ifPresent(target -> {
+                    String newValue = descriptionSection.getText();
+                    String oldValue = shadowDescription;
+                    if (oldValue.equals(newValue)) return;
+                    int caretAfter = descriptionSection.editor()
+                        .getCaretPosition();
+                    shadowDescription = newValue;
+                    loading = true;
+                    try {
+                        onCommand.execute(
+                            EditCategoryDetailsCommand.create(
+                                LangFieldWriter.ofBus(bus, target, keys.detail()),
+                                oldValue,
+                                newValue,
+                                descriptionSection.editor()::setCaretPosition,
+                                caretAfter));
+                    } finally {
+                        loading = false;
+                    }
+                }));
     }
 
     private void reloadClassCheckboxes() {

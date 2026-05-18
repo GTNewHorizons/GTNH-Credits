@@ -14,6 +14,7 @@ import java.util.function.Consumer;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
+import javax.swing.JComponent;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.ScrollPaneConstants;
@@ -46,6 +47,7 @@ class AbstractMcEditor extends JPanel {
     private final @NotNull McFormatToolbar toolbar;
     private final @NotNull JPanel topBarTrailing;
     private final @NotNull JButton toggleButton = new JButton("<>");
+    private final @NotNull JScrollPane defaultBody;
     private final boolean multiLine;
     private boolean rawMode = false;
 
@@ -72,15 +74,36 @@ class AbstractMcEditor extends JPanel {
         topBar.add(toolbar, BorderLayout.CENTER);
         topBar.add(topBarTrailing, BorderLayout.EAST);
 
-        JScrollPane scroll = new JScrollPane(wysiwygPane);
-        scroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        defaultBody = new JScrollPane(wysiwygPane);
+        defaultBody.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
 
         add(topBar, BorderLayout.NORTH);
-        add(scroll, BorderLayout.CENTER);
+        add(defaultBody, BorderLayout.CENTER);
 
         wysiwygPane.addPropertyChangeListener(
             McWysiwygPane.PROP_TEXT,
             e -> firePropertyChange(PROP_TEXT, null, McText.encodeLang((String) e.getNewValue())));
+    }
+
+    /** Replaces the body shown below the top bar with a custom component. */
+    final void setBodyComponent(@NotNull JComponent body) {
+        BorderLayout layout = (BorderLayout) getLayout();
+        Component current = layout.getLayoutComponent(BorderLayout.CENTER);
+        if (current == body) return;
+        if (current != null) remove(current);
+        add(body, BorderLayout.CENTER);
+        revalidate();
+        repaint();
+    }
+
+    /** Restores the body to the editor's own scrolled WYSIWYG pane. */
+    final void restoreDefaultBody() {
+        setBodyComponent(defaultBody);
+    }
+
+    /** Installs the clipboard handler used for copy and paste on the underlying text pane. */
+    final void setPaneTransferHandler(@NotNull javax.swing.TransferHandler handler) {
+        wysiwygPane.setTransferHandler(handler);
     }
 
     // ------------------------------------------------------------------
@@ -123,6 +146,19 @@ class AbstractMcEditor extends JPanel {
     @Contract(pure = true)
     public boolean isEditable() {
         return wysiwygPane.isEditable();
+    }
+
+    /** Returns the caret offset within the underlying document. */
+    @Contract(pure = true)
+    public int getCaretPosition() {
+        return wysiwygPane.getCaretPosition();
+    }
+
+    /** Sets the caret offset within the underlying document, clamped to its current length. */
+    public void setCaretPosition(int position) {
+        int len = wysiwygPane.getDocument()
+            .getLength();
+        wysiwygPane.setCaretPosition(Math.max(0, Math.min(position, len)));
     }
 
     private static void setEnabledRecursive(@NotNull Container c, boolean enabled) {

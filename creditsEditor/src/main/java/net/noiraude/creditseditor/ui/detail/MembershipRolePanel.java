@@ -4,6 +4,7 @@ import static net.noiraude.creditseditor.ui.ScaledMetrics.gapSmall;
 import static net.noiraude.creditseditor.ui.ScaledMetrics.gapTiny;
 
 import java.awt.Dimension;
+import java.awt.EventQueue;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
@@ -40,12 +41,14 @@ public final class MembershipRolePanel extends JPanel {
 
     private @NotNull Optional<LangKey> currentRoleKey = Optional.empty();
     private @NotNull String shadowRoleDisplayName = "";
+    private boolean loading;
+    private boolean roleCommitPending;
 
     public MembershipRolePanel(@NotNull DocumentBus bus, @NotNull CommandExecutor onCommand) {
         this.bus = bus;
         this.onCommand = onCommand;
         this.roleListPanel = new RoleListPanel(bus, onCommand);
-        this.roleDetailCard = new RoleDetailCard(e -> onRoleNameEditFired());
+        this.roleDetailCard = new RoleDetailCard(this::onRoleDisplayNameChanged);
         this.roleDetailCard.setEnglishValueSupplier(this::englishDisplayName);
         this.roleDetailCard.setActiveLocale(bus.activeLocale());
 
@@ -133,16 +136,38 @@ public final class MembershipRolePanel extends JPanel {
         });
     }
 
-    private void onRoleNameEditFired() {
+    private void onRoleDisplayNameChanged() {
+        if (loading || roleCommitPending) return;
+        roleCommitPending = true;
+        EventQueue.invokeLater(() -> {
+            roleCommitPending = false;
+            if (loading) return;
+            commitRoleDisplayName();
+        });
+    }
+
+    private void commitRoleDisplayName() {
         if (!bus.hasSession()) return;
         currentRoleKey.ifPresent(
             key -> bus.langDoc(bus.activeLocale())
                 .ifPresent(target -> {
                     String newValue = roleDetailCard.getDisplayNameText();
                     String oldValue = shadowRoleDisplayName;
+                    if (oldValue.equals(newValue)) return;
+                    int caretAfter = roleDetailCard.getDisplayNameCaret();
                     shadowRoleDisplayName = newValue;
-                    onCommand.execute(
-                        EditRoleDisplayNameCommand.create(LangFieldWriter.ofBus(bus, target, key), oldValue, newValue));
+                    loading = true;
+                    try {
+                        onCommand.execute(
+                            EditRoleDisplayNameCommand.create(
+                                LangFieldWriter.ofBus(bus, target, key),
+                                oldValue,
+                                newValue,
+                                roleDetailCard::setDisplayNameCaret,
+                                caretAfter));
+                    } finally {
+                        loading = false;
+                    }
                 }));
     }
 

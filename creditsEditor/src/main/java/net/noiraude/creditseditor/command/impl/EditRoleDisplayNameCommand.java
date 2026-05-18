@@ -1,5 +1,7 @@
 package net.noiraude.creditseditor.command.impl;
 
+import java.util.function.IntConsumer;
+
 import net.noiraude.creditseditor.command.Command;
 import net.noiraude.creditseditor.command.LangFieldWriter;
 import net.noiraude.creditseditor.ui.I18n;
@@ -14,14 +16,14 @@ public final class EditRoleDisplayNameCommand extends AbstractEditLangFieldComma
 
     @Contract(pure = true)
     private EditRoleDisplayNameCommand(@NotNull LangFieldWriter writer, @NotNull String oldValue,
-        @NotNull String newValue) {
-        super(writer, oldValue, newValue);
+        @NotNull String newValue, @NotNull IntConsumer caretSink, int caretAfter) {
+        super(writer, oldValue, newValue, caretSink, caretAfter);
     }
 
-    @Contract("_, _, _ -> new")
+    @Contract("_, _, _, _, _ -> new")
     public static @NotNull Command create(@NotNull LangFieldWriter writer, @NotNull String oldValue,
-        @NotNull String newValue) {
-        return new EditRoleDisplayNameCommand(writer, oldValue, newValue);
+        @NotNull String newValue, @NotNull IntConsumer caretSink, int caretAfter) {
+        return new EditRoleDisplayNameCommand(writer, oldValue, newValue, caretSink, caretAfter);
     }
 
     @Contract(pure = true)
