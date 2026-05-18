@@ -213,21 +213,16 @@ public final class McDocumentModel {
         }
     }
 
-    /**
-     * Converts the styled document to a minimal raw {@code §x} string, emitting only the
-     * transition codes required between adjacent runs and stripping the implicit trailing
-     * {@code '\n'} maintained by {@link DefaultStyledDocument}.
-     */
-    private @NotNull String styledDocToRaw() throws BadLocationException {
-        int len = doc.getLength();
-        if (len == 0) return "";
+    /** Serializes {@code doc} characters in {@code [start, end)} to the minimal {@code §x} form. */
+    static @NotNull String serializeRange(@NotNull StyledDocument doc, int start, int end) throws BadLocationException {
+        if (end <= start) return "";
 
-        StringBuilder sb = new StringBuilder(len + 16);
+        StringBuilder sb = new StringBuilder(end - start + 16);
         EnumSet<McFormatCode> prev = EnumSet.noneOf(McFormatCode.class);
-        int offset = 0;
-        while (offset < len) {
+        int offset = start;
+        while (offset < end) {
             Element elem = doc.getCharacterElement(offset);
-            int runEnd = Math.min(elem.getEndOffset(), len);
+            int runEnd = Math.min(elem.getEndOffset(), end);
             String text = doc.getText(offset, runEnd - offset);
             if ("\n".equals(text)) {
                 sb.append('\n');
@@ -239,8 +234,11 @@ public final class McDocumentModel {
             }
             offset = runEnd;
         }
+        return sb.toString();
+    }
 
-        String result = sb.toString();
+    private @NotNull String styledDocToRaw() throws BadLocationException {
+        String result = serializeRange(doc, 0, doc.getLength());
         if (result.endsWith("\n")) result = result.substring(0, result.length() - 1);
         return result;
     }

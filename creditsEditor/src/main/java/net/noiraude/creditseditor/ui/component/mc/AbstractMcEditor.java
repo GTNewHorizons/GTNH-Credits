@@ -54,6 +54,7 @@ class AbstractMcEditor extends JPanel {
         wysiwygPane.setName(COMPONENT_NAME_MAIN_PANE);
         toolbar = new McFormatToolbar();
         wysiwygPane.connectToolbar(toolbar);
+        installHandlerOn(wysiwygPane);
 
         toggleButton.setName(COMPONENT_NAME_RAW_TOGGLE);
         toggleButton.setMargin(new Insets(gapHair, gapSmall, gapHair, gapSmall));
@@ -98,11 +99,6 @@ class AbstractMcEditor extends JPanel {
         setBodyComponent(defaultBody);
     }
 
-    /** Installs the clipboard handler on the underlying text pane. */
-    final void setPaneTransferHandler(@NotNull javax.swing.TransferHandler handler) {
-        wysiwygPane.setTransferHandler(handler);
-    }
-
     /** Pushes {@code displayText} to {@code pane} in the controller's current content form. */
     protected final void pushContentTo(@NotNull McWysiwygPane pane, @NotNull String displayText) {
         if (rawMode) pane.setPlainText(displayText);
@@ -113,6 +109,11 @@ class AbstractMcEditor extends JPanel {
     protected final void pushContentToAsUserInput(@NotNull McWysiwygPane pane, @NotNull String displayText) {
         if (rawMode) pane.setPlainTextAsUserInput(displayText);
         else pane.setStyledTextAsUserInput(displayText);
+    }
+
+    /** Installs the clipboard handler matching the controller's current mode on {@code pane}. */
+    protected final void installHandlerOn(@NotNull McWysiwygPane pane) {
+        pane.setTransferHandler(rawMode ? new McPlainTransferHandler() : new McStyledTransferHandler());
     }
 
     /** Subclass hook for refreshing additional panes owned by the subclass after a state change. */
@@ -154,7 +155,7 @@ class AbstractMcEditor extends JPanel {
     public void setCaretPosition(int position) {
         int len = wysiwygPane.getDocument()
             .getLength();
-        wysiwygPane.setCaretPosition(Math.max(0, Math.min(position, len)));
+        wysiwygPane.setCaretPosition(Math.clamp(position, 0, len));
     }
 
     private static void setEnabledRecursive(@NotNull Container c, boolean enabled) {
@@ -210,6 +211,7 @@ class AbstractMcEditor extends JPanel {
         String canonical = wysiwygPane.getText();
         rawMode = raw;
         pushContentTo(wysiwygPane, canonical);
+        installHandlerOn(wysiwygPane);
         updateToolbarEnabled();
         refreshOwnedPanes();
         toggleButton.setText(raw ? "Aa" : "<>");
