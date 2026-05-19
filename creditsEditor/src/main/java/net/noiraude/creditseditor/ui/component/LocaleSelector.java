@@ -26,7 +26,6 @@ public final class LocaleSelector extends JComboBox<String> {
         this.bus = bus;
         setRenderer(new LocaleLabelRenderer());
         setToolTipText(I18n.get("toolbar.locale.tooltip"));
-        setPreferredSize(new Dimension(localeSelectorWidth, getPreferredSize().height));
 
         addActionListener(e -> {
             if (syncing) return;
@@ -38,6 +37,12 @@ public final class LocaleSelector extends JComboBox<String> {
         bus.addListener(DocumentBus.TOPIC_SESSION, e -> rebuild());
         bus.addListener(DocumentBus.TOPIC_LOCALE, e -> rebuild());
         rebuild();
+    }
+
+    @Override
+    public Dimension getPreferredSize() {
+        Dimension natural = super.getPreferredSize();
+        return new Dimension(Math.max(natural.width, localeSelectorWidth), natural.height);
     }
 
     private void rebuild() {
