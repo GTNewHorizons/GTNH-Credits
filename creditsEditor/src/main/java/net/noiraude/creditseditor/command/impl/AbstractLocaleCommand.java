@@ -29,5 +29,6 @@ abstract class AbstractLocaleCommand extends AbstractCommand {
     public final void undo() {
         editor.applyLocaleSnapshot(code, beforeSnapshot);
         bus.setActiveLocale(previousActiveLocale);
+        bus.fireAvailableLocalesChanged();
     }
 }

@@ -3,16 +3,15 @@ package net.noiraude.creditseditor.command.impl;
 import net.noiraude.creditseditor.bus.DocumentBus;
 import net.noiraude.creditseditor.bus.LocaleEditor;
 import net.noiraude.creditseditor.command.Command;
-import net.noiraude.creditseditor.service.LangResolver;
 import net.noiraude.creditseditor.ui.I18n;
 
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
-/** Marks a locale's credits-owned keys for removal and falls back to the default locale. */
+/** Removes a locale from the editing session. */
 public final class RemoveLocaleCommand extends AbstractLocaleCommand {
 
-    private static final @NotNull String DISPLAY_NAME = I18n.get("command.remove_locale");
+    private static final @NotNull String DISPLAY_NAME = I18n.get("command.uninstall_locale");
 
     @Contract(pure = true)
     private RemoveLocaleCommand(@NotNull LocaleEditor editor, @NotNull DocumentBus bus, @NotNull String code) {
@@ -27,8 +26,17 @@ public final class RemoveLocaleCommand extends AbstractLocaleCommand {
 
     @Override
     public void execute() {
+        boolean removingActive = code.equals(bus.activeLocale());
         editor.removeLocale(code);
-        bus.setActiveLocale(LangResolver.DEFAULT_LOCALE);
+        if (removingActive) {
+            String fallback = bus.availableLocales()
+                .stream()
+                .findFirst()
+                .orElse("");
+            bus.setActiveLocale(fallback);
+        } else {
+            bus.fireAvailableLocalesChanged();
+        }
     }
 
     @Contract(pure = true)

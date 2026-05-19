@@ -105,11 +105,8 @@ public final class DocumentBus {
     /** The user requested to view the about dialog. */
     public static final @NotNull String TOPIC_REQUEST_ABOUT = "request.about";
 
-    /** The user requested to add a new editing locale to the active session. */
-    public static final @NotNull String TOPIC_REQUEST_ADD_LOCALE = "request.addLocale";
-
-    /** The user requested to remove the active editing locale from the session. */
-    public static final @NotNull String TOPIC_REQUEST_REMOVE_LOCALE = "request.removeLocale";
+    /** The user requested to open the manage-locales window. */
+    public static final @NotNull String TOPIC_REQUEST_MANAGE_LOCALES = "request.manageLocales";
 
     private final @NotNull PropertyChangeSupport pcs = new PropertyChangeSupport(this);
 
@@ -230,14 +227,14 @@ public final class DocumentBus {
         pcs.firePropertyChange(TOPIC_REQUEST_ABOUT, null, Boolean.TRUE);
     }
 
-    /** Fires {@link #TOPIC_REQUEST_ADD_LOCALE}. */
-    public void fireAddLocaleRequested() {
-        pcs.firePropertyChange(TOPIC_REQUEST_ADD_LOCALE, null, Boolean.TRUE);
+    /** Fires {@link #TOPIC_REQUEST_MANAGE_LOCALES}. */
+    public void fireManageLocalesRequested() {
+        pcs.firePropertyChange(TOPIC_REQUEST_MANAGE_LOCALES, null, Boolean.TRUE);
     }
 
-    /** Fires {@link #TOPIC_REQUEST_REMOVE_LOCALE}. */
-    public void fireRemoveLocaleRequested() {
-        pcs.firePropertyChange(TOPIC_REQUEST_REMOVE_LOCALE, null, Boolean.TRUE);
+    /** Fires {@link #TOPIC_LOCALE} to signal a change in the loaded-locales set. */
+    public void fireAvailableLocalesChanged() {
+        pcs.firePropertyChange(TOPIC_LOCALE, null, Boolean.TRUE);
     }
 
     /** Binds the bus to the active session and fires {@link #TOPIC_SESSION}. */
@@ -274,5 +271,10 @@ public final class DocumentBus {
     /** Subscribes {@code listener} to events on {@code topic}. */
     public void addListener(@NotNull String topic, @NotNull PropertyChangeListener listener) {
         pcs.addPropertyChangeListener(topic, listener);
+    }
+
+    /** Unsubscribes {@code listener} from events on {@code topic}. */
+    public void removeListener(@NotNull String topic, @NotNull PropertyChangeListener listener) {
+        pcs.removePropertyChangeListener(topic, listener);
     }
 }

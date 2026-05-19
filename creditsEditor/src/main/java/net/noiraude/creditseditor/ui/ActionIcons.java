@@ -15,7 +15,7 @@ import javax.swing.ImageIcon;
 import org.jetbrains.annotations.NotNull;
 
 /** Loader for the bundled toolbar action icons. */
-final class ActionIcons {
+public final class ActionIcons {
 
     private static final Logger LOG = System.getLogger(ActionIcons.class.getName());
 
@@ -23,28 +23,28 @@ final class ActionIcons {
 
     private ActionIcons() {}
 
-    static @NotNull ImageIcon open() {
+    public static @NotNull ImageIcon open() {
         return load("document-open");
     }
 
-    static @NotNull ImageIcon newDoc() {
-        return load("document-new");
-    }
-
-    static @NotNull ImageIcon save() {
+    public static @NotNull ImageIcon save() {
         return load("document-save");
     }
 
-    static @NotNull ImageIcon saveAs() {
+    public static @NotNull ImageIcon saveAs() {
         return load("document-save-as");
     }
 
-    static @NotNull ImageIcon undo() {
+    public static @NotNull ImageIcon undo() {
         return load("edit-undo");
     }
 
-    static @NotNull ImageIcon redo() {
+    public static @NotNull ImageIcon redo() {
         return load("edit-redo");
+    }
+
+    public static @NotNull ImageIcon manageLocales() {
+        return load("preferences-desktop-locale");
     }
 
     private static @NotNull ImageIcon load(@NotNull String name) {

@@ -22,8 +22,7 @@ final class EditorMenuBar extends JMenuBar {
         editMenu.add(actions.undo);
         editMenu.add(actions.redo);
         editMenu.addSeparator();
-        editMenu.add(actions.addLocale);
-        editMenu.add(actions.removeLocale);
+        editMenu.add(actions.manageLocales);
 
         JMenu helpMenu = newMenu("menu.help", "menu.help.mnemonic");
         helpMenu.add(actions.shortcuts);

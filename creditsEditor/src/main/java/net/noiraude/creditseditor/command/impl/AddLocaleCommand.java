@@ -11,7 +11,7 @@ import org.jetbrains.annotations.NotNull;
 /** Registers a new editing locale and activates it; undo restores the prior state. */
 public final class AddLocaleCommand extends AbstractLocaleCommand {
 
-    private static final @NotNull String DISPLAY_NAME = I18n.get("command.add_locale");
+    private static final @NotNull String DISPLAY_NAME = I18n.get("command.install_locale");
 
     @Contract(pure = true)
     private AddLocaleCommand(@NotNull LocaleEditor editor, @NotNull DocumentBus bus, @NotNull String code) {

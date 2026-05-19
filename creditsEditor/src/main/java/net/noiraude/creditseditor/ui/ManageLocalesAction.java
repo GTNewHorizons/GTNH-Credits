@@ -10,19 +10,19 @@ import net.noiraude.creditseditor.bus.DocumentBus;
 
 import org.jetbrains.annotations.NotNull;
 
-/** Prompts for a new editing locale to add to the active session. */
-final class AddLocaleAction extends AbstractAction {
+/** Opens the manage-locales window. */
+final class ManageLocalesAction extends AbstractAction {
 
     private final @NotNull DocumentBus bus;
 
-    AddLocaleAction(@NotNull DocumentBus bus) {
-        super(I18n.get("action.add_locale"));
+    ManageLocalesAction(@NotNull DocumentBus bus) {
+        super(I18n.get("action.manage_locales"));
         this.bus = bus;
-        String mnemonic = I18n.get("action.add_locale.mnemonic");
+        String mnemonic = I18n.get("action.manage_locales.mnemonic");
         if (mnemonic.length() == 1) {
             putValue(Action.MNEMONIC_KEY, (int) Character.toUpperCase(mnemonic.charAt(0)));
         }
-        putValue(Action.SHORT_DESCRIPTION, I18n.get("action.add_locale"));
+        putValue(Action.SHORT_DESCRIPTION, I18n.get("action.manage_locales"));
         setEnabled(bus.hasSession());
         PropertyChangeListener sessionListener = e -> setEnabled(bus.hasSession());
         bus.addListener(DocumentBus.TOPIC_SESSION, sessionListener);
@@ -30,6 +30,6 @@ final class AddLocaleAction extends AbstractAction {
 
     @Override
     public void actionPerformed(@NotNull ActionEvent e) {
-        bus.fireAddLocaleRequested();
+        bus.fireManageLocalesRequested();
     }
 }

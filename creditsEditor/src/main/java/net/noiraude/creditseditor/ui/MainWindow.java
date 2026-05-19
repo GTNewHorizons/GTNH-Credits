@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 
@@ -21,11 +22,7 @@ import net.noiraude.creditseditor.command.Command;
 import net.noiraude.creditseditor.command.CommandExecutor;
 import net.noiraude.creditseditor.command.CommandStackSnapshot;
 import net.noiraude.creditseditor.command.EditAbortedException;
-import net.noiraude.creditseditor.command.impl.AddLocaleCommand;
-import net.noiraude.creditseditor.command.impl.RemoveLocaleCommand;
-import net.noiraude.creditseditor.service.LangResolver;
 import net.noiraude.creditseditor.ui.dialog.AboutDialog;
-import net.noiraude.creditseditor.ui.dialog.AddLocaleDialog;
 import net.noiraude.creditseditor.ui.dialog.ProgressDialog;
 import net.noiraude.creditseditor.ui.dialog.ShortcutsDialog;
 
@@ -43,13 +40,7 @@ public final class MainWindow extends JFrame {
         super(AppInfo.name());
         setIconImages(AppIcons.load());
         setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
-        addWindowListener(new WindowAdapter() {
-
-            @Override
-            public void windowClosing(@NotNull WindowEvent e) {
-                doQuit();
-            }
-        });
+        addWindowListener(new ClosingHandler(this::doQuit));
 
         CommandExecutor onCommand = this::executeCommand;
 
@@ -74,10 +65,10 @@ public final class MainWindow extends JFrame {
         bus.addListener(DocumentBus.TOPIC_REQUEST_REDO, e -> doRedo());
         bus.addListener(DocumentBus.TOPIC_REQUEST_SHORTCUTS, e -> doShortcuts());
         bus.addListener(DocumentBus.TOPIC_REQUEST_ABOUT, e -> doAbout());
-        bus.addListener(DocumentBus.TOPIC_REQUEST_ADD_LOCALE, e -> doAddLocale());
-        bus.addListener(DocumentBus.TOPIC_REQUEST_REMOVE_LOCALE, e -> doRemoveLocale());
         bus.addListener(DocumentBus.TOPIC_DIRTY, e -> updateTitle());
         bus.addListener(DocumentBus.TOPIC_SESSION, e -> updateTitle());
+
+        new ManageLocalesPresenter(bus, this, () -> Optional.ofNullable(session), onCommand);
 
         // Realize the peer so getInsets() returns real chrome sizes, then force the frame's
         // minimum size to whatever the content pane plus the menu bar report as their own
@@ -243,21 +234,6 @@ public final class MainWindow extends JFrame {
         new AboutDialog(this).setVisible(true);
     }
 
-    private void doAddLocale() {
-        if (session == null) return;
-        EditorSession s = session;
-        new AddLocaleDialog(this, s.availableLocales()).showDialog()
-            .ifPresent(code -> executeCommand(AddLocaleCommand.create(s, bus, code)));
-    }
-
-    private void doRemoveLocale() {
-        if (session == null) return;
-        String code = bus.activeLocale();
-        if (LangResolver.DEFAULT_LOCALE.equals(code)) return;
-        if (!confirmRemoveLocale(code)) return;
-        executeCommand(RemoveLocaleCommand.create(session, bus, code));
-    }
-
     private void executeCommand(@NotNull Command cmd) {
         if (session == null) return;
         try {
@@ -266,16 +242,6 @@ public final class MainWindow extends JFrame {
             showEditAborted(ex);
         }
         afterCommand();
-    }
-
-    private boolean confirmRemoveLocale(@NotNull String code) {
-        int choice = JOptionPane.showConfirmDialog(
-            this,
-            I18n.get("dialog.remove_locale.message", MsgArg.text(code)),
-            I18n.get("dialog.remove_locale.title"),
-            JOptionPane.OK_CANCEL_OPTION,
-            JOptionPane.WARNING_MESSAGE);
-        return choice == JOptionPane.OK_OPTION;
     }
 
     // -----------------------------------------------------------------------
@@ -344,5 +310,19 @@ public final class MainWindow extends JFrame {
             I18n.get("dialog.edit_aborted.message", MsgArg.text(ex.getMessage())),
             I18n.get("dialog.edit_aborted.title"),
             JOptionPane.WARNING_MESSAGE);
+    }
+
+    private static final class ClosingHandler extends WindowAdapter {
+
+        private final @NotNull Runnable onClose;
+
+        ClosingHandler(@NotNull Runnable onClose) {
+            this.onClose = Objects.requireNonNull(onClose);
+        }
+
+        @Override
+        public void windowClosing(@NotNull WindowEvent e) {
+            onClose.run();
+        }
     }
 }
