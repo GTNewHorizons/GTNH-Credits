@@ -3,9 +3,6 @@ package net.noiraude.creditseditor.ui;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.Insets;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
-import java.util.Objects;
 
 import javax.swing.JFrame;
 import javax.swing.JMenuBar;
@@ -32,7 +29,7 @@ public final class MainWindow extends JFrame {
         add(toolBar, BorderLayout.NORTH);
         add(view, BorderLayout.CENTER);
         setJMenuBar(menuBar);
-        addWindowListener(new ClosingHandler(bus::fireQuitRequested));
+        addWindowListener(new AppLifecycleController(bus));
         finalizeSize(menuBar);
     }
 
@@ -48,19 +45,5 @@ public final class MainWindow extends JFrame {
         setSize(ScaledMetrics.mainWindowWidth, ScaledMetrics.mainWindowHeight);
         setLocationRelativeTo(null);
         ScaledMetrics.attachTo(this);
-    }
-
-    private static final class ClosingHandler extends WindowAdapter {
-
-        private final @NotNull Runnable onClose;
-
-        ClosingHandler(@NotNull Runnable onClose) {
-            this.onClose = Objects.requireNonNull(onClose);
-        }
-
-        @Override
-        public void windowClosing(@NotNull WindowEvent e) {
-            onClose.run();
-        }
     }
 }
