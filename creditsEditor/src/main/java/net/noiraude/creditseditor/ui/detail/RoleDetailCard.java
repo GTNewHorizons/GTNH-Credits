@@ -4,7 +4,6 @@ import static net.noiraude.creditseditor.ui.ScaledMetrics.gapMedium;
 import static net.noiraude.creditseditor.ui.ScaledMetrics.gapSmall;
 
 import java.awt.CardLayout;
-import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
@@ -38,13 +37,7 @@ public final class RoleDetailCard {
     private static final @NotNull String CARD_DETAIL = "detail";
 
     private final @NotNull CardLayout cards = new CardLayout();
-    final @NotNull JPanel panel = new JPanel(cards) {
-
-        @Override
-        public Dimension getMinimumSize() {
-            return new Dimension(0, 0);
-        }
-    };
+    final @NotNull JPanel panel = new JPanel(cards);
     private final @NotNull JTextField roleValueField = new JTextField();
     private final @NotNull JLabel langKeyLabel = new JLabel();
     private final @NotNull LocalizedMcEditor displayNameEditor = new LocalizedMcEditor(false);

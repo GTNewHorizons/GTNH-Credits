@@ -91,12 +91,12 @@ public final class MembershipRolePanel extends JPanel {
         gbc.insets = new Insets(gapTiny, gapSmall, gapTiny, gapSmall);
 
         gbc.gridy = 0;
-        gbc.weighty = 0;
+        gbc.weighty = 1.0;
         gbc.fill = GridBagConstraints.BOTH;
         add(roleListPanel, gbc);
 
         gbc.gridy = 1;
-        gbc.weighty = 1.0;
+        gbc.weighty = 0;
         gbc.anchor = GridBagConstraints.NORTHWEST;
         add(roleDetailCard.panel, gbc);
     }
