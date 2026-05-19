@@ -8,7 +8,7 @@ import net.noiraude.creditseditor.bus.DocumentBus;
 
 import org.jetbrains.annotations.NotNull;
 
-/** Coordinates top-level application lifecycle events from the window. */
+/** Adapter from window-lifecycle events to application-lifecycle requests. */
 public final class AppLifecycleController extends WindowAdapter {
 
     private final @NotNull DocumentBus bus;
