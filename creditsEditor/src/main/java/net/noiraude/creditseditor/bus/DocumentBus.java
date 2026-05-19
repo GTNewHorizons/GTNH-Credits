@@ -9,6 +9,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import net.noiraude.creditseditor.command.CommandStackSnapshot;
+import net.noiraude.creditseditor.command.EditAbortedException;
 import net.noiraude.creditseditor.service.LangResolver;
 import net.noiraude.libcredits.lang.LangDocument;
 import net.noiraude.libcredits.model.CreditsDocument;
@@ -17,7 +18,6 @@ import net.noiraude.libcredits.model.DocumentPerson;
 
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.UnmodifiableView;
 
 /**
@@ -31,9 +31,10 @@ import org.jetbrains.annotations.UnmodifiableView;
  * and {@link #langDoc()} when a topic fires.
  *
  * <p>
- * The bus is constructed once by the main window and lives for the whole application.
- * Opening a new resource replaces the documents via {@link #setSession}, which fires
- * {@link #TOPIC_SESSION} so every subscriber rebuilds against the new documents.
+ * The bus is constructed once by the application and lives for the whole session. It
+ * reads document state through an injected {@link DocumentSessionSource}; opening a new
+ * resource updates the source and fires {@link #TOPIC_SESSION} so every subscriber
+ * rebuilds against the new documents.
  */
 public final class DocumentBus {
 
@@ -108,10 +109,17 @@ public final class DocumentBus {
     /** The user requested to open the manage-locales window. */
     public static final @NotNull String TOPIC_REQUEST_MANAGE_LOCALES = "request.manageLocales";
 
+    /** A command refused to apply. {@code newValue} is the {@link EditAbortedException}. */
+    public static final @NotNull String TOPIC_EDIT_ABORTED = "editAborted";
+
     private final @NotNull PropertyChangeSupport pcs = new PropertyChangeSupport(this);
 
-    private @Nullable DocumentSession session;
+    private final @NotNull DocumentSessionSource source;
     private @NotNull String activeLocale = LangResolver.DEFAULT_LOCALE;
+
+    public DocumentBus(@NotNull DocumentSessionSource source) {
+        this.source = Objects.requireNonNull(source);
+    }
 
     /** Returns the current credits document. Throws when no session is loaded. */
     @Contract(pure = true)
@@ -137,13 +145,15 @@ public final class DocumentBus {
     }
 
     private @NotNull DocumentSession requireSession() {
-        return Objects.requireNonNull(session, "No session loaded");
+        return source.session()
+            .orElseThrow(() -> new IllegalStateException("No session loaded"));
     }
 
-    /** Returns {@code true} once a session has been loaded via {@link #setSession}. */
+    /** Returns whether a session is currently loaded. */
     @Contract(pure = true)
     public boolean hasSession() {
-        return session != null;
+        return source.session()
+            .isPresent();
     }
 
     /**
@@ -152,10 +162,12 @@ public final class DocumentBus {
      */
     @Contract(pure = true)
     public @NotNull @UnmodifiableView Set<String> availableLocales() {
-        if (session == null) return Collections.emptySet();
-        return Collections.unmodifiableSet(
-            session.langDocs()
-                .keySet());
+        return source.session()
+            .map(
+                s -> Collections.unmodifiableSet(
+                    s.langDocs()
+                        .keySet()))
+            .orElse(Collections.emptySet());
     }
 
     /**
@@ -237,9 +249,13 @@ public final class DocumentBus {
         pcs.firePropertyChange(TOPIC_LOCALE, null, Boolean.TRUE);
     }
 
-    /** Binds the bus to the active session and fires {@link #TOPIC_SESSION}. */
-    public void setSession(@NotNull DocumentSession session) {
-        this.session = session;
+    /** Fires {@link #TOPIC_EDIT_ABORTED} carrying {@code ex}. */
+    public void fireEditAborted(@NotNull EditAbortedException ex) {
+        pcs.firePropertyChange(TOPIC_EDIT_ABORTED, null, ex);
+    }
+
+    /** Fires {@link #TOPIC_SESSION} so subscribers re-read through the source. */
+    public void fireSessionChanged() {
         pcs.firePropertyChange(TOPIC_SESSION, null, Boolean.TRUE);
     }
 

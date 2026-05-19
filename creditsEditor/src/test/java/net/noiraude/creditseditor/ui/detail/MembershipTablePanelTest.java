@@ -16,6 +16,7 @@ import javax.swing.JButton;
 import javax.swing.JTable;
 
 import net.noiraude.creditseditor.bus.DocumentBus;
+import net.noiraude.creditseditor.bus.MutableSessionSource;
 import net.noiraude.creditseditor.bus.TestDocumentSession;
 import net.noiraude.creditseditor.command.CommandStack;
 import net.noiraude.creditseditor.command.impl.AddMembershipCommand;
@@ -146,8 +147,10 @@ public class MembershipTablePanelTest {
     }
 
     private static @NotNull DocumentBus newBus() {
-        DocumentBus bus = new DocumentBus();
-        bus.setSession(TestDocumentSession.of(CreditsDocument.empty()));
+        MutableSessionSource source = new MutableSessionSource();
+        DocumentBus bus = new DocumentBus(source);
+        source.set(TestDocumentSession.of(CreditsDocument.empty()));
+        bus.fireSessionChanged();
         return bus;
     }
 

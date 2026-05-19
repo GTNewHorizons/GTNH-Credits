@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.List;
 
 import net.noiraude.creditseditor.bus.DocumentBus;
+import net.noiraude.creditseditor.bus.MutableSessionSource;
 import net.noiraude.creditseditor.bus.TestDocumentSession;
 import net.noiraude.creditseditor.command.Command;
 import net.noiraude.libcredits.model.CreditsDocument;
@@ -22,8 +23,10 @@ import org.junit.jupiter.api.Test;
 public class CompoundCommandTest {
 
     private static @NotNull DocumentBus busFor(CreditsDocument doc) {
-        DocumentBus bus = new DocumentBus();
-        bus.setSession(TestDocumentSession.of(doc));
+        MutableSessionSource source = new MutableSessionSource();
+        DocumentBus bus = new DocumentBus(source);
+        source.set(TestDocumentSession.of(doc));
+        bus.fireSessionChanged();
         return bus;
     }
 

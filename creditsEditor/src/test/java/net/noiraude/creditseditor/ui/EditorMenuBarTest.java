@@ -14,6 +14,7 @@ import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 
 import net.noiraude.creditseditor.bus.DocumentBus;
+import net.noiraude.creditseditor.bus.MutableSessionSource;
 import net.noiraude.creditseditor.command.CommandStackSnapshot;
 
 import org.jetbrains.annotations.Contract;
@@ -191,14 +192,16 @@ public class EditorMenuBarTest {
 
     private static final class Fixture {
 
-        final @NotNull DocumentBus bus = new DocumentBus();
+        final @NotNull MutableSessionSource source = new MutableSessionSource();
+        final @NotNull DocumentBus bus = new DocumentBus(source);
         final @NotNull EditorActions actions = new EditorActions(bus);
         final @NotNull EditorMenuBar bar = new EditorMenuBar(actions);
 
         void setSession(@NotNull EditorSession session) {
-            bus.setSession(session);
+            source.set(session);
+            bus.fireSessionChanged();
             bus.fireDirtyChanged(session.isDirty());
-            bus.fireCommandStackChanged(CommandStackSnapshot.of(session.stack));
+            bus.fireCommandStackChanged(session.commandStackSnapshot());
         }
     }
 }

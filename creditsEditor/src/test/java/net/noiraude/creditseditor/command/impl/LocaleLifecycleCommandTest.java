@@ -13,6 +13,7 @@ import java.util.Set;
 
 import net.noiraude.creditseditor.bus.DocumentBus;
 import net.noiraude.creditseditor.bus.LocaleSnapshot;
+import net.noiraude.creditseditor.bus.MutableSessionSource;
 import net.noiraude.creditseditor.command.Command;
 import net.noiraude.creditseditor.resource.ResourceManager;
 import net.noiraude.creditseditor.service.LangResolver;
@@ -32,9 +33,11 @@ public class LocaleLifecycleCommandTest {
         Path dir = Files.createDirectory(temp.resolve("root"));
         try (ResourceManager rm = ResourceManager.open(dir.toString())) {
             rm.loadDocuments();
-            DocumentBus bus = new DocumentBus();
+            MutableSessionSource source = new MutableSessionSource();
+            DocumentBus bus = new DocumentBus(source);
             TestSession session = new TestSession(rm);
-            bus.setSession(session);
+            source.set(session);
+            bus.fireSessionChanged();
 
             Command cmd = AddLocaleCommand.create(session, bus, "fr_FR");
             cmd.execute();
@@ -61,9 +64,11 @@ public class LocaleLifecycleCommandTest {
 
         try (ResourceManager rm = ResourceManager.open(dir.toString())) {
             rm.loadDocuments();
-            DocumentBus bus = new DocumentBus();
+            MutableSessionSource source = new MutableSessionSource();
+            DocumentBus bus = new DocumentBus(source);
             TestSession session = new TestSession(rm);
-            bus.setSession(session);
+            source.set(session);
+            bus.fireSessionChanged();
             bus.setActiveLocale("fr_FR");
 
             LangDocument frBefore = rm.langDoc("fr_FR")
@@ -100,9 +105,11 @@ public class LocaleLifecycleCommandTest {
             rm.removeLocale("de_DE");
             assertTrue(rm.isDirty());
 
-            DocumentBus bus = new DocumentBus();
+            MutableSessionSource source = new MutableSessionSource();
+            DocumentBus bus = new DocumentBus(source);
             TestSession session = new TestSession(rm);
-            bus.setSession(session);
+            source.set(session);
+            bus.fireSessionChanged();
             LocaleSnapshot before = rm.snapshotLocale("de_DE");
             assertTrue(
                 before.doc()

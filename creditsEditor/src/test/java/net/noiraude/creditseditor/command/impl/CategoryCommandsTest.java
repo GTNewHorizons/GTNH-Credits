@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import net.noiraude.creditseditor.bus.DocumentBus;
+import net.noiraude.creditseditor.bus.MutableSessionSource;
 import net.noiraude.creditseditor.bus.TestDocumentSession;
 import net.noiraude.libcredits.model.CreditsDocument;
 import net.noiraude.libcredits.model.DocumentCategory;
@@ -24,8 +25,10 @@ public class CategoryCommandsTest {
     @BeforeEach
     public void setUp() {
         creditsDoc = CreditsDocument.empty();
-        bus = new DocumentBus();
-        bus.setSession(TestDocumentSession.of(creditsDoc));
+        MutableSessionSource source = new MutableSessionSource();
+        bus = new DocumentBus(source);
+        source.set(TestDocumentSession.of(creditsDoc));
+        bus.fireSessionChanged();
         team = new DocumentCategory("team");
         dev = new DocumentCategory("dev");
         DocumentCategory contrib = new DocumentCategory("contrib");

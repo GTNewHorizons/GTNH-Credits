@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import java.util.function.IntConsumer;
 
 import net.noiraude.creditseditor.bus.DocumentBus;
+import net.noiraude.creditseditor.bus.MutableSessionSource;
 import net.noiraude.creditseditor.bus.TestDocumentSession;
 import net.noiraude.creditseditor.command.Command;
 import net.noiraude.creditseditor.command.LangFieldWriter;
@@ -25,8 +26,10 @@ public class EditCategoryDisplayNameCommandTest {
         LangDocument en = LangParser.empty();
         LangDocument fr = LangParser.empty();
         en.set("credits.category.team", "Team");
-        DocumentBus bus = new DocumentBus();
-        bus.setSession(TestDocumentSession.of(CreditsDocument.empty(), en));
+        MutableSessionSource source = new MutableSessionSource();
+        DocumentBus bus = new DocumentBus(source);
+        source.set(TestDocumentSession.of(CreditsDocument.empty(), en));
+        bus.fireSessionChanged();
 
         LangKey key = new LangKey("credits.category.team");
         LangFieldWriter writer = LangFieldWriter.ofBus(bus, fr, key);

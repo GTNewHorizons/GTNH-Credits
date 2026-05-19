@@ -12,7 +12,10 @@ import java.util.Optional;
 import net.noiraude.creditseditor.bus.DocumentSession;
 import net.noiraude.creditseditor.bus.LocaleEditor;
 import net.noiraude.creditseditor.bus.LocaleSnapshot;
+import net.noiraude.creditseditor.command.Command;
 import net.noiraude.creditseditor.command.CommandStack;
+import net.noiraude.creditseditor.command.CommandStackSnapshot;
+import net.noiraude.creditseditor.command.EditAbortedException;
 import net.noiraude.creditseditor.resource.ResourceManager;
 import net.noiraude.creditseditor.service.LangResolver;
 import net.noiraude.libcredits.lang.LangDocument;
@@ -45,7 +48,7 @@ final class EditorSession implements DocumentSession, LocaleEditor {
     private static final Logger LOG = System.getLogger(EditorSession.class.getName());
 
     private @NotNull ResourceManager resourceManager;
-    final @NotNull CommandStack stack = new CommandStack();
+    private final @NotNull CommandStack stack = new CommandStack();
 
     @Contract(pure = true)
     private EditorSession(@NotNull ResourceManager resourceManager) {
@@ -141,6 +144,40 @@ final class EditorSession implements DocumentSession, LocaleEditor {
     @Override
     public void applyLocaleSnapshot(@NotNull String locale, @NotNull LocaleSnapshot snapshot) {
         resourceManager.applyLocaleSnapshot(locale, snapshot);
+    }
+
+    /** Executes a command. */
+    void execute(@NotNull Command cmd) throws EditAbortedException {
+        stack.execute(cmd);
+    }
+
+    /** Reverts the most recently executed command. */
+    void undo() throws EditAbortedException {
+        stack.undo();
+    }
+
+    /** Re-applies the most recently undone command. */
+    void redo() throws EditAbortedException {
+        stack.redo();
+    }
+
+    /** Returns whether a command is available to undo. */
+    @Contract(pure = true)
+    boolean canUndo() {
+        return stack.canUndo();
+    }
+
+    /** Returns whether a command is available to redo. */
+    @Contract(pure = true)
+    boolean canRedo() {
+        return stack.canRedo();
+    }
+
+    /** Returns the current undo/redo snapshot. */
+    @Contract(pure = true)
+    @NotNull
+    CommandStackSnapshot commandStackSnapshot() {
+        return CommandStackSnapshot.of(stack);
     }
 
     /**
