@@ -1,58 +1,39 @@
 package net.noiraude.creditseditor.ui.component;
 
-import static net.noiraude.creditseditor.ui.ScaledMetrics.gapTiny;
+import static net.noiraude.creditseditor.ui.ScaledMetrics.localeSelectorWidth;
 
-import java.awt.BorderLayout;
 import java.awt.Component;
-import java.awt.Insets;
+import java.awt.Dimension;
 import java.util.Locale;
 
 import javax.swing.DefaultListCellRenderer;
-import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JList;
-import javax.swing.JPanel;
 
 import net.noiraude.creditseditor.bus.DocumentBus;
-import net.noiraude.creditseditor.service.LangResolver;
 import net.noiraude.creditseditor.ui.I18n;
 
 import org.jetbrains.annotations.NotNull;
 
-/** Combo box plus add and remove buttons for the active editing locale of the current session. */
-public final class LocaleSelector extends JPanel {
+/** Combo box for the active editing locale of the current session. */
+public final class LocaleSelector extends JComboBox<String> {
 
     private final @NotNull DocumentBus bus;
-    private final @NotNull JComboBox<String> combo = new JComboBox<>();
-    private final @NotNull JButton addButton = new JButton("+");
-    private final @NotNull JButton removeButton = new JButton("−");
     private boolean syncing;
 
     public LocaleSelector(@NotNull DocumentBus bus) {
-        super(new BorderLayout(gapTiny, 0));
+        super();
         this.bus = bus;
-        addButton.setMargin(new Insets(0, gapTiny, 0, gapTiny));
-        addButton.setToolTipText(I18n.get("action.add_locale"));
-        addButton.addActionListener(e -> bus.fireAddLocaleRequested());
+        setRenderer(new LocaleLabelRenderer());
+        setToolTipText(I18n.get("toolbar.locale.tooltip"));
+        setPreferredSize(new Dimension(localeSelectorWidth, getPreferredSize().height));
 
-        removeButton.setMargin(new Insets(0, gapTiny, 0, gapTiny));
-        removeButton.setToolTipText(I18n.get("action.remove_locale"));
-        removeButton.addActionListener(e -> bus.fireRemoveLocaleRequested());
-
-        combo.setRenderer(new LocaleLabelRenderer());
-        combo.addActionListener(e -> {
+        addActionListener(e -> {
             if (syncing) return;
-            Object selected = combo.getSelectedItem();
+            Object selected = getSelectedItem();
             if (selected == null) return;
             bus.setActiveLocale(selected.toString());
         });
-
-        JPanel buttons = new JPanel(new BorderLayout(gapTiny, 0));
-        buttons.add(addButton, BorderLayout.WEST);
-        buttons.add(removeButton, BorderLayout.EAST);
-
-        add(combo, BorderLayout.CENTER);
-        add(buttons, BorderLayout.EAST);
 
         bus.addListener(DocumentBus.TOPIC_SESSION, e -> rebuild());
         bus.addListener(DocumentBus.TOPIC_LOCALE, e -> rebuild());
@@ -62,16 +43,13 @@ public final class LocaleSelector extends JPanel {
     private void rebuild() {
         syncing = true;
         try {
-            combo.removeAllItems();
-            boolean hasSession = bus.hasSession();
-            combo.setEnabled(hasSession);
-            addButton.setEnabled(hasSession);
-            removeButton.setEnabled(hasSession && !LangResolver.DEFAULT_LOCALE.equals(bus.activeLocale()));
+            removeAllItems();
+            setEnabled(bus.hasSession());
             for (String locale : bus.availableLocales()) {
-                combo.addItem(locale);
+                addItem(locale);
             }
-            if (combo.getItemCount() > 0) {
-                combo.setSelectedItem(bus.activeLocale());
+            if (getItemCount() > 0) {
+                setSelectedItem(bus.activeLocale());
             }
         } finally {
             syncing = false;

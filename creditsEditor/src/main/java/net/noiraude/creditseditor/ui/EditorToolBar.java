@@ -2,10 +2,8 @@ package net.noiraude.creditseditor.ui;
 
 import static net.noiraude.creditseditor.ui.ScaledMetrics.gapMedium;
 import static net.noiraude.creditseditor.ui.ScaledMetrics.gapSmall;
-import static net.noiraude.creditseditor.ui.ScaledMetrics.localeSelectorWidth;
 
 import java.awt.BorderLayout;
-import java.awt.Dimension;
 import java.awt.FlowLayout;
 
 import javax.swing.Action;
@@ -15,7 +13,7 @@ import javax.swing.JButton;
 import javax.swing.JPanel;
 
 import net.noiraude.creditseditor.bus.DocumentBus;
-import net.noiraude.creditseditor.ui.component.LocaleSelector;
+import net.noiraude.creditseditor.ui.component.LocaleControls;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -33,10 +31,8 @@ final class EditorToolBar extends JPanel {
         left.add(iconButton(actions.undo, ActionIcons.undo()));
         left.add(iconButton(actions.redo, ActionIcons.redo()));
 
-        LocaleSelector localeSelector = new LocaleSelector(bus);
-        localeSelector.setPreferredSize(new Dimension(localeSelectorWidth, localeSelector.getPreferredSize().height));
         JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, gapSmall, gapSmall));
-        right.add(localeSelector);
+        right.add(new LocaleControls(bus));
 
         add(left, BorderLayout.WEST);
         add(right, BorderLayout.EAST);
