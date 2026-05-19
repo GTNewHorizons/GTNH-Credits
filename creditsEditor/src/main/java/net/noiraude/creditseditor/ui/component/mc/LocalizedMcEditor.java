@@ -1,20 +1,22 @@
 package net.noiraude.creditseditor.ui.component.mc;
 
-import net.noiraude.creditseditor.mc.McText;
-import net.noiraude.creditseditor.service.LangResolver;
-import net.noiraude.creditseditor.ui.I18n;
-import org.jetbrains.annotations.Contract;
-import org.jetbrains.annotations.NotNull;
+import static net.noiraude.creditseditor.ui.ScaledMetrics.gapHair;
+import static net.noiraude.creditseditor.ui.ScaledMetrics.gapSmall;
 
-import javax.swing.JScrollPane;
-import javax.swing.JToggleButton;
-import javax.swing.ScrollPaneConstants;
 import java.awt.Insets;
 import java.util.Optional;
 import java.util.function.Supplier;
 
-import static net.noiraude.creditseditor.ui.ScaledMetrics.gapHair;
-import static net.noiraude.creditseditor.ui.ScaledMetrics.gapSmall;
+import javax.swing.JScrollPane;
+import javax.swing.JToggleButton;
+import javax.swing.ScrollPaneConstants;
+
+import net.noiraude.creditseditor.mc.McText;
+import net.noiraude.creditseditor.service.LangResolver;
+import net.noiraude.creditseditor.ui.I18n;
+
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 
 /** Locale-aware editor with a read-only EN view of the English source value. */
 public final class LocalizedMcEditor extends AbstractMcEditor {

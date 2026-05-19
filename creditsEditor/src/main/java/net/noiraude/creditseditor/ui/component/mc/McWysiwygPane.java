@@ -1,11 +1,10 @@
 package net.noiraude.creditseditor.ui.component.mc;
 
-import net.noiraude.creditseditor.command.EditAbortedException;
-import net.noiraude.creditseditor.mc.McFormatCode;
-import net.noiraude.creditseditor.mc.McSelectionPresence;
-import net.noiraude.creditseditor.ui.component.AnyChangeListener;
-import org.jetbrains.annotations.Contract;
-import org.jetbrains.annotations.NotNull;
+import java.awt.event.ActionEvent;
+import java.awt.event.KeyEvent;
+import java.util.EnumSet;
+import java.util.Optional;
+import java.util.function.Consumer;
 
 import javax.swing.AbstractAction;
 import javax.swing.JTextPane;
@@ -15,11 +14,14 @@ import javax.swing.event.CaretListener;
 import javax.swing.event.UndoableEditListener;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.MutableAttributeSet;
-import java.awt.event.ActionEvent;
-import java.awt.event.KeyEvent;
-import java.util.EnumSet;
-import java.util.Optional;
-import java.util.function.Consumer;
+
+import net.noiraude.creditseditor.command.EditAbortedException;
+import net.noiraude.creditseditor.mc.McFormatCode;
+import net.noiraude.creditseditor.mc.McSelectionPresence;
+import net.noiraude.creditseditor.ui.component.AnyChangeListener;
+
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 
 /** Editable {@link JTextPane} for Minecraft {@code §x}-formatted text. */
 public final class McWysiwygPane extends JTextPane implements McFormatTarget {
