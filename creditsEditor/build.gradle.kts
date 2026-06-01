@@ -72,7 +72,6 @@ tasks.named<ProcessResources>("processResources") {
     filesMatching("version.properties") {
         expand("version" to rootProject.version)
     }
-    dependsOn("generateActionIcons")
 }
 
 // ---------------------------------------------------------------------------
