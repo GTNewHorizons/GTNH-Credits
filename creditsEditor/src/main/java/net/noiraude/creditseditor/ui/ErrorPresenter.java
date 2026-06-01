@@ -80,13 +80,13 @@ public final class ErrorPresenter {
         // not the deepest cause; root-only matching would miss it.
         for (Throwable cur = ex; cur != null; cur = (cur.getCause() == cur ? null : cur.getCause())) {
             switch (cur) {
-                case CreditsParseException ignored -> {
+                case CreditsParseException _ -> {
                     return I18n.get("error.json.invalid");
                 }
-                case NoSuchFileException ignored -> {
+                case NoSuchFileException _ -> {
                     return I18n.get("error.no.such.file");
                 }
-                case AccessDeniedException ignored -> {
+                case AccessDeniedException _ -> {
                     return I18n.get("error.access.denied");
                 }
                 default -> {
