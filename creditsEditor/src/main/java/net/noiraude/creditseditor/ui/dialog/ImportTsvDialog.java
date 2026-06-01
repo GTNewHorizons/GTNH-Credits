@@ -34,6 +34,7 @@ import net.noiraude.creditseditor.service.TsvImportCommandFactory;
 import net.noiraude.creditseditor.service.TsvImporter;
 import net.noiraude.creditseditor.service.TsvImporter.ImportLine;
 import net.noiraude.creditseditor.ui.I18n;
+import net.noiraude.creditseditor.ui.MsgArg;
 import net.noiraude.libcredits.model.DocumentCategory;
 
 import org.jetbrains.annotations.NotNull;
@@ -253,6 +254,13 @@ public final class ImportTsvDialog extends JDialog {
         long noChange = lines.stream()
             .filter(l -> l.action == TsvImporter.Action.NO_CHANGE)
             .count();
-        statusLabel.setText(I18n.get("dialog.import_tsv.status", lines.size(), create, add, complete, noChange));
+        statusLabel.setText(
+            I18n.get(
+                "dialog.import_tsv.status",
+                MsgArg.count(lines.size()),
+                MsgArg.count(create),
+                MsgArg.count(add),
+                MsgArg.count(complete),
+                MsgArg.count(noChange)));
     }
 }

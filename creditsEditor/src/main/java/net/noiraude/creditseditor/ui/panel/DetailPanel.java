@@ -20,6 +20,7 @@ import net.noiraude.creditseditor.bus.DocumentBus;
 import net.noiraude.creditseditor.command.CommandExecutor;
 import net.noiraude.creditseditor.mc.McText;
 import net.noiraude.creditseditor.ui.I18n;
+import net.noiraude.creditseditor.ui.MsgArg;
 import net.noiraude.creditseditor.ui.detail.BulkPersonView;
 import net.noiraude.creditseditor.ui.detail.CategoryDetailView;
 import net.noiraude.creditseditor.ui.detail.PersonDetailView;
@@ -116,7 +117,7 @@ public final class DetailPanel extends JPanel {
         mode = Mode.CATEGORY;
         currentCategory = category;
         currentPerson = null;
-        setDetailTitle(I18n.get("panel.detail.title.category", category.id));
+        setDetailTitle(I18n.get("panel.detail.title.category", MsgArg.text(category.id)));
         categoryView.load(category);
         cards.show(cardPanel, CARD_CATEGORY);
     }
@@ -127,7 +128,7 @@ public final class DetailPanel extends JPanel {
         mode = Mode.PERSON;
         currentPerson = person;
         currentCategory = null;
-        setDetailTitle(I18n.get("panel.detail.title.person", McText.strip(person.name)));
+        setDetailTitle(I18n.get("panel.detail.title.person", MsgArg.text(McText.strip(person.name))));
         personView.load(person);
         cards.show(cardPanel, CARD_PERSON);
     }
@@ -142,7 +143,7 @@ public final class DetailPanel extends JPanel {
     public void showBulkPersons(@NotNull List<DocumentPerson> persons) {
         assert SwingUtilities.isEventDispatchThread();
         mode = Mode.BULK;
-        setDetailTitle(I18n.get("panel.detail.title.bulk", persons.size()));
+        setDetailTitle(I18n.get("panel.detail.title.bulk", MsgArg.count(persons.size())));
         bulkPersonView.load(persons);
         cards.show(cardPanel, CARD_BULK);
     }
@@ -167,7 +168,7 @@ public final class DetailPanel extends JPanel {
         if (mode != Mode.BULK) return;
         if (remaining.isEmpty()) showEmpty();
         else if (remaining.size() == 1) showPerson(remaining.getFirst());
-        else setDetailTitle(I18n.get("panel.detail.title.bulk", remaining.size()));
+        else setDetailTitle(I18n.get("panel.detail.title.bulk", MsgArg.count(remaining.size())));
     }
 
     private void setDetailTitle(@NotNull String title) {
@@ -183,7 +184,7 @@ public final class DetailPanel extends JPanel {
         JScrollPane personScroll = new JScrollPane(personView) {
 
             @Override
-            public Dimension getMinimumSize() {
+            public @NotNull Dimension getMinimumSize() {
                 Dimension viewMin = personView.getMinimumSize();
                 Dimension superMin = super.getMinimumSize();
                 return new Dimension(

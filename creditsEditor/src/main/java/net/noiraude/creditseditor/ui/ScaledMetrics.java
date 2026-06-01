@@ -39,6 +39,8 @@ public final class ScaledMetrics {
     public static int fontHeadingDelta = UiMetrics.FONT_HEADING_DELTA;
     public static int scrollUnitIncrement = UiMetrics.SCROLL_UNIT_INCREMENT;
 
+    public static int localeSelectorWidth = UiMetrics.LOCALE_SELECTOR_WIDTH;
+
     public static int splitDividerLeft = UiMetrics.SPLIT_DIVIDER_LEFT;
     public static int splitDividerRight = UiMetrics.SPLIT_DIVIDER_RIGHT;
 
@@ -110,6 +112,8 @@ public final class ScaledMetrics {
         toolbarIconSize = scale(UiMetrics.TOOLBAR_ICON_SIZE);
         fontHeadingDelta = scale(UiMetrics.FONT_HEADING_DELTA);
         scrollUnitIncrement = scale(UiMetrics.SCROLL_UNIT_INCREMENT);
+
+        localeSelectorWidth = scale(UiMetrics.LOCALE_SELECTOR_WIDTH);
 
         splitDividerLeft = scale(UiMetrics.SPLIT_DIVIDER_LEFT);
         splitDividerRight = scale(UiMetrics.SPLIT_DIVIDER_RIGHT);

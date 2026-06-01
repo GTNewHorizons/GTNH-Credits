@@ -4,6 +4,7 @@ import net.noiraude.creditseditor.bus.DocumentBus;
 import net.noiraude.libcredits.model.DocumentMembership;
 import net.noiraude.libcredits.model.DocumentPerson;
 
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 /** Appends a category membership to a person's membership list. */
@@ -32,6 +33,7 @@ public final class AddMembershipCommand extends AbstractCommand {
         bus.firePersonChanged(person);
     }
 
+    @Contract(pure = true)
     @Override
     public @NotNull String getDisplayName() {
         return "Add " + membership.categoryId + " to " + person.name;

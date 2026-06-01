@@ -5,11 +5,7 @@ import javax.swing.JMenuBar;
 
 import org.jetbrains.annotations.NotNull;
 
-/**
- * Menu bar layout for the credit editor window. Holds no callback state of its own:
- * every {@link javax.swing.JMenuItem} is bound to a {@link javax.swing.Action} on
- * {@link EditorActions}, which owns enablement, label, accelerator, and mnemonic.
- */
+/** Composes the editor's menu bar from the shared action registry. */
 final class EditorMenuBar extends JMenuBar {
 
     EditorMenuBar(@NotNull EditorActions actions) {
@@ -25,6 +21,8 @@ final class EditorMenuBar extends JMenuBar {
         JMenu editMenu = newMenu("menu.edit", "menu.edit.mnemonic");
         editMenu.add(actions.undo);
         editMenu.add(actions.redo);
+        editMenu.addSeparator();
+        editMenu.add(actions.manageLocales);
 
         JMenu helpMenu = newMenu("menu.help", "menu.help.mnemonic");
         helpMenu.add(actions.shortcuts);

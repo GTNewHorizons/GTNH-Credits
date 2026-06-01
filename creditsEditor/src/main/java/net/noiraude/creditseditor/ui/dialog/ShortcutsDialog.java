@@ -20,15 +20,17 @@ import javax.swing.KeyStroke;
 
 import net.noiraude.creditseditor.ui.I18n;
 
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.Unmodifiable;
 
 /**
  * Modal dialog listing the keyboard shortcuts available in the editor.
  *
  * <p>
  * The shortcut catalogue is hand-maintained against the accelerators wired in
- * {@link net.noiraude.creditseditor.ui.EditorMenuBar} and the standard text-editing keys
+ * {@code EditorMenuBar} and the standard text-editing keys
  * provided by Swing; new accelerators must be added here so users can discover them.
  *
  * <p>
@@ -57,6 +59,7 @@ public final class ShortcutsDialog extends JDialog {
         setLocationRelativeTo(owner);
     }
 
+    @Contract(" -> new")
     private static @NotNull JComponent buildShortcutsLabel() {
         StringBuilder html = new StringBuilder("<html><table cellpadding='2' cellspacing='0'>");
         boolean firstSection = true;
@@ -87,19 +90,20 @@ public final class ShortcutsDialog extends JDialog {
             .replace(">", "&gt;");
     }
 
-    private static @NotNull List<Section> sections() {
+    @Contract(" -> new")
+    private static @NotNull @Unmodifiable List<Section> sections() {
         return List.of(
             new Section(
-                I18n.get("dialog.shortcuts.section.file"),
+                I18n.get("menu.file"),
                 List.of(
-                    new Shortcut("Ctrl+O", I18n.get("dialog.shortcuts.file.open")),
-                    new Shortcut("Ctrl+S", I18n.get("dialog.shortcuts.file.save")),
-                    new Shortcut("Ctrl+Shift+S", I18n.get("dialog.shortcuts.file.save_as")))),
+                    new Shortcut("Ctrl+O", I18n.get("action.open")),
+                    new Shortcut("Ctrl+S", I18n.get("action.save")),
+                    new Shortcut("Ctrl+Shift+S", I18n.get("action.save_as")))),
             new Section(
-                I18n.get("dialog.shortcuts.section.edit"),
+                I18n.get("menu.edit"),
                 List.of(
-                    new Shortcut("Ctrl+Z", I18n.get("dialog.shortcuts.edit.undo")),
-                    new Shortcut("Ctrl+Shift+Z", I18n.get("dialog.shortcuts.edit.redo")),
+                    new Shortcut("Ctrl+Z", I18n.get("action.undo")),
+                    new Shortcut("Ctrl+Shift+Z", I18n.get("action.redo")),
                     new Shortcut("Ctrl+X", I18n.get("dialog.shortcuts.edit.cut")),
                     new Shortcut("Ctrl+C", I18n.get("dialog.shortcuts.edit.copy")),
                     new Shortcut("Ctrl+V", I18n.get("dialog.shortcuts.edit.paste")),

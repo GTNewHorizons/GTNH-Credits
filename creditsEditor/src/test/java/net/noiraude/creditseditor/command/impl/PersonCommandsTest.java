@@ -5,7 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import net.noiraude.creditseditor.bus.DocumentBus;
-import net.noiraude.libcredits.lang.LangParser;
+import net.noiraude.creditseditor.bus.MutableSessionSource;
+import net.noiraude.creditseditor.bus.TestDocumentSession;
 import net.noiraude.libcredits.model.CreditsDocument;
 import net.noiraude.libcredits.model.DocumentMembership;
 import net.noiraude.libcredits.model.DocumentPerson;
@@ -22,8 +23,10 @@ public class PersonCommandsTest {
     @BeforeEach
     public void setUp() {
         creditsDoc = CreditsDocument.empty();
-        bus = new DocumentBus();
-        bus.setSession(creditsDoc, LangParser.empty());
+        MutableSessionSource source = new MutableSessionSource();
+        bus = new DocumentBus(source);
+        source.set(TestDocumentSession.of(creditsDoc));
+        bus.fireSessionChanged();
         alice = new DocumentPerson("Alice");
         DocumentPerson bob = new DocumentPerson("Bob");
         creditsDoc.persons.add(alice);

@@ -1,6 +1,8 @@
 package net.noiraude.libcredits.lang;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -143,6 +145,22 @@ public final class LangDocument {
         return get(key) != null;
     }
 
+    /**
+     * Returns every active key (originals not deleted plus pending inserts) whose name
+     * starts with {@code prefix}, in original-then-pending insertion order.
+     */
+    @Contract(pure = true)
+    public @NotNull LinkedHashSet<String> keysStartingWith(@NotNull String prefix) {
+        LinkedHashSet<String> out = new LinkedHashSet<>();
+        for (KeyValueLine line : index.values()) {
+            if (!line.deleted && line.key.startsWith(prefix)) out.add(line.key);
+        }
+        for (String pendingKey : pendingInserts.keySet()) {
+            if (pendingKey.startsWith(prefix)) out.add(pendingKey);
+        }
+        return out;
+    }
+
     // ------------------------------------------------------------------
     // Public API -- writes (restricted to owned prefixes)
     // ------------------------------------------------------------------
@@ -181,6 +199,61 @@ public final class LangDocument {
         KeyValueLine existing = index.get(key);
         if (existing != null) existing.deleted = true;
         pendingInserts.remove(key);
+    }
+
+    // ------------------------------------------------------------------
+    // Public API -- merging
+    // ------------------------------------------------------------------
+
+    /**
+     * Replaces this document's owned-prefix keys with the owned-prefix keys from
+     * {@code source}. Foreign keys, blank lines, and comment lines in this document are
+     * preserved exactly. Owned-prefix keys present here but absent from {@code source} are
+     * removed. Owned-prefix keys present in {@code source} are written here, overwriting
+     * any prior value or adding new entries.
+     *
+     * <p>
+     * Membership in the owned set is determined by this document's own
+     * {@link LangParser#OWNED_PREFIXES configured prefixes}. {@code source}'s foreign
+     * keys are ignored.
+     */
+    public void applyOwnedKeysFrom(@NotNull LangDocument source) {
+        // Collect source's owned key-value pairs (active originals + pending inserts).
+        Map<String, String> sourceOwned = new LinkedHashMap<>();
+        for (KeyValueLine line : source.index.values()) {
+            if (!line.deleted && isOwned(line.key)) {
+                sourceOwned.put(line.key, line.value);
+            }
+        }
+        for (Map.Entry<String, String> entry : source.pendingInserts.entrySet()) {
+            if (isOwned(entry.getKey())) {
+                sourceOwned.put(entry.getKey(), entry.getValue());
+            }
+        }
+
+        // Drop owned keys present here but absent from source.
+        List<String> targetOwnedKeys = new ArrayList<>();
+        for (KeyValueLine line : index.values()) {
+            if (!line.deleted && isOwned(line.key)) targetOwnedKeys.add(line.key);
+        }
+        for (String key : new LinkedHashSet<>(pendingInserts.keySet())) {
+            if (isOwned(key)) targetOwnedKeys.add(key);
+        }
+        for (String key : targetOwnedKeys) {
+            if (!sourceOwned.containsKey(key)) remove(key);
+        }
+
+        // Write source's owned keys here, overwriting or appending.
+        for (Map.Entry<String, String> entry : sourceOwned.entrySet()) {
+            set(entry.getKey(), entry.getValue());
+        }
+    }
+
+    private boolean isOwned(@NotNull String key) {
+        for (String prefix : ownedPrefixes) {
+            if (key.startsWith(prefix)) return true;
+        }
+        return false;
     }
 
     // ------------------------------------------------------------------

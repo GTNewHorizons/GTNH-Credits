@@ -1,7 +1,7 @@
 package net.noiraude.creditseditor.ui.detail;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 import java.awt.Component;
@@ -16,18 +16,21 @@ import javax.swing.JButton;
 import javax.swing.JTable;
 
 import net.noiraude.creditseditor.bus.DocumentBus;
+import net.noiraude.creditseditor.bus.MutableSessionSource;
+import net.noiraude.creditseditor.bus.TestDocumentSession;
 import net.noiraude.creditseditor.command.CommandStack;
 import net.noiraude.creditseditor.command.impl.AddMembershipCommand;
 import net.noiraude.creditseditor.command.impl.RemoveMembershipCommand;
-import net.noiraude.libcredits.lang.LangParser;
 import net.noiraude.libcredits.model.CreditsDocument;
 import net.noiraude.libcredits.model.DocumentMembership;
 import net.noiraude.libcredits.model.DocumentPerson;
 
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+@SuppressWarnings("SpellCheckingInspection")
 public class MembershipTablePanelTest {
 
     private static final Runnable NOOP = () -> {};
@@ -140,15 +143,18 @@ public class MembershipTablePanelTest {
         stack.undo();
         assertEquals(3, table(panel).getRowCount());
         assertEquals("dev", table(panel).getValueAt(1, 0));
-        assertTrue(alice.memberships.get(1) == middle, "undo restores the same membership instance");
+        assertSame(alice.memberships.get(1), middle, "undo restores the same membership instance");
     }
 
     private static @NotNull DocumentBus newBus() {
-        DocumentBus bus = new DocumentBus();
-        bus.setSession(CreditsDocument.empty(), LangParser.empty());
+        MutableSessionSource source = new MutableSessionSource();
+        DocumentBus bus = new DocumentBus(source);
+        source.set(TestDocumentSession.of(CreditsDocument.empty()));
+        bus.fireSessionChanged();
         return bus;
     }
 
+    @Contract(pure = true)
     private static @NotNull PropertyChangeListener reloadOn(@NotNull MembershipTablePanel panel,
         @NotNull DocumentPerson target) {
         return evt -> {

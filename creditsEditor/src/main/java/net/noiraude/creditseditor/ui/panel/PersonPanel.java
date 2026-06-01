@@ -29,6 +29,7 @@ import net.noiraude.creditseditor.command.impl.CompoundCommand;
 import net.noiraude.creditseditor.command.impl.RemovePersonCommand;
 import net.noiraude.creditseditor.mc.McText;
 import net.noiraude.creditseditor.ui.I18n;
+import net.noiraude.creditseditor.ui.MsgArg;
 import net.noiraude.creditseditor.ui.component.AnyChangeListener;
 import net.noiraude.creditseditor.ui.dialog.ImportTsvDialog;
 import net.noiraude.libcredits.model.DocumentCategory;
@@ -167,8 +168,8 @@ public final class PersonPanel extends ListPanel<DocumentPerson, List<DocumentPe
         if (selected.isEmpty() || !bus.hasSession()) return;
 
         String message = selected.size() == 1
-            ? I18n.get("panel.persons.remove.confirm.single", McText.strip(selected.getFirst().name))
-            : I18n.get("panel.persons.remove.confirm.multiple", selected.size());
+            ? I18n.get("panel.persons.remove.confirm.single", MsgArg.text(McText.strip(selected.getFirst().name)))
+            : I18n.get("panel.persons.remove.confirm.multiple", MsgArg.count(selected.size()));
         int confirm = JOptionPane.showConfirmDialog(
             this,
             message,
@@ -181,7 +182,7 @@ public final class PersonPanel extends ListPanel<DocumentPerson, List<DocumentPe
             onCommand.execute(new RemovePersonCommand(bus, selected.getFirst()));
         } else {
             CompoundCommand.Builder builder = new CompoundCommand.Builder(
-                I18n.get("command.remove.persons", selected.size()));
+                I18n.get("command.remove.persons", MsgArg.count(selected.size())));
             for (DocumentPerson person : selected) {
                 builder.add(new RemovePersonCommand(bus, person));
             }

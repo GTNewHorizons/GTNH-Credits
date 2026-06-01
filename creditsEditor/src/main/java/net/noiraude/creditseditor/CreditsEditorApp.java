@@ -4,7 +4,7 @@ import javax.swing.*;
 
 import net.noiraude.creditseditor.ui.AppIcons;
 import net.noiraude.creditseditor.ui.AppInfo;
-import net.noiraude.creditseditor.ui.MainWindow;
+import net.noiraude.creditseditor.ui.EditorApplication;
 
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
@@ -46,10 +46,7 @@ public class CreditsEditorApp {
         }
 
         final String resourcePath = args.resource();
-        SwingUtilities.invokeLater(() -> {
-            MainWindow window = new MainWindow(resourcePath);
-            window.setVisible(true);
-        });
+        SwingUtilities.invokeLater(() -> new EditorApplication().start(resourcePath));
     }
 
     @Contract(pure = true)

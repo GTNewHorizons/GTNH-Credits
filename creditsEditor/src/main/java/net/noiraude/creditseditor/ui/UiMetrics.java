@@ -22,6 +22,8 @@ public final class UiMetrics {
     public static final int FONT_HEADING_DELTA = 6;
     public static final int SCROLL_UNIT_INCREMENT = 16;
 
+    public static final int LOCALE_SELECTOR_WIDTH = 180;
+
     public static final int SPLIT_DIVIDER_LEFT = 200;
     public static final int SPLIT_DIVIDER_RIGHT = 250;
 

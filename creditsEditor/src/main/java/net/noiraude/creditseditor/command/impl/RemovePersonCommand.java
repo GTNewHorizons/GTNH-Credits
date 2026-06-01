@@ -3,6 +3,7 @@ package net.noiraude.creditseditor.command.impl;
 import net.noiraude.creditseditor.bus.DocumentBus;
 import net.noiraude.libcredits.model.DocumentPerson;
 
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -36,6 +37,7 @@ public final class RemovePersonCommand extends AbstractCommand {
         bus.firePersonsChanged();
     }
 
+    @Contract(pure = true)
     @Override
     public @NotNull String getDisplayName() {
         return "Remove person " + person.name;

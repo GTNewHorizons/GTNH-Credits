@@ -8,6 +8,7 @@ import net.noiraude.creditseditor.bus.DocumentBus;
 import net.noiraude.libcredits.model.CreditsDocument;
 import net.noiraude.libcredits.model.DocumentCategory;
 
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -53,6 +54,7 @@ public final class MoveCategoriesOrderCommand extends AbstractCommand {
         bus.fireCategoriesChanged();
     }
 
+    @Contract(pure = true)
     @Override
     public @NotNull String getDisplayName() {
         return fromIndices.length == 1 ? "Move category" : "Move " + fromIndices.length + " categories";

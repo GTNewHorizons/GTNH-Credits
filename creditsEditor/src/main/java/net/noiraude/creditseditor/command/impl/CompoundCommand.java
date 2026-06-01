@@ -13,7 +13,7 @@ import org.jetbrains.annotations.NotNull;
  * Groups multiple commands into a single undo/redo entry.
  *
  * <p>
- * On execute, children run in insertion order. On undo, they run in reverse order.
+ * On executing, children run in insertion order. On undo, they run in reverse order.
  * Each child publishes its own bus topics; no extra events are fired by the compound.
  */
 public final class CompoundCommand extends AbstractCommand {
@@ -42,6 +42,7 @@ public final class CompoundCommand extends AbstractCommand {
         }
     }
 
+    @Contract(pure = true)
     @Override
     public @NotNull String getDisplayName() {
         return displayName;

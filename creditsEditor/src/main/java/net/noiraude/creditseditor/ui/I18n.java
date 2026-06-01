@@ -8,9 +8,10 @@ import java.util.ResourceBundle;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.PropertyKey;
 
 /**
- * Localized string lookup for the credits editor UI.
+ * Localized string lookup for the Credits Editor UI.
  *
  * <p>
  * Resolves keys against {@code messages.properties} resource bundles for {@link Locale#getDefault()},
@@ -19,7 +20,7 @@ import org.jetbrains.annotations.Nullable;
  * UI without crashing.
  *
  * <p>
- * The bundle is loaded lazily on first lookup and cached for the JVM lifetime; runtime locale
+ * The bundle is loaded lazily on the first lookup and cached for the JVM lifetime; runtime locale
  * changes are not picked up.
  */
 public final class I18n {
@@ -47,11 +48,16 @@ public final class I18n {
     private I18n() {}
 
     /**
-     * Returns the localized message for {@code key}, formatted with {@code args} via
-     * {@link MessageFormat#format(String, Object...)} when any are supplied. Returns {@code key}
+     * Returns the localized message for {@code key}, with each {@link MsgArg} substituted into
+     * the matching {@code {n}} placeholder via {@link MessageFormat}. Returns {@code key}
      * verbatim when the bundle is missing or the key is unknown.
+     *
+     * <p>
+     * The conversion to the {@link Object} array required by {@link MessageFormat} happens
+     * locally in this method, so the public API exposes only the typed {@link MsgArg} surface.
      */
-    public static @NotNull String get(@NotNull String key, @NotNull Object... args) {
+    public static @NotNull String get(@PropertyKey(resourceBundle = BUNDLE_BASE) @NotNull String key,
+        @NotNull MsgArg... args) {
         ResourceBundle bundle = Holder.BUNDLE;
         if (bundle == null) return key;
         String pattern;
@@ -61,6 +67,7 @@ public final class I18n {
             return key;
         }
         if (args.length == 0) return pattern;
-        return MessageFormat.format(pattern, args);
+        return MessageFormat.format(pattern, MsgArg.unwrapArgs(args));
     }
+
 }

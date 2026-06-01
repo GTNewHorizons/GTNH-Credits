@@ -9,6 +9,7 @@ import javax.swing.text.JTextComponent;
 
 import net.noiraude.creditseditor.service.KeySanitizer;
 import net.noiraude.creditseditor.ui.I18n;
+import net.noiraude.creditseditor.ui.MsgArg;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -20,7 +21,7 @@ import org.jetbrains.annotations.NotNull;
  * Sanitization runs on the editor thread on every document change, so the user sees right away
  * which characters get stripped, replaced, or lowercased. When the input matches its sanitized
  * form, the label renders in the disabled foreground color so it reads as a passive hint;
- * when sanitization changes the input, it switches to the warning foreground so the
+ * when sanitization changes the input, it switches to the warning foreground, so the
  * transformation is visible rather than silent.
  *
  * @implNote The label tracks the supplied text component's {@link Document}; if the component
@@ -46,7 +47,7 @@ public final class KeyHintLabel extends JLabel {
         }
         String sanitized = KeySanitizer.sanitize(input);
         boolean changed = !sanitized.equals(input);
-        setText(I18n.get(changed ? "keyhint.changed" : "keyhint.unchanged", sanitized));
+        setText(I18n.get(changed ? "keyhint.changed" : "keyhint.unchanged", MsgArg.text(sanitized)));
         setForeground(changed ? warningColor() : UIManager.getColor("Label.disabledForeground"));
     }
 

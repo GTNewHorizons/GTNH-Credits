@@ -34,7 +34,13 @@ public final class CommandStack {
     // Execute / undo / redo
     // -----------------------------------------------------------------------
 
-    /** Executes {@code command}, pushes it onto the undo stack, and clears the redo stack. */
+    /**
+     * Executes {@code command}, pushes it onto the undo stack, and clears the redo stack.
+     *
+     * <p>
+     * Lets {@link EditAbortedException} propagate without pushing the command, so the undo
+     * stack does not record an attempt that left the document in its pre-call shape.
+     */
     public void execute(@NotNull Command command) {
         command.execute();
         undoStack.push(command);
@@ -52,24 +58,43 @@ public final class CommandStack {
     /**
      * Undoes the most recently executed command.
      *
+     * <p>
+     * If the command's {@code undo} raises {@link EditAbortedException}, the command is put
+     * back on the undo stack so the user can retry, and the exception is rethrown so the
+     * caller surfaces the failure.
+     *
      * @throws IllegalStateException if there is nothing to undo
      */
     public void undo() {
         if (undoStack.isEmpty()) throw new IllegalStateException("Nothing to undo");
         Command cmd = undoStack.pop();
-        cmd.undo();
+        try {
+            cmd.undo();
+        } catch (EditAbortedException ex) {
+            undoStack.push(cmd);
+            throw ex;
+        }
         redoStack.push(cmd);
     }
 
     /**
      * Re-executes the most recently undone command.
      *
+     * <p>
+     * If the command's {@code execute} raises {@link EditAbortedException}, the command is
+     * put back on the redo stack so the user can retry, and the exception is rethrown.
+     *
      * @throws IllegalStateException if there is nothing to redo
      */
     public void redo() {
         if (redoStack.isEmpty()) throw new IllegalStateException("Nothing to redo");
         Command cmd = redoStack.pop();
-        cmd.execute();
+        try {
+            cmd.execute();
+        } catch (EditAbortedException ex) {
+            redoStack.push(cmd);
+            throw ex;
+        }
         undoStack.push(cmd);
     }
 

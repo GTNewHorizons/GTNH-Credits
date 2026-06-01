@@ -35,6 +35,7 @@ import net.noiraude.creditseditor.command.impl.RemovePersonCommand;
 import net.noiraude.creditseditor.mc.McText;
 import net.noiraude.creditseditor.service.KeySanitizer;
 import net.noiraude.creditseditor.ui.I18n;
+import net.noiraude.creditseditor.ui.MsgArg;
 import net.noiraude.libcredits.model.DocumentCategory;
 import net.noiraude.libcredits.model.DocumentMembership;
 import net.noiraude.libcredits.model.DocumentPerson;
@@ -113,7 +114,7 @@ public final class BulkPersonView extends JPanel {
     /** Loads the given selection into the view. */
     public void load(@NotNull List<DocumentPerson> persons) {
         this.persons = persons;
-        countLabel.setText(I18n.get("view.bulk.count", persons.size()));
+        countLabel.setText(I18n.get("view.bulk.count", MsgArg.count(persons.size())));
     }
 
     private void reresolve() {
@@ -139,7 +140,7 @@ public final class BulkPersonView extends JPanel {
         if (target == null) return;
 
         CompoundCommand.Builder builder = new CompoundCommand.Builder(
-            I18n.get("command.bulk.assign", persons.size(), target.id));
+            I18n.get("command.bulk.assign", MsgArg.count(persons.size()), MsgArg.text(target.id)));
 
         int added = 0;
         for (DocumentPerson person : persons) {
@@ -154,7 +155,7 @@ public final class BulkPersonView extends JPanel {
         if (builder.isEmpty()) {
             JOptionPane.showMessageDialog(
                 this,
-                I18n.get("view.bulk.assign.no_changes", target.id),
+                I18n.get("view.bulk.assign.no_changes", MsgArg.text(target.id)),
                 I18n.get("view.bulk.no_changes.title"),
                 JOptionPane.INFORMATION_MESSAGE);
             return;
@@ -163,7 +164,7 @@ public final class BulkPersonView extends JPanel {
         onCommand.execute(builder.build());
         JOptionPane.showMessageDialog(
             this,
-            I18n.get("view.bulk.assign.complete.message", added, target.id),
+            I18n.get("view.bulk.assign.complete.message", MsgArg.count(added), MsgArg.text(target.id)),
             I18n.get("view.bulk.assign.complete.title"),
             JOptionPane.INFORMATION_MESSAGE);
     }
@@ -178,7 +179,7 @@ public final class BulkPersonView extends JPanel {
         if (role == null) return;
 
         CompoundCommand.Builder builder = new CompoundCommand.Builder(
-            I18n.get("command.bulk.add_role", role, target.id));
+            I18n.get("command.bulk.add_role", MsgArg.text(role), MsgArg.text(target.id)));
         RoleAddCounts counts = collectRoleAddCommands(builder, target, role);
 
         if (builder.isEmpty()) {
@@ -195,7 +196,7 @@ public final class BulkPersonView extends JPanel {
     }
 
     private @Nullable String promptForRole(@NotNull DocumentCategory target) {
-        String role = JOptionPane.showInputDialog(this, I18n.get("view.bulk.add_role.prompt", target.id));
+        String role = JOptionPane.showInputDialog(this, I18n.get("view.bulk.add_role.prompt", MsgArg.text(target.id)));
         if (role == null) return null;
         String stripped = role.strip();
         return stripped.isEmpty() ? null : stripped;
@@ -222,9 +223,10 @@ public final class BulkPersonView extends JPanel {
     }
 
     private void showRoleAddSummary(@NotNull RoleAddCounts counts, @NotNull DocumentCategory target) {
-        String message = I18n.get("view.bulk.add_role.complete.added", counts.added());
+        String message = I18n.get("view.bulk.add_role.complete.added", MsgArg.count(counts.added()));
         if (counts.skipped() > 0) {
-            message += I18n.get("view.bulk.add_role.complete.skipped", counts.skipped(), target.id);
+            message += I18n
+                .get("view.bulk.add_role.complete.skipped", MsgArg.count(counts.skipped()), MsgArg.text(target.id));
         }
         JOptionPane.showMessageDialog(
             this,
@@ -261,7 +263,7 @@ public final class BulkPersonView extends JPanel {
         if (target == null) return;
 
         CompoundCommand.Builder builder = new CompoundCommand.Builder(
-            I18n.get("command.bulk.remove_from_category", persons.size(), target.id));
+            I18n.get("command.bulk.remove_from_category", MsgArg.count(persons.size()), MsgArg.text(target.id)));
 
         for (DocumentPerson person : persons) {
             person.memberships.stream()
@@ -279,14 +281,14 @@ public final class BulkPersonView extends JPanel {
 
         int confirm = JOptionPane.showConfirmDialog(
             this,
-            I18n.get("view.bulk.delete.confirm", persons.size()),
+            I18n.get("view.bulk.delete.confirm", MsgArg.count(persons.size())),
             I18n.get("view.bulk.delete.confirm.title"),
             JOptionPane.OK_CANCEL_OPTION,
             JOptionPane.WARNING_MESSAGE);
         if (confirm != JOptionPane.OK_OPTION) return;
 
         CompoundCommand.Builder builder = new CompoundCommand.Builder(
-            I18n.get("command.bulk.delete_persons", persons.size()));
+            I18n.get("command.bulk.delete_persons", MsgArg.count(persons.size())));
         for (DocumentPerson person : persons) {
             builder.add(new RemovePersonCommand(bus, person));
         }

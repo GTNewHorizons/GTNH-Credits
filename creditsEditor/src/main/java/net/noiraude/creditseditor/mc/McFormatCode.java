@@ -1,11 +1,16 @@
 package net.noiraude.creditseditor.mc;
 
+import java.util.Arrays;
 import java.util.EnumSet;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.PropertyKey;
 
 /**
  * Minecraft {@code §x} formatting codes as a pure domain concept.
@@ -24,48 +29,56 @@ import org.jetbrains.annotations.Nullable;
 public enum McFormatCode {
 
     // @formatter:off
-    BLACK         ('0', 0x000000),
-    DARK_BLUE     ('1', 0x0000AA),
-    DARK_GREEN    ('2', 0x00AA00),
-    DARK_AQUA     ('3', 0x00AAAA),
-    DARK_RED      ('4', 0xAA0000),
-    DARK_PURPLE   ('5', 0xAA00AA),
-    GOLD          ('6', 0xFFAA00),
-    GRAY          ('7', 0xAAAAAA),
-    DARK_GRAY     ('8', 0x555555),
-    BLUE          ('9', 0x5555FF),
-    GREEN         ('a', 0x55FF55),
-    AQUA          ('b', 0x55FFFF),
-    RED           ('c', 0xFF5555),
-    LIGHT_PURPLE  ('d', 0xFF55FF),
-    YELLOW        ('e', 0xFFFF55),
-    WHITE         ('f', 0xFFFFFF),
-    BOLD          ('l'),
-    ITALIC        ('o'),
-    UNDERLINE     ('n'),
-    STRIKETHROUGH ('m'),
-    OBFUSCATED    ('k'),
-    RESET         ('r');
+    BLACK         ('0', 0x000000, "mc_format.black"),
+    DARK_BLUE     ('1', 0x0000AA, "mc_format.dark_blue"),
+    DARK_GREEN    ('2', 0x00AA00, "mc_format.dark_green"),
+    DARK_AQUA     ('3', 0x00AAAA, "mc_format.dark_aqua"),
+    DARK_RED      ('4', 0xAA0000, "mc_format.dark_red"),
+    DARK_PURPLE   ('5', 0xAA00AA, "mc_format.dark_purple"),
+    GOLD          ('6', 0xFFAA00, "mc_format.gold"),
+    GRAY          ('7', 0xAAAAAA, "mc_format.gray"),
+    DARK_GRAY     ('8', 0x555555, "mc_format.dark_gray"),
+    BLUE          ('9', 0x5555FF, "mc_format.blue"),
+    GREEN         ('a', 0x55FF55, "mc_format.green"),
+    AQUA          ('b', 0x55FFFF, "mc_format.aqua"),
+    RED           ('c', 0xFF5555, "mc_format.red"),
+    LIGHT_PURPLE  ('d', 0xFF55FF, "mc_format.light_purple"),
+    YELLOW        ('e', 0xFFFF55, "mc_format.yellow"),
+    WHITE         ('f', 0xFFFFFF, "mc_format.white"),
+    BOLD          ('l',           "mc_format.bold"),
+    ITALIC        ('o',           "mc_format.italic"),
+    UNDERLINE     ('n',           "mc_format.underline"),
+    STRIKETHROUGH ('m',           "mc_format.strikethrough"),
+    OBFUSCATED    ('k',           "mc_format.obfuscated"),
+    RESET         ('r',           "mc_format.reset");
     // @formatter:on
 
     /** The 16-color palette codes in order ({@code §0}-{@code §f}). */
     public static final McFormatCode[] PALETTE = { BLACK, DARK_BLUE, DARK_GREEN, DARK_AQUA, DARK_RED, DARK_PURPLE, GOLD,
         GRAY, DARK_GRAY, BLUE, GREEN, AQUA, RED, LIGHT_PURPLE, YELLOW, WHITE };
 
-    /** The § code character (the char after {@code §}). */
     public final char code;
-
-    private final int rgb; // -1 for non-colour codes
+    private final int rgb;
+    private final String translationKey;
 
     @Contract(pure = true)
-    McFormatCode(char code) {
-        this(code, -1);
+    McFormatCode(char code, @PropertyKey(resourceBundle = "messages") @NotNull String translationKey) {
+        this(code, -1, translationKey);
     }
 
     @Contract(pure = true)
-    McFormatCode(char code, int rgb) {
+    McFormatCode(char code, int rgb, @PropertyKey(resourceBundle = "messages") @NotNull String translationKey) {
         this.code = code;
         this.rgb = rgb;
+        this.translationKey = translationKey;
+    }
+
+    /**
+     * Returns the i18n key for this format code.
+     */
+    @Contract(pure = true)
+    public @PropertyKey(resourceBundle = "messages") @NotNull String getTranslationKey() {
+        return translationKey;
     }
 
     /** Returns {@code true} if this is one of the 16 color codes ({@code §0}-{@code §f}). */
@@ -97,16 +110,16 @@ public enum McFormatCode {
             .append(code);
     }
 
+    private static final Map<Character, McFormatCode> BY_CHAR = Arrays.stream(values())
+        .collect(Collectors.toUnmodifiableMap(mc -> mc.code, mc -> mc));
+
     /**
-     * Returns the {@link McFormatCode} for the given code character, or {@code null} if not
-     * recognized.
+     * Returns an {@link Optional} containing the {@link McFormatCode} for the
+     * given code character, or empty if not recognized.
      */
     @Contract(pure = true)
-    public static @Nullable McFormatCode fromChar(char c) {
-        for (McFormatCode mc : values()) {
-            if (mc.code == c) return mc;
-        }
-        return null;
+    public static @NotNull Optional<McFormatCode> fromChar(char c) {
+        return Optional.ofNullable(BY_CHAR.get(c));
     }
 
     /** Returns the active color code in {@code codes}, or {@code null} if none is present. */

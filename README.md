@@ -4,7 +4,8 @@ A Minecraft 1.7.10 Forge mod that adds a **Credits** screen to the
 main menu, giving GT New Horizons one official place to recognize
 everyone who contributed to the pack.
 
-It is an implementation for the [Centralized Credits Page #23582](https://github.com/GTNewHorizons/GT-New-Horizons-Modpack/issues/23582) proposal.
+It is an implementation for
+the [Centralized Credits Page #23582](https://github.com/GTNewHorizons/GT-New-Horizons-Modpack/issues/23582) proposal.
 
 ## Access
 
@@ -45,7 +46,9 @@ Add an entry to the `"buttons"` object in your `mainmenu.json`:
 Using a lang key for the button label is also valid:
 
 ```json
-{ "text": "menu.gtnh.credits" }
+{
+  "text": "menu.gtnh.credits"
+}
 ```
 
 ### Disabling the vanilla button
@@ -92,7 +95,11 @@ reference.
   "category": [
     {
       "id": "dev",
-      "class": [ "detail", "person", "role" ]
+      "class": [
+        "detail",
+        "person",
+        "role"
+      ]
     }
   ],
   "person": [
@@ -137,7 +144,8 @@ result is lowercased. For example `"Core Team"` â†’ `core_team`, `"Core.Mod"` â†
 | `credits.person.role.<role>`            | Display name for a role                                                                           |
 | `gui.credits.filter.hint`               | Placeholder text for the person filter field                                                      |
 
-The two `detail` forms are mutually exclusive per locale: if any `detail.<suffix>` key exists, the plain `detail` key is ignored.
+The two `detail` forms are mutually exclusive per locale: if any `detail.<suffix>` key exists, the plain `detail` key is
+ignored.
 
 ## GTNH Credits Editor
 
@@ -188,3 +196,25 @@ Runs automatically as part of `check` and `docs`.
 ./gradlew docs   # generate all project documentation
 ./gradlew check  # validate + generate docs + run all checks
 ```
+
+## AI Transparency
+
+This project uses Claude Code and other AI agents as a technical harness for planning, architecture, and code
+generation.
+
+As the Software Architect and Lead Developer, I manage a team of AI agents to handle implementation and slicing. While
+they help with the heavy lifting, I manually review everything. I vet my own work and generated code alike because I
+trust my first-pass code as little as I trust AI output.
+
+I ensure all output complies with the Software Engineering fundamentals I mastered over 40+ years in the industry. My
+standards are rooted in a career spanning the full IT stack from legacy mini-systems and network protocols to modern R&D
+and Java development.
+
+### Ownership & Accountability
+
+I am accountable for every line of code associated with my name in the `git blame`. I do not use "co-authored-by"
+metadata for AI agents because tools do not take responsibility; Engineers do.
+
+If the code is incorrect, has bugs, or does not act as intended, the responsibility is mine. I put my real name on this
+work and take full ownership of it within the limits of the [MIT License](LICENSE). This project is open-source; if you
+find an issue, please open a ticket or propose a change.

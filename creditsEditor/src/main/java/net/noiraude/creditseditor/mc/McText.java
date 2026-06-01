@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Optional;
 import java.util.Set;
 
 import org.jetbrains.annotations.Contract;
@@ -159,15 +161,21 @@ public final class McText {
         while (i < raw.length()) {
             char c = raw.charAt(i);
             if (c == '§' && i + 1 < raw.length()) {
-                McFormatCode mc = McFormatCode.fromChar(Character.toLowerCase(raw.charAt(i + 1)));
-                if (mc == null) {
+                char rawChar = raw.charAt(i + 1);
+                // Format codes are case-insensitive
+                char codeChar = String.valueOf(rawChar)
+                    .toLowerCase(Locale.ROOT)
+                    .charAt(0);
+
+                Optional<McFormatCode> mcOpt = McFormatCode.fromChar(codeChar);
+
+                if (mcOpt.isPresent()) {
+                    flushSegment(text, state, result);
+                    applyStateChange(mcOpt.get(), state);
+                } else {
                     text.append(c)
-                        .append(raw.charAt(i + 1));
-                    i += 2;
-                    continue;
+                        .append(rawChar);
                 }
-                flushSegment(text, state, result);
-                applyStateChange(mc, state);
                 i += 2;
             } else {
                 text.append(c);

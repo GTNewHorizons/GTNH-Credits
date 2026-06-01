@@ -34,6 +34,7 @@ import net.noiraude.creditseditor.command.impl.RemovePersonRoleCommand;
 import net.noiraude.creditseditor.mc.McText;
 import net.noiraude.creditseditor.service.KeySanitizer;
 import net.noiraude.creditseditor.ui.I18n;
+import net.noiraude.creditseditor.ui.MsgArg;
 import net.noiraude.creditseditor.ui.component.dnd.ListReorderTransferHandler;
 import net.noiraude.libcredits.model.CreditsDocument;
 import net.noiraude.libcredits.model.DocumentMembership;
@@ -54,6 +55,7 @@ import org.jetbrains.annotations.Nullable;
 public final class RoleListPanel extends JPanel {
 
     private static final int MIN_VISIBLE_ROLE_ROWS = 2;
+    private static final int PREFERRED_VISIBLE_ROLE_ROWS = 5;
 
     private final @NotNull DocumentBus bus;
     private final @NotNull CommandExecutor onCommand;
@@ -63,8 +65,8 @@ public final class RoleListPanel extends JPanel {
     private final @NotNull JList<String> roleList = new JList<>(roleListModel);
     private final @NotNull JButton addButton = new JButton(I18n.get("button.add"));
     private final @NotNull JButton deleteButton = new JButton(I18n.get("button.delete"));
-    private @NotNull JScrollPane roleListScroll = new JScrollPane();
-    private @NotNull JPanel toolbar = new JPanel();
+    private final @NotNull JScrollPane roleListScroll = new JScrollPane(roleList);
+    private final @NotNull JPanel toolbar = buildToolbar();
     private @Nullable Runnable selectionListener;
 
     private @Nullable DocumentPerson currentPerson;
@@ -83,20 +85,16 @@ public final class RoleListPanel extends JPanel {
         load(null, null);
     }
 
-    /**
-     * Ensures the panel keeps the context label, {@value #MIN_VISIBLE_ROLE_ROWS} role-list
-     * rows, and the Add/Delete toolbar visible even when the parent layout shrinks.
-     */
     @Override
     public Dimension getMinimumSize() {
         Dimension min = super.getMinimumSize();
+        int cellHeight = roleList.getFixedCellHeight();
         int contextH = contextLabel.getPreferredSize().height;
-        int rowsH = roleList.getFixedCellHeight() > 0 ? roleList.getFixedCellHeight() * MIN_VISIBLE_ROLE_ROWS
-            : new JLabel("X").getPreferredSize().height * MIN_VISIBLE_ROLE_ROWS;
+        int rowsH = cellHeight * MIN_VISIBLE_ROLE_ROWS;
         Insets scrollInsets = roleListScroll.getInsets();
         int scrollH = rowsH + scrollInsets.top + scrollInsets.bottom;
         int toolbarH = toolbar.getPreferredSize().height;
-        int rowSpacing = gapTiny * 2 * 2; // 2 inter-row gaps inside this panel
+        int rowSpacing = gapTiny * 6;
         int floorH = rowSpacing + contextH + scrollH + toolbarH;
         return new Dimension(min.width, Math.max(min.height, floorH));
     }
@@ -157,8 +155,12 @@ public final class RoleListPanel extends JPanel {
                     : new MoveRolesOrderCommand(bus, currentPerson, currentMembership, fromIndices, dropIndex),
                 i -> true,
                 i -> currentMembership != null));
-        roleList.setVisibleRowCount(5);
         roleList.setCellRenderer(new RoleListCellRenderer());
+        int cellHeight = roleList.getCellRenderer()
+            .getListCellRendererComponent(roleList, "X", 0, false, false)
+            .getPreferredSize().height;
+        roleList.setFixedCellHeight(cellHeight);
+        roleList.setVisibleRowCount(PREFERRED_VISIBLE_ROLE_ROWS);
     }
 
     private void assembleLayout() {
@@ -175,25 +177,12 @@ public final class RoleListPanel extends JPanel {
         gbc.gridy = 1;
         gbc.weighty = 1.0;
         gbc.fill = GridBagConstraints.BOTH;
-        roleListScroll = new JScrollPane(roleList) {
-
-            @Override
-            public Dimension getMinimumSize() {
-                int rowH = roleList.getFixedCellHeight() > 0 ? roleList.getFixedCellHeight()
-                    : getFontMetrics(roleList.getFont()).getHeight();
-                Insets in = getInsets();
-                int h = rowH * MIN_VISIBLE_ROLE_ROWS + in.top + in.bottom;
-                Dimension d = super.getMinimumSize();
-                return new Dimension(d.width, Math.max(d.height, h));
-            }
-        };
         add(roleListScroll, gbc);
 
         gbc.gridy = 2;
         gbc.weighty = 0;
         gbc.fill = GridBagConstraints.NONE;
         gbc.anchor = GridBagConstraints.WEST;
-        toolbar = buildToolbar();
         add(toolbar, gbc);
     }
 
@@ -240,7 +229,7 @@ public final class RoleListPanel extends JPanel {
         if (currentMembership.roles.contains(role)) {
             JOptionPane.showMessageDialog(
                 this,
-                I18n.get("panel.roles.duplicate.message", role),
+                I18n.get("panel.roles.duplicate.message", MsgArg.text(role)),
                 I18n.get("panel.roles.duplicate.title"),
                 JOptionPane.WARNING_MESSAGE);
             return;
@@ -253,7 +242,7 @@ public final class RoleListPanel extends JPanel {
         if (selected.isEmpty() || currentMembership == null || currentPerson == null) return;
 
         CompoundCommand.Builder builder = new CompoundCommand.Builder(
-            I18n.get("command.remove.roles", selected.size(), currentMembership.categoryId));
+            I18n.get("command.remove.roles", MsgArg.count(selected.size()), MsgArg.text(currentMembership.categoryId)));
         for (String role : selected) {
             builder.add(new RemovePersonRoleCommand(bus, currentPerson, currentMembership, role));
         }
@@ -263,7 +252,7 @@ public final class RoleListPanel extends JPanel {
     private void updateContextLabel() {
         boolean has = currentMembership != null;
         contextLabel.setText(
-            has ? I18n.get("panel.roles.context", currentMembership.categoryId)
+            has ? I18n.get("panel.roles.context", MsgArg.text(currentMembership.categoryId))
                 : I18n.get("panel.roles.no_membership"));
         contextLabel.setFont(
             contextLabel.getFont()

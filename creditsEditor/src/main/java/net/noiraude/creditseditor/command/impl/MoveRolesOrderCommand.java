@@ -8,6 +8,7 @@ import net.noiraude.creditseditor.bus.DocumentBus;
 import net.noiraude.libcredits.model.DocumentMembership;
 import net.noiraude.libcredits.model.DocumentPerson;
 
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -57,6 +58,7 @@ public final class MoveRolesOrderCommand extends AbstractCommand {
         bus.firePersonChanged(person);
     }
 
+    @Contract(pure = true)
     @Override
     public @NotNull String getDisplayName() {
         return fromIndices.length == 1 ? "Move role in " + membership.categoryId

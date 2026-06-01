@@ -107,6 +107,7 @@ public final class ListReorderTransferHandler<E> extends TransferHandler {
         return true;
     }
 
+    @Contract(mutates = "this")
     @Override
     protected void exportDone(@NotNull JComponent source, @Nullable Transferable data, int action) {
         dragFromIndices = new int[0];

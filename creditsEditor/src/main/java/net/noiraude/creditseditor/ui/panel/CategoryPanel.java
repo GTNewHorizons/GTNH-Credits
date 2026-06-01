@@ -29,6 +29,7 @@ import net.noiraude.creditseditor.command.impl.RemoveCategoryCommand;
 import net.noiraude.creditseditor.mc.McText;
 import net.noiraude.creditseditor.service.KeySanitizer;
 import net.noiraude.creditseditor.ui.I18n;
+import net.noiraude.creditseditor.ui.MsgArg;
 import net.noiraude.creditseditor.ui.component.KeyHintLabel;
 import net.noiraude.creditseditor.ui.component.dnd.ListReorderTransferHandler;
 import net.noiraude.libcredits.model.CreditsDocument;
@@ -186,7 +187,7 @@ public final class CategoryPanel extends ListPanel<Object, List<DocumentCategory
         if (exists) {
             JOptionPane.showMessageDialog(
                 this,
-                I18n.get("panel.categories.duplicate.message", finalId),
+                I18n.get("panel.categories.duplicate.message", MsgArg.text(finalId)),
                 I18n.get("panel.categories.duplicate.title"),
                 JOptionPane.WARNING_MESSAGE);
             return;
@@ -198,8 +199,8 @@ public final class CategoryPanel extends ListPanel<Object, List<DocumentCategory
         List<DocumentCategory> selected = getSelectedCategories();
         if (selected.isEmpty() || !bus.hasSession()) return;
         String message = selected.size() == 1
-            ? I18n.get("panel.categories.remove.confirm.single", selected.getFirst().id)
-            : I18n.get("panel.categories.remove.confirm.multiple", selected.size());
+            ? I18n.get("panel.categories.remove.confirm.single", MsgArg.text(selected.getFirst().id))
+            : I18n.get("panel.categories.remove.confirm.multiple", MsgArg.count(selected.size()));
         int confirm = JOptionPane.showConfirmDialog(
             this,
             message,
@@ -212,7 +213,7 @@ public final class CategoryPanel extends ListPanel<Object, List<DocumentCategory
             onCommand.execute(new RemoveCategoryCommand(bus, selected.getFirst()));
         } else {
             CompoundCommand.Builder builder = new CompoundCommand.Builder(
-                I18n.get("command.remove.categories", selected.size()));
+                I18n.get("command.remove.categories", MsgArg.count(selected.size())));
             for (DocumentCategory cat : selected) {
                 builder.add(new RemoveCategoryCommand(bus, cat));
             }
@@ -296,7 +297,7 @@ public final class CategoryPanel extends ListPanel<Object, List<DocumentCategory
                 String displayName = bus.hasSession() ? bus.langDoc()
                     .get(langKey) : null;
                 if (displayName == null || displayName.isEmpty()) {
-                    label.setText(I18n.get("panel.categories.cell.untranslated", cat.id));
+                    label.setText(I18n.get("panel.categories.cell.untranslated", MsgArg.text(cat.id)));
                 } else {
                     label.setText(McText.strip(displayName));
                 }

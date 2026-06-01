@@ -1,5 +1,7 @@
 package net.noiraude.creditseditor.service;
 
+import java.util.Locale;
+
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
@@ -36,6 +38,6 @@ public final class KeySanitizer {
         return value.replace(".", "")
             .replace("-", "")
             .replaceAll(" +", "_")
-            .toLowerCase();
+            .toLowerCase(Locale.ROOT);
     }
 }

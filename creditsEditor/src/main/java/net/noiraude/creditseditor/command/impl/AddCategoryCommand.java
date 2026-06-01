@@ -3,6 +3,7 @@ package net.noiraude.creditseditor.command.impl;
 import net.noiraude.creditseditor.bus.DocumentBus;
 import net.noiraude.libcredits.model.DocumentCategory;
 
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 /** Appends a new category to the end of the category list. */
@@ -28,6 +29,7 @@ public final class AddCategoryCommand extends AbstractCommand {
         bus.fireCategoriesChanged();
     }
 
+    @Contract(pure = true)
     @Override
     public @NotNull String getDisplayName() {
         return "Add category " + category.id;

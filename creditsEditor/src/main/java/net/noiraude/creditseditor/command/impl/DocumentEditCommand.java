@@ -2,6 +2,7 @@ package net.noiraude.creditseditor.command.impl;
 
 import javax.swing.undo.UndoableEdit;
 
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -43,6 +44,7 @@ public final class DocumentEditCommand extends AbstractCommand {
         applied = false;
     }
 
+    @Contract(pure = true)
     @Override
     public @NotNull String getDisplayName() {
         return displayName;

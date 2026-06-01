@@ -4,12 +4,12 @@ import static net.noiraude.creditseditor.ui.ScaledMetrics.gapMedium;
 import static net.noiraude.creditseditor.ui.ScaledMetrics.gapSmall;
 
 import java.awt.CardLayout;
-import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
-import java.util.function.Consumer;
+import java.util.Optional;
+import java.util.function.Supplier;
 
 import javax.swing.Box;
 import javax.swing.JLabel;
@@ -17,14 +17,12 @@ import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 import javax.swing.UIManager;
-import javax.swing.event.UndoableEditEvent;
 
 import net.noiraude.creditseditor.ui.I18n;
-import net.noiraude.creditseditor.ui.component.MinecraftTextEditor;
+import net.noiraude.creditseditor.ui.component.mc.LocalizedMcEditor;
 
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * Right-hand card shown beside the role list in {@link MembershipRolePanel}.
@@ -39,20 +37,13 @@ public final class RoleDetailCard {
     private static final @NotNull String CARD_DETAIL = "detail";
 
     private final @NotNull CardLayout cards = new CardLayout();
-    final @NotNull JPanel panel = new JPanel(cards) {
-
-        @Override
-        public Dimension getMinimumSize() {
-            return new Dimension(0, 0);
-        }
-    };
+    final @NotNull JPanel panel = new JPanel(cards);
     private final @NotNull JTextField roleValueField = new JTextField();
     private final @NotNull JLabel langKeyLabel = new JLabel();
-    private final @NotNull MinecraftTextEditor displayNameEditor = new MinecraftTextEditor();
+    private final @NotNull LocalizedMcEditor displayNameEditor = new LocalizedMcEditor(false);
     private boolean loading;
 
-    RoleDetailCard(@NotNull Consumer<String> onDisplayNameChanged,
-        @NotNull Consumer<UndoableEditEvent> onUndoableEdit) {
+    RoleDetailCard(@NotNull Runnable onDisplayNameChanged) {
         roleValueField.setEditable(false);
         roleValueField.setBackground(UIManager.getColor("Panel.background"));
         langKeyLabel.setForeground(UIManager.getColor("Label.disabledForeground"));
@@ -60,15 +51,40 @@ public final class RoleDetailCard {
         buildDetailCard();
         clear();
 
-        displayNameEditor.addPropertyChangeListener(
-            MinecraftTextEditor.PROP_TEXT,
-            e -> { if (!loading) onDisplayNameChanged.accept((String) e.getNewValue()); });
-        displayNameEditor.addUndoableEditListener(e -> { if (!loading) onUndoableEdit.accept(e); });
+        displayNameEditor.addTextChangeListener(text -> { if (!loading) onDisplayNameChanged.run(); });
     }
 
+    @Contract(pure = true)
     @NotNull
-    JPanel getPanel() {
-        return panel;
+    String getDisplayNameText() {
+        return displayNameEditor.getText();
+    }
+
+    @Contract(pure = true)
+    int getDisplayNameCaret() {
+        return displayNameEditor.getCaretPosition();
+    }
+
+    void setDisplayNameCaret(int position) {
+        displayNameEditor.setCaretPosition(position);
+    }
+
+    /** Replaces the displayed value without firing the undoable-edit listener. */
+    void setDisplayNameSilently(@NotNull String text) {
+        loading = true;
+        try {
+            displayNameEditor.setText(text);
+        } finally {
+            loading = false;
+        }
+    }
+
+    void setActiveLocale(@NotNull String locale) {
+        displayNameEditor.setActiveLocale(locale);
+    }
+
+    void setEnglishValueSupplier(@NotNull Supplier<@NotNull Optional<@NotNull String>> supplier) {
+        displayNameEditor.setEnglishValueSupplier(supplier);
     }
 
     private void buildEmptyCard() {
@@ -113,12 +129,12 @@ public final class RoleDetailCard {
         panel.add(detail, CARD_DETAIL);
     }
 
-    void load(@NotNull String role, @NotNull String langKey, @Nullable String displayName) {
+    void load(@NotNull String role, @NotNull String langKey, @NotNull String displayName) {
         loading = true;
         try {
             roleValueField.setText(role);
             langKeyLabel.setText(langKey);
-            displayNameEditor.setText(displayName != null ? displayName : "");
+            displayNameEditor.setText(displayName);
         } finally {
             loading = false;
         }

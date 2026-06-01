@@ -16,6 +16,7 @@ import javax.swing.text.JTextComponent;
 
 import net.noiraude.creditseditor.service.RoleIndex;
 import net.noiraude.creditseditor.ui.I18n;
+import net.noiraude.creditseditor.ui.MsgArg;
 import net.noiraude.creditseditor.ui.component.KeyHintLabel;
 import net.noiraude.libcredits.model.CreditsDocument;
 import net.noiraude.libcredits.model.DocumentMembership;
@@ -83,7 +84,7 @@ final class AddRolePrompt {
         int result = JOptionPane.showConfirmDialog(
             parent,
             content,
-            I18n.get("dialog.add_role.title", membership.categoryId),
+            I18n.get("dialog.add_role.title", MsgArg.text(membership.categoryId)),
             JOptionPane.OK_CANCEL_OPTION,
             JOptionPane.PLAIN_MESSAGE);
         if (result != JOptionPane.OK_OPTION) return null;
