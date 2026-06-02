@@ -154,6 +154,36 @@ tasks.named<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("shadowJ
 }
 
 // ---------------------------------------------------------------------------
+// releaseZip
+//
+// One platform-agnostic, ready-to-run bundle for GitHub releases. Combines the
+// shadow install image (Unix + Windows launcher scripts and the self-contained
+// fat jar) with the Windows .exe installer. A dedicated task is used rather than
+// extending the shadow distribution so the local install/installShadowDist path
+// stays free of NSIS provisioning.
+// ---------------------------------------------------------------------------
+
+tasks.register<Zip>("releaseZip") {
+    group = "distribution"
+    description = "Cross-platform release bundle: launchers, fat jar, Windows installer."
+    dependsOn("installShadowDist", "windowsInstaller")
+    archiveFileName.set("gtnh-credits-editor-${rootProject.version}.zip")
+    destinationDirectory.set(layout.buildDirectory.dir("distributions"))
+    // launcher scripts (bin/) from the shadow install image, kept executable;
+    // the src/dist staging files the distribution plugin copies to root are excluded
+    from(layout.buildDirectory.dir("install/credits-editor-shadow")) {
+        include("bin/**")
+        filePermissions { unix("0755") }
+    }
+    // fat jar (lib/) from the shadow install image
+    from(layout.buildDirectory.dir("install/credits-editor-shadow")) {
+        include("lib/**")
+    }
+    // ready-to-run Windows installer at the archive root
+    from(tasks.named("windowsInstaller"))
+}
+
+// ---------------------------------------------------------------------------
 // install / uninstall
 //
 // Installs the Gradle-generated launch scripts (bin/credits-editor,

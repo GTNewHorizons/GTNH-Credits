@@ -12,3 +12,26 @@ jobs:
   release-tags:
     uses: GTNewHorizons/GTNH-Actions-Workflows/.github/workflows/release-tags.yml@master
     secrets: inherit
+
+  release-editor:
+    needs: release-tags
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          submodules: recursive
+      - uses: actions/setup-java@v5
+        with:
+          distribution: zulu
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v5
+      - name: Build editor release bundle
+        run: ./gradlew :creditsEditor:releaseZip --build-cache --stacktrace
+      - name: Upload editor archive to release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: >-
+          gh release upload "$GITHUB_REF_NAME"
+          "creditsEditor/build/distributions/gtnh-credits-editor-$GITHUB_REF_NAME.zip"
+          --clobber
