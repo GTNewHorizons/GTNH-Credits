@@ -36,7 +36,7 @@
 
 final def gradleExt = gradle.extensions.extraProperties
 dependencies {
-    api project(':libCredits')
+    shadowImplementation project(':libCredits')
     compileOnly "org.jetbrains:annotations:${gradleExt.get('annotationsVersion')}"
     api "com.github.GTNewHorizons:ModularUI2:${gradleExt.get('modularUI2Version')}:dev"
     compileOnly "com.github.GTNewHorizons:Custom-Main-Menu:${gradleExt.get('customMainMenuVersion')}:dev"
