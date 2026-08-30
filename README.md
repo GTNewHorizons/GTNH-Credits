@@ -12,18 +12,31 @@ the [Centralized Credits Page #23582](https://github.com/GTNewHorizons/GT-New-Ho
 - **Credits** button on the main menu
 - **ESC** / **Back** returns to the menu
 
-## Custom Main Menu integration
+## Installation and setup
 
-[Custom Main Menu](https://github.com/GTNewHorizons/Custom-Main-Menu) 1.14.0 adds a
+Build the mod:
+
+```sh
+./gradlew build
+```
+
+Copy the release jar from `build/libs/` (the jar without `-dev` or `-sources` in
+its name) into the Minecraft instance's `.minecraft/mods/` directory, then
+restart Minecraft.
+
+### Custom Main Menu integration
+
+[Custom Main Menu](https://github.com/GTNewHorizons/Custom-Main-Menu) 1.14.0+ adds a
 `sendIMC` action type. When a button with that action is clicked, CMM fires a
 `ActionIMCEvent` on `MinecraftForge.EVENT_BUS`. GTNH-Credits subscribes to this event and
 opens the Credits screen when it receives `modid = "gtnhcredits"` and
 `message = "openCredits"`. GTNH-Credits has a compile-only dependency on CMM for
 `ActionIMCEvent`; CMM has no dependency on GTNH-Credits.
 
-### Button configuration
+#### Button configuration
 
-Add an entry to the `"buttons"` object in your `mainmenu.json`:
+Add the following entry to the `"buttons"` object in
+`.minecraft/config/CustomMainMenu/mainmenu.json`:
 
 ```json
 {
@@ -43,28 +56,42 @@ Add an entry to the `"buttons"` object in your `mainmenu.json`:
 }
 ```
 
-Using a lang key for the button label is also valid:
+GTNH installations commonly provide responsive menu variants alongside
+`mainmenu.json`:
+
+- `mainmenu_auto.json`
+- `mainmenu_small.json`
+- `mainmenu_normal.json`
+- `mainmenu_large.json`
+
+CMM selects one of these files according to the current GUI scale. Add the
+same `credits` entry to every variant that exists; editing only
+`mainmenu.json` will not affect the menu while a scale-specific variant is
+active.
+
+Using the mod's lang key for the button label is also valid:
 
 ```json
 {
-  "text": "menu.gtnh.credits"
+  "text": "gui.main_menu.button.credits"
 }
 ```
 
-### Disabling the vanilla button
+#### Vanilla button configuration
 
 When CMM is managing the main menu, the built-in Credits button added by this mod to
 the vanilla `GuiMainMenu` is redundant. It can be disabled in
 `config/gtnh-credits.cfg`:
 
-```ini
-[menu_button]
+```text
+menu_button {
     # Show the Credits button in the vanilla main menu.
-    enabled=false
+    B:enabled=false
+}
 ```
 
-The default is `false`. Set it to `true` to show the vanilla button regardless of
-whether CMM is installed.
+The default is `false`. If CMM is not installed or has no Credits entry, set
+`B:enabled=true` to add the mod's button to the vanilla main menu instead.
 
 ## Resource files
 
