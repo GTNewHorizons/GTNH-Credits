@@ -241,7 +241,7 @@ final class CreditsContentRenderer {
             if (width + addedWidth > available) {
                 return sb.length() > 0 ? sb + ", ..." : "...";
             }
-            if (i > 0) sb.append(", ");
+            if (i > 0) sb.append("§r, §o");
             sb.append(name);
             width += addedWidth;
         }
