@@ -38,6 +38,13 @@ class CreditsCategorySelector extends ListWidget<IWidget, CreditsCategorySelecto
         return new CreditsCategorySelector(width, controller);
     }
 
+    @Override
+    public boolean layoutWidgets() {
+        boolean laidOut = super.layoutWidgets();
+        getScrollData().clamp(getScrollArea());
+        return laidOut;
+    }
+
     private static final class CategoryButton extends ButtonWidget<CategoryButton> {
 
         private final CreditsController controller;
