@@ -26,10 +26,14 @@ public final class Config {
     public final @NotNull String creditsScreenLogo;
     /** Minimum fuzzy-match score for a person name to appear in fuzzy filter results. Lower is stricter. */
     public final double fuzzyThreshold;
+    /** Optional instance-level credits data; the bundled resource is used when this file is absent. */
+    public final @NotNull File creditsFile;
 
     private Config(@NotNull File configDir) {
         @NotNull
-        Configuration cfg = new Configuration(new File(configDir, "gtnh-credits.cfg"));
+        File modConfigDir = new File(configDir, "gtnh-credits");
+        Configuration cfg = new Configuration(new File(modConfigDir, "gtnh-credits.cfg"));
+        creditsFile = new File(modConfigDir, "credits.json");
 
         menuButtonEnabled = cfg
             .getBoolean("enabled", SECTION_MENU_BUTTON, false, "Show the Credits button in the vanilla main menu.");
