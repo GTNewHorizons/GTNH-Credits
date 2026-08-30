@@ -247,6 +247,10 @@ public final class CreditsScreen extends CustomModularScreen {
 
     @Override
     public boolean onKeyPressed(char typedChar, int keyCode) {
+        if (keyCode == Keyboard.KEY_ESCAPE) {
+            close();
+            return true;
+        }
         if (filterField.textboxKeyTyped(typedChar, keyCode)) {
             controller.setPersonFilter(filterField.getText());
             return true;
