@@ -81,7 +81,7 @@ Using the mod's lang key for the button label is also valid:
 
 When CMM is managing the main menu, the built-in Credits button added by this mod to
 the vanilla `GuiMainMenu` is redundant. It can be disabled in
-`config/gtnh-credits.cfg`:
+`config/gtnh-credits/gtnh-credits.cfg`:
 
 ```text
 menu_button {
@@ -97,9 +97,14 @@ The default is `false`. If CMM is not installed or has no Credits entry, set
 
 Credits data is driven by a `credits.json` for the semantic credits
 content and associated `.lang` resource files for localized display
-text. Both are loaded through Minecraft's standard resource manager,
-so they can be included as part of the mod jar or overridden by a
+text. The bundled files are loaded through Minecraft's standard resource
+manager, so they can be included as part of the mod jar or overridden by a
 resource pack.
+
+If `config/gtnh-credits/credits.json` exists in the Minecraft instance, it replaces
+the bundled `credits.json`. This lets a modpack maintain its credits without
+rebuilding the mod. When the config file is absent, the bundled resource (or
+resource-pack override) is used.
 
 ### `credits.json`
 
