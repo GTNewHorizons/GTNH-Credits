@@ -54,6 +54,8 @@ class CreditsView extends ScrollWidget<CreditsView> {
         String currentFilter = this.controller.getPersonFilter();
         if (!currentFilter.equals(this.lastFilter)) {
             this.lastFilter = currentFilter;
+            getScrollArea().getScrollY()
+                .scrollTo(getScrollArea(), 0);
             this.richTextWidget.markDirty();
         }
 
