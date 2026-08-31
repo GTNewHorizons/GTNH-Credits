@@ -102,16 +102,15 @@ public final class CreditsParser {
             return;
         }
         if (entry.isJsonObject()) {
-            JsonObject obj = entry.getAsJsonObject();
-            java.util.Map.Entry<String, JsonElement> kv = obj.entrySet()
-                .iterator()
-                .next();
-            String catId = requireValidKey(kv.getKey(), "category id");
-            List<String> roles = new ArrayList<>();
-            for (String role : readStringOrArray(kv.getValue())) {
-                roles.add(requireValidKey(role, "role"));
+            for (java.util.Map.Entry<String, JsonElement> kv : entry.getAsJsonObject()
+                .entrySet()) {
+                String catId = requireValidKey(kv.getKey(), "category id");
+                List<String> roles = new ArrayList<>();
+                for (String role : readStringOrArray(kv.getValue())) {
+                    roles.add(requireValidKey(role, "role"));
+                }
+                person.memberships.add(new DocumentMembership(catId, roles));
             }
-            person.memberships.add(new DocumentMembership(catId, roles));
             return;
         }
         throw new CreditsParseException("person category entry must be a string or object");
