@@ -51,3 +51,102 @@ credits.category.newcat=§3New Category
 credits.category.notrans_cat=Now §lwith§r translation
 
 credits.category.mod_authors=Mod Authors
+
+# Credit categories
+credits.category.project_leadership=Project Leadership
+credits.category.project_leadership.detail=The people responsible for GT New Horizons' overall direction, administration, coordination, and major project decisions.
+
+credits.category.original_mod_authors=Original Mod Authors
+credits.category.original_mod_authors.detail=The original creators whose work forms the foundation of mods now maintained or continued by GT New Horizons.
+
+credits.category.mod_development=Mod Development
+credits.category.mod_development.detail=The developers and maintainers who build and improve the mods maintained by GT New Horizons.
+
+credits.category.pack_development=Pack Development
+credits.category.pack_development.detail=The people who develop GTNH's recipes, configuration, scripts, progression, balance, and pack-level integrations.
+
+credits.category.quests=Quests
+credits.category.quests.detail=The people who design, write, edit, and maintain GTNH's quest book.
+
+credits.category.gt_multiblocks=GT Multiblocks
+credits.category.gt_multiblocks.detail=The original creators of GTNH's GregTech multiblock machines. Each credited role names a multiblock the person created.
+
+credits.category.testing_qa=Testing & Quality Assurance
+credits.category.testing_qa.detail=The testers and investigators who reproduce issues, triage bugs, verify fixes, and improve compatibility and performance.
+
+credits.category.build_infrastructure=Build & Infrastructure
+credits.category.build_infrastructure.detail=The people who operate GTNH's official servers, builds, continuous integration, distribution, automation, and technical services.
+
+credits.category.wiki_documentation=Wiki & Documentation
+credits.category.wiki_documentation.detail=The editors and authors who create and maintain GTNH's wiki, guides, and technical documentation.
+
+credits.category.localization=Localization
+credits.category.localization.detail=The people who translate, review, and adapt GTNH's text for players around the world.
+
+credits.category.art_media=Art & Media
+credits.category.art_media.detail=The artists and media creators responsible for GTNH's textures, interface assets, branding, audio, and official media.
+
+credits.category.community=Community
+credits.category.community.detail=The moderators, support volunteers, and event organizers who maintain GTNH's official community spaces.
+
+credits.category.donators=Donators
+credits.category.donators.detail=The people who financially support GT New Horizons through the official GTNH Shop. Each role identifies their documented donation tier.
+
+# Project Leadership roles
+credits.person.role.founder=Founder
+credits.person.role.project_lead=Project Lead
+credits.person.role.project_coordinator=Project Coordinator
+
+# Original Mod Author roles
+credits.person.role.mod_gregtech=GregTech
+credits.person.role.mod_toomuchloot=TooMuchLoot
+credits.person.role.mod_holoinventory=HoloInventory
+
+# Mod Development roles
+credits.person.role.mod_lead=Mod Lead
+credits.person.role.mod_developer=Mod Developer
+
+# Pack Development roles
+credits.person.role.pack_lead=Pack Lead
+credits.person.role.pack_developer=Pack Developer
+
+# Quest roles
+credits.person.role.quest_lead=Quest Lead
+credits.person.role.quest_editor=Quest Editor
+
+# Testing & Quality Assurance roles
+credits.person.role.ticket_triager=Ticket Triager
+credits.person.role.unit_test_developer=Unit Test Developer
+credits.person.role.functional_tester=Functional Tester
+credits.person.role.gametest_developer=GameTest Developer
+
+# Build & Infrastructure roles
+credits.person.role.system_administrator=System Administrator
+credits.person.role.ci_maintainer=CI Maintainer
+credits.person.role.release_pipeline_maintainer=Release Pipeline Maintainer
+
+# Wiki & Documentation roles
+credits.person.role.wiki_lead=Wiki Lead
+credits.person.role.wiki_editor=Wiki Editor
+credits.person.role.documentation_author=Documentation Author
+
+# Localization roles
+credits.person.role.localization_lead=Localization Lead
+credits.person.role.translator=Translator
+credits.person.role.translation_reviewer=Translation Reviewer
+
+# Art & Media roles
+credits.person.role.visual_artist=Visual Artist
+credits.person.role.sound_designer=Sound Designer
+
+# Community roles
+credits.person.role.gtnh_staff=GT:NH Staff
+credits.person.role.discord_moderator=Discord Moderator
+credits.person.role.helper=Helper
+
+# Donator roles
+credits.person.role.stargate=Stargate
+credits.person.role.ultimate_voltage=Ultimate Voltage
+credits.person.role.extreme_voltage=Extreme Voltage
+credits.person.role.steam_age=Steam Age
+credits.person.role.stone_age=Stone Age
