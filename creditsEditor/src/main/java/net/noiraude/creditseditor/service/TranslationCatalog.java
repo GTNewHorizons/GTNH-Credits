@@ -44,7 +44,7 @@ public final class TranslationCatalog {
 
     /**
      * Reads Minecraft 1.7.10 base resources from standard launcher or Prism/MultiMC layouts,
-     * saved GregTech.lang defaults as English fallback, then sorted mod jars, TX Loader load
+     * saved GregTech.lang defaults as English fallback, then sorted active mod archives, TX Loader load
      * resources, enabled packs in options order, and TX Loader force resources. Later values replace
      * earlier values. Does not write to the instance or execute mod code. Generated defaults require
      * an instance that has already saved GregTech.lang.
@@ -60,13 +60,10 @@ public final class TranslationCatalog {
             instance.toAbsolutePath()
                 .normalize());
         result.gregTechDefaults(instance.resolve("GregTech.lang"));
-        try (Stream<Path> entries = Files.walk(instance.resolve("mods"))) {
-            for (Path jar : entries.filter(
-                p -> p.toString()
-                    .endsWith(".jar"))
-                .sorted()
-                .toList()) result.archive(jar);
-        }
+        result.modArchives(instance.resolve("mods"));
+        result.modArchives(
+            instance.resolve("mods")
+                .resolve(MINECRAFT_VERSION));
         result.directory(instance.resolve("config/txloader/load"));
         Path options = instance.resolve("options.txt");
         for (String name : ResourcePackSelection.read(options)) {
@@ -193,6 +190,20 @@ public final class TranslationCatalog {
             return value;
         } catch (RuntimeException ex) {
             throw new IOException("Invalid Minecraft resource metadata: " + path, ex);
+        }
+    }
+
+    private void modArchives(Path directory) throws IOException {
+        if (!Files.isDirectory(directory)) return;
+        try (Stream<Path> entries = Files.list(directory)) {
+            for (Path file : entries.filter(Files::isRegularFile)
+                .filter(path -> {
+                    String name = path.getFileName()
+                        .toString();
+                    return name.endsWith(".jar") || name.endsWith(".zip");
+                })
+                .sorted()
+                .toList()) archive(file);
         }
     }
 

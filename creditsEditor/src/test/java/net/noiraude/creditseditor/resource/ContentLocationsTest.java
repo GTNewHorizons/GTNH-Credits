@@ -164,6 +164,31 @@ class ContentLocationsTest {
     }
 
     @Test
+    void headlessValidationRejectsReferencesDefinedOnlyInInactiveArchives() throws Exception {
+        writeContent(temporary);
+        Path instance = temporary.resolve("instance");
+        archive(
+            instance.resolve("mods/1.12.2/inactive.jar"),
+            "assets/example/lang/en_US.lang",
+            "machine.Name=Inactive\n");
+        archive(
+            instance.resolve("versions/1.7.10/1.7.10.jar"),
+            "assets/minecraft/lang/en_US.lang",
+            "tile.furnace.name=Furnace\n");
+        ByteArrayOutputStream errors = new ByteArrayOutputStream();
+        assertEquals(
+            1,
+            CreditsEditorApp.validate(
+                temporary.toString(),
+                instance.toString(),
+                new PrintStream(new ByteArrayOutputStream()),
+                new PrintStream(errors)));
+        assertTrue(
+            errors.toString()
+                .contains("missing external translation: machine.Name"));
+    }
+
+    @Test
     void headlessValidationReportsUncheckedWhenBaseResourcesAreUnavailable() throws Exception {
         writeContent(temporary);
         Path instance = temporary.resolve("instance");

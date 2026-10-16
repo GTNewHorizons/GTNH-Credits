@@ -181,8 +181,10 @@ and shared libraries. Downloaded vanilla languages are read from the matching
 local asset index and objects. Unsupported launcher layouts leave external
 existence checks unavailable.
 
-The catalogue reads `.lang` files from mod jars, TX Loader, and enabled resource
-packs listed in `options.txt`; it never starts Minecraft or executes mod code.
+Mod `.jar` and `.zip` archives are read directly from `mods/` and `mods/1.7.10/`;
+archives in other version directories or nested backup folders are ignored. The
+catalogue also reads TX Loader and enabled resource packs listed in `options.txt`;
+it never starts Minecraft or executes mod code.
 It also reads the installed instance's generated `GregTech.lang` as an English
 fallback. Standard language resources take precedence over these saved defaults.
 Run the instance once to generate that file. Other runtime-generated translations

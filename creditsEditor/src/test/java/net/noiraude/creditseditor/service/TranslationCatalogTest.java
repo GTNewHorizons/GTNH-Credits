@@ -124,6 +124,42 @@ class TranslationCatalogTest {
     }
 
     @Test
+    void ignoresInactiveArchivesAndReadsOnlyTopLevelAndActiveVersionMods() throws Exception {
+        archive(instance.resolve("mods/example.jar"), Map.of("assets/example/lang/en_US.lang", "active.root=Root\n"));
+        archive(
+            instance.resolve("mods/1.7.10/version.jar"),
+            Map.of("assets/example/lang/en_US.lang", "active.version=Version\n"));
+        archive(instance.resolve("mods/archive.zip"), Map.of("assets/example/lang/en_US.lang", "active.zip=ZIP\n"));
+        for (String path : new String[] { "1.12.2/inactive.jar", "backup/inactive.jar", "1.7.10/backup/inactive.jar",
+            "disabled.jar.old" }) {
+            archive(
+                instance.resolve("mods")
+                    .resolve(path),
+                Map.of("assets/example/lang/en_US.lang", "inactive.machine=Inactive\n"));
+        }
+        Files.createDirectory(instance.resolve("mods/directory.jar"));
+        TranslationCatalog catalogue = TranslationCatalog.load(instance);
+        assertEquals(
+            "Root",
+            catalogue.resolve("active.root", "en_US")
+                .orElseThrow());
+        assertEquals(
+            "Version",
+            catalogue.resolve("active.version", "en_US")
+                .orElseThrow());
+        assertEquals(
+            "ZIP",
+            catalogue.resolve("active.zip", "en_US")
+                .orElseThrow());
+        assertTrue(
+            catalogue.resolve("inactive.machine", "en_US")
+                .isEmpty());
+        assertFalse(
+            catalogue.keys()
+                .contains("inactive.machine"));
+    }
+
+    @Test
     void doesNotUseCachedBaseResourcesForAnUnsupportedSelectedVersion() throws Exception {
         Path game = instance.resolve("launcher/instances/pack/.minecraft");
         Files.createDirectories(game.resolve("mods"));
