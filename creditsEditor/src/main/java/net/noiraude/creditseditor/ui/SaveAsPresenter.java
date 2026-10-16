@@ -42,7 +42,7 @@ final class SaveAsPresenter {
         try {
             session.saveAs(target.toString(), format);
             RecentLocations.user()
-                .remember(target);
+                .remember(session.openPath());
         } catch (Exception ex) {
             ErrorPresenter.show(owner, I18n.get("dialog.save_as.error.title"), ex);
             return;
