@@ -139,7 +139,8 @@ Resource reloads refresh the document and the displayed translations.
    credits language files. Retain category and ordinary role ids.
 3. Validate with the updated editor's `--validate /path/to/modpack` command.
    Supply `--instance=/path/to/minecraft` to check against installed language
-   resources and saved GregTech defaults. Check the screen in English and another
+   resources and saved GregTech defaults. If base-game resources cannot be located,
+   external existence checks are reported as unchecked. Check the screen in English and another
    language, including resource reloads.
 4. Ship the content move with the updated mod. Arrange removal of the obsolete
    standalone JSON through the pack updater; the mod only warns about that file.

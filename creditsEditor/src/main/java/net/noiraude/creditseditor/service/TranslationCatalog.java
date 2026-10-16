@@ -22,6 +22,9 @@ import java.util.zip.ZipFile;
 
 import net.noiraude.libcredits.pack.ResourcePackSelection;
 
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+
 /**
  * Read-only catalogue of language resources from a local Minecraft instance.
  * Includes GregTech's saved generated defaults without executing Minecraft or mod code.
@@ -29,6 +32,7 @@ import net.noiraude.libcredits.pack.ResourcePackSelection;
  */
 public final class TranslationCatalog {
 
+    private static final String MINECRAFT_VERSION = "1.7.10";
     private static final Pattern GREGTECH_STRING_PROPERTY = Pattern.compile("S:(?:\"([^\"]+)\"|([^=]+))=(.*)");
 
     private final Map<String, Map<String, String>> languages = new LinkedHashMap<>();
@@ -39,7 +43,8 @@ public final class TranslationCatalog {
     }
 
     /**
-     * Reads saved GregTech.lang defaults as English fallback, then sorted mod jars, TX Loader load
+     * Reads Minecraft 1.7.10 base resources from standard launcher or Prism/MultiMC layouts,
+     * saved GregTech.lang defaults as English fallback, then sorted mod jars, TX Loader load
      * resources, enabled packs in options order, and TX Loader force resources. Later values replace
      * earlier values. Does not write to the instance or execute mod code. Generated defaults require
      * an instance that has already saved GregTech.lang.
@@ -51,6 +56,9 @@ public final class TranslationCatalog {
             throw new IOException("Not a Minecraft instance (missing mods directory): " + instance);
         }
         TranslationCatalog result = new TranslationCatalog();
+        result.available = result.minecraftLanguages(
+            instance.toAbsolutePath()
+                .normalize());
         result.gregTechDefaults(instance.resolve("GregTech.lang"));
         try (Stream<Path> entries = Files.walk(instance.resolve("mods"))) {
             for (Path jar : entries.filter(
@@ -69,15 +77,18 @@ public final class TranslationCatalog {
             else if (Files.isRegularFile(pack)) result.archive(pack);
         }
         result.directory(instance.resolve("config/txloader/forceload"));
-        result.available = true;
         return result;
     }
 
+    /**
+     * Whether the catalogue includes base-game English resources, so absent static references can
+     * be reported as missing. Resolved mod translations remain usable when these resources are absent.
+     */
     public boolean isAvailable() {
         return available;
     }
 
-    /** Resolves the selected language first, then English. An unavailable catalogue has no values. */
+    /** Resolves the selected language first, then English, including any partially loaded catalogue. */
     public Optional<String> resolve(String key, String locale) {
         String value = languages.getOrDefault(locale.toLowerCase(Locale.ROOT), Map.of())
             .get(key);
@@ -94,6 +105,95 @@ public final class TranslationCatalog {
                 .keySet());
         Collections.sort(keys);
         return List.copyOf(keys);
+    }
+
+    private boolean minecraftLanguages(Path instance) throws IOException {
+        List<Path> clients = new ArrayList<>();
+        Path assets = instance.resolve("assets");
+        Path parent = instance.getParent();
+        if (parent != null && Files.isRegularFile(parent.resolve("mmc-pack.json"))) {
+            boolean supportedVersion = false;
+            JsonObject manifest = readJson(parent.resolve("mmc-pack.json"));
+            if (
+                !manifest.has("components") || !manifest.get("components")
+                    .isJsonArray()
+            ) return false;
+            for (var component : manifest.getAsJsonArray("components")) {
+                if (!component.isJsonObject()) continue;
+                JsonObject value = component.getAsJsonObject();
+                if (!value.has("uid") || !value.has("version")) continue;
+                if (
+                    "net.minecraft".equals(
+                        value.get("uid")
+                            .getAsString())
+                ) {
+                    supportedVersion = MINECRAFT_VERSION.equals(
+                        value.get("version")
+                            .getAsString());
+                    break;
+                }
+            }
+            if (!supportedVersion) return false;
+            String library = "libraries/com/mojang/minecraft/" + MINECRAFT_VERSION
+                + "/minecraft-"
+                + MINECRAFT_VERSION
+                + "-client.jar";
+            clients.add(parent.resolve(library));
+            Path instances = parent.getParent();
+            if (instances != null && instances.getParent() != null) {
+                Path launcher = instances.getParent();
+                clients.add(launcher.resolve(library));
+                assets = launcher.resolve("assets");
+            }
+        } else {
+            clients.add(instance.resolve("versions/" + MINECRAFT_VERSION + "/" + MINECRAFT_VERSION + ".jar"));
+        }
+        boolean english = false;
+        for (Path client : clients) {
+            if (!Files.isRegularFile(client)) continue;
+            english = archive(client);
+            break;
+        }
+        return assetLanguages(assets) || english;
+    }
+
+    private boolean assetLanguages(Path assets) throws IOException {
+        Path index = assets.resolve("indexes/" + MINECRAFT_VERSION + ".json");
+        if (!Files.isRegularFile(index)) return false;
+        boolean english = false;
+        for (var entry : readJson(index).getAsJsonObject("objects")
+            .entrySet()) {
+            String[] parts = entry.getKey()
+                .split("/");
+            if (
+                parts.length != 3 || !parts[0].equals("minecraft")
+                    || !parts[1].equals("lang")
+                    || !parts[2].endsWith(".lang")
+            ) continue;
+            String hash = entry.getValue()
+                .getAsJsonObject()
+                .get("hash")
+                .getAsString();
+            if (!hash.matches("[0-9a-f]{40}")) throw new IOException("Invalid language asset hash in " + index);
+            Path file = assets.resolve("objects/" + hash.substring(0, 2) + "/" + hash);
+            if (!Files.isRegularFile(file)) continue;
+            try (InputStream input = Files.newInputStream(file)) {
+                language(parts[2], input);
+            }
+            if (parts[2].equalsIgnoreCase("en_US.lang")) english = true;
+        }
+        return english;
+    }
+
+    private static JsonObject readJson(Path path) throws IOException {
+        try (var input = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
+            @SuppressWarnings("deprecation")
+            JsonObject value = new JsonParser().parse(input)
+                .getAsJsonObject();
+            return value;
+        } catch (RuntimeException ex) {
+            throw new IOException("Invalid Minecraft resource metadata: " + path, ex);
+        }
     }
 
     private void gregTechDefaults(Path path) throws IOException {
@@ -119,7 +219,8 @@ public final class TranslationCatalog {
         }
     }
 
-    private void archive(Path path) throws IOException {
+    private boolean archive(Path path) throws IOException {
+        boolean minecraftEnglish = false;
         try (ZipFile zip = new ZipFile(path.toFile())) {
             List<? extends ZipEntry> entries = Collections.list(zip.entries());
             entries.sort(java.util.Comparator.comparing(ZipEntry::getName));
@@ -134,9 +235,13 @@ public final class TranslationCatalog {
                     try (InputStream input = zip.getInputStream(entry)) {
                         language(parts[3], input);
                     }
+                    if (parts[1].equals("minecraft") && parts[3].equalsIgnoreCase("en_US.lang")) {
+                        minecraftEnglish = true;
+                    }
                 }
             }
         }
+        return minecraftEnglish;
     }
 
     private void directory(Path root) throws IOException {

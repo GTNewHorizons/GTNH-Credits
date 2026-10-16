@@ -84,7 +84,9 @@ public class CreditsEditorApp {
                     .anyMatch(role -> role.isExternal())
             ) {
                 output.println(
-                    "External translation existence was not checked; supply --instance=<path> to check instance language resources.");
+                    "External translation existence was not checked; "
+                        + (instance == null ? "supply --instance=<path> to check instance language resources."
+                            : "Minecraft 1.7.10 base language resources were not found in the selected instance."));
             }
             return 0;
         } catch (Exception ex) {

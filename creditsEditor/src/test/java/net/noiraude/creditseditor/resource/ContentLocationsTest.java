@@ -11,6 +11,8 @@ import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 import net.noiraude.creditseditor.CreditsEditorApp;
 import net.noiraude.libcredits.pack.CreditsLayout;
@@ -23,6 +25,15 @@ class ContentLocationsTest {
 
     @TempDir
     Path temporary;
+
+    private void archive(Path path, String resource, String contents) throws Exception {
+        Files.createDirectories(path.getParent());
+        try (ZipOutputStream output = new ZipOutputStream(Files.newOutputStream(path))) {
+            output.putNextEntry(new ZipEntry(resource));
+            output.write(contents.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            output.closeEntry();
+        }
+    }
 
     static void writeContent(Path directory) throws Exception {
         Files.createDirectories(directory.resolve("lang"));
@@ -113,6 +124,63 @@ class ContentLocationsTest {
                 new PrintStream(output),
                 new PrintStream(errors)));
         assertFalse(Files.exists(temporary.resolve("missing")));
+    }
+
+    @Test
+    void headlessValidationIncludesVanillaResourcesAndStillRejectsMissingKeys() throws Exception {
+        writeContent(temporary);
+        Path json = temporary.resolve("credits.json");
+        Files.writeString(
+            json,
+            Files.readString(json)
+                .replace("machine.Name", "tile.furnace.name"));
+        Path instance = temporary.resolve("instance");
+        Files.createDirectories(instance.resolve("mods"));
+        archive(
+            instance.resolve("versions/1.7.10/1.7.10.jar"),
+            "assets/minecraft/lang/en_US.lang",
+            "tile.furnace.name=Furnace\n");
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        ByteArrayOutputStream errors = new ByteArrayOutputStream();
+        assertEquals(
+            0,
+            CreditsEditorApp
+                .validate(temporary.toString(), instance.toString(), new PrintStream(output), new PrintStream(errors)));
+        assertEquals("", errors.toString());
+        assertFalse(
+            output.toString()
+                .contains("not checked"));
+        Files.writeString(
+            json,
+            Files.readString(json)
+                .replace("tile.furnace.name", "missing.machine"));
+        assertEquals(
+            1,
+            CreditsEditorApp
+                .validate(temporary.toString(), instance.toString(), new PrintStream(output), new PrintStream(errors)));
+        assertTrue(
+            errors.toString()
+                .contains("missing external translation: missing.machine"));
+    }
+
+    @Test
+    void headlessValidationReportsUncheckedWhenBaseResourcesAreUnavailable() throws Exception {
+        writeContent(temporary);
+        Path instance = temporary.resolve("instance");
+        Files.createDirectories(instance.resolve("mods"));
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        ByteArrayOutputStream errors = new ByteArrayOutputStream();
+        assertEquals(
+            0,
+            CreditsEditorApp
+                .validate(temporary.toString(), instance.toString(), new PrintStream(output), new PrintStream(errors)));
+        assertEquals("", errors.toString());
+        assertTrue(
+            output.toString()
+                .contains("not checked"));
+        assertTrue(
+            output.toString()
+                .contains("base language resources were not found"));
     }
 
     @Test

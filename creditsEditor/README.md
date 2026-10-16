@@ -171,8 +171,15 @@ gtnh-credits-editor /path/to/modpack-checkout --instance=/path/to/minecraft
 
 Opening content inside an installed instance automatically uses the nearest
 ancestor with mod jars. A config-only checkout can edit and preserve references
-without a catalogue. The editor distinguishes an unavailable catalogue from a
-key missing in the selected instance's language resources.
+without a catalogue. When base-game English resources cannot be located, known
+translations remain available for search and previews, but unresolved references
+are reported as unchecked rather than missing.
+
+The catalogue reads Minecraft 1.7.10's base language resources from standard
+launcher `versions/1.7.10/1.7.10.jar` or Prism/MultiMC's selected Minecraft component
+and shared libraries. Downloaded vanilla languages are read from the matching
+local asset index and objects. Unsupported launcher layouts leave external
+existence checks unavailable.
 
 The catalogue reads `.lang` files from mod jars, TX Loader, and enabled resource
 packs listed in `options.txt`; it never starts Minecraft or executes mod code.
@@ -200,8 +207,9 @@ Validation reads existing content without creating or rewriting files. Exit code
 `0` means the requested checks passed; `1` means validation or I/O failed; `2`
 means command-line arguments were invalid. It checks structure, supported format
 versions, references, normalized-key collisions, and source English text. External
-key existence is checked when `--instance` is supplied; otherwise that check is
-explicitly reported as skipped when external references are present.
+key existence is checked when `--instance` is supplied and its base-game English
+resources are available; otherwise that check is explicitly reported as skipped
+when external references are present.
 
 See [the schema reference](../credits.schema.md) and
 [the pack upgrade instructions](../README.md#upgrading-an-existing-pack).

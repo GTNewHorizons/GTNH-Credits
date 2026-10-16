@@ -37,6 +37,9 @@ class TranslationCatalogTest {
     @Test
     void readsModsSelectedPacksAndTxLoaderWithPerKeyEnglishFallback() throws Exception {
         archive(
+            instance.resolve("versions/1.7.10/1.7.10.jar"),
+            Map.of("assets/minecraft/lang/en_US.lang", "tile.furnace.name=Furnace\n"));
+        archive(
             instance.resolve("mods/example.jar"),
             Map.of(
                 "assets/example/lang/en_US.lang",
@@ -78,6 +81,64 @@ class TranslationCatalogTest {
             catalogue.keys()
                 .contains("machine.Name"));
         assertArrayEquals(jar, Files.readAllBytes(instance.resolve("mods/example.jar")));
+    }
+
+    @Test
+    void readsPrismBaseGameAndIndexedLanguagesFromTheSelectedVersion() throws Exception {
+        Path game = instance.resolve("launcher/instances/pack/.minecraft");
+        Files.createDirectories(game.resolve("mods"));
+        Files.writeString(
+            game.getParent()
+                .resolve("mmc-pack.json"),
+            "{\"components\":[{\"uid\":\"net.minecraft\",\"version\":\"1.7.10\"}]}");
+        Path launcher = instance.resolve("launcher");
+        archive(
+            launcher.resolve("libraries/com/mojang/minecraft/1.7.10/minecraft-1.7.10-client.jar"),
+            Map.of("assets/minecraft/lang/en_US.lang", "tile.furnace.name=Furnace\n"));
+        archive(
+            launcher.resolve("libraries/com/mojang/minecraft/1.12.2/minecraft-1.12.2-client.jar"),
+            Map.of("assets/minecraft/lang/en_US.lang", "tile.furnace.name=Wrong version\n"));
+        Path assets = launcher.resolve("assets");
+        String hash = "1234567890abcdef1234567890abcdef12345678";
+        Path french = assets.resolve("objects/12/" + hash);
+        Files.createDirectories(french.getParent());
+        Files.writeString(french, "tile.furnace.name=Four\n");
+        Files.createDirectories(assets.resolve("indexes"));
+        Files.writeString(
+            assets.resolve("indexes/1.7.10.json"),
+            "{\"objects\":{\"minecraft/lang/fr_FR.lang\":{\"hash\":\"" + hash + "\"}}}");
+        TranslationCatalog catalogue = TranslationCatalog.load(game);
+        assertTrue(catalogue.isAvailable());
+        assertEquals(
+            "Furnace",
+            catalogue.resolve("tile.furnace.name", "en_US")
+                .orElseThrow());
+        assertEquals(
+            "Four",
+            catalogue.resolve("tile.furnace.name", "fr_FR")
+                .orElseThrow());
+        assertEquals(
+            "Furnace",
+            catalogue.resolve("tile.furnace.name", "de_DE")
+                .orElseThrow());
+    }
+
+    @Test
+    void doesNotUseCachedBaseResourcesForAnUnsupportedSelectedVersion() throws Exception {
+        Path game = instance.resolve("launcher/instances/pack/.minecraft");
+        Files.createDirectories(game.resolve("mods"));
+        Files.writeString(
+            game.getParent()
+                .resolve("mmc-pack.json"),
+            "{\"components\":[{\"uid\":\"net.minecraft\",\"version\":\"1.12.2\"}]}");
+        archive(
+            instance.resolve("launcher/libraries/com/mojang/minecraft/1.7.10/minecraft-1.7.10-client.jar"),
+            Map.of("assets/minecraft/lang/en_US.lang", "tile.furnace.name=Wrong version\n"));
+        TranslationCatalog catalogue = TranslationCatalog.load(game);
+        assertFalse(catalogue.isAvailable());
+        assertTrue(
+            catalogue.resolve("tile.furnace.name", "en_US")
+                .isEmpty());
     }
 
     @Test
@@ -137,8 +198,22 @@ class TranslationCatalogTest {
         assertFalse(
             TranslationCatalog.empty()
                 .isAvailable());
-        Files.createDirectory(instance.resolve("mods"));
+        archive(
+            instance.resolve("mods/example.jar"),
+            Map.of("assets/example/lang/en_US.lang", "mod.machine=Machine\n"));
         TranslationCatalog catalogue = TranslationCatalog.load(instance);
+        assertFalse(catalogue.isAvailable());
+        assertEquals(
+            "Machine",
+            catalogue.resolve("mod.machine", "en_US")
+                .orElseThrow());
+        assertTrue(
+            catalogue.keys()
+                .contains("mod.machine"));
+        archive(
+            instance.resolve("versions/1.7.10/1.7.10.jar"),
+            Map.of("assets/minecraft/lang/en_US.lang", "tile.furnace.name=Furnace\n"));
+        catalogue = TranslationCatalog.load(instance);
         assertTrue(catalogue.isAvailable());
         assertTrue(
             catalogue.resolve("missing", "en_US")
