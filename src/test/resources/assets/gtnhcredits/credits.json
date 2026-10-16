@@ -1,0 +1,21 @@
+{
+  "version": 2,
+  "category": [
+    {
+      "id": "development",
+      "class": ["detail", "person", "role"]
+    },
+    {
+      "id": "thanks",
+      "class": "detail"
+    }
+  ],
+  "person": [
+    {
+      "name": "Example Contributor",
+      "category": {
+        "development": "developer"
+      }
+    }
+  ]
+}

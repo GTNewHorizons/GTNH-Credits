@@ -10,6 +10,8 @@ _Auto-generated from [`credits.schema.json`](credits.schema.json)._
 - [PersonCategoryEntry](#personcategoryentry)
 - [Shared Types](#shared-types)
   - [`key`](#key)
+  - [Role](#role)
+  - [TranslationReference](#translationreference)
 
 ---
 
@@ -20,7 +22,7 @@ Schema for the GTNH credits data file. Persons reference categories by their id 
 | Property | Type | Required | Description |
 |---|---|---|---|
 | `$schema` | `string` | - | JSON Schema dialect URI. Present for editor tooling; ignored by the application. |
-| `version` | `integer` | yes | Schema version. Must be 2 or higher. Increment when making backwards-incompatible changes so readers can detect format mismatches. |
+| `version` | `integer` | yes | Format version. Version 2 supports local role ids, ignored username metadata and combined category maps. Version 3 also supports exact external translation references and requires one category per membership object. Readers reject unsupported versions. |
 | [`category`](#category) | [`Category`](#category)[] | yes | Ordered list of credit categories. Each category's id field is its stable identifier. |
 | [`person`](#person) | [`Person`](#person)[] | - | List of credited persons. Optional; may be absent or empty. |
 
@@ -54,7 +56,7 @@ A single category membership for a person. Either a plain category key (no roles
 
 | Property key | Value type | Description |
 |---|---|---|
-| (category id) | [`key`](#key) or `key[]` | Role or roles held by this person in the category named by the enclosing property key. Either a single role key or an array of role keys. |
+| (category id) | [`Role`](#role) or `Role[]` | Role labels for this category: credits-owned ids or exact external translation references. One role may be given directly; multiple roles as an array. |
 
 ---
 
@@ -70,6 +72,20 @@ A human-readable identifier used as a translation key suffix (after sanitization
 | Min length | 1 |
 | Max length | 32 |
 | Characters | Letters (A-Za-z), digits (0-9), space, `.` `_` `-`; must start with a letter; must end with a letter or digit |
+
+---
+
+### Role
+
+A credits-owned role is a string id of type `key`. An external role is a `TranslationReference` object containing the exact Minecraft language key. Translation references require version 3.
+
+### TranslationReference
+
+An exact Minecraft translation key supplied by another mod or resource pack. Available in version 3. Preserves case and punctuation; never sanitized or prefixed.
+
+| Property | Type | Required | Constraints | Description |
+|---|---|---|---|---|
+| `translationKey` | `string` | yes | 1-512 characters; no whitespace or control characters | Exact Minecraft translation key supplied by another mod or resource pack. Case and punctuation are preserved; no credits prefix is added. |
 
 ---
 

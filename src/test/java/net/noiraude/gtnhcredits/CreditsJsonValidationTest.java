@@ -22,7 +22,7 @@ import com.google.gson.JsonPrimitive;
  * <p>
  * Two groups of tests:
  * <ul>
- * <li>Integration: the bundled {@code credits.json} must produce no errors.</li>
+ * <li>Integration: the test fixture's {@code credits.json} must produce no errors.</li>
  * <li>Unit: individual rules are verified with crafted synthetic documents.</li>
  * </ul>
  *
@@ -39,7 +39,7 @@ public class CreditsJsonValidationTest {
     // -------------------------------------------------------------------------
 
     @Test
-    public void bundledCreditsJsonIsValid() throws Exception {
+    public void fixtureCreditsJsonIsValid() throws Exception {
         try (InputStreamReader reader = new InputStreamReader(
             Objects.requireNonNull(getClass().getResourceAsStream("/assets/gtnhcredits/credits.json")),
             StandardCharsets.UTF_8)) {
@@ -321,6 +321,47 @@ public class CreditsJsonValidationTest {
         persons.add(person);
         root.add("person", persons);
         assertHasError(root, "unknown category id \"nonexistent\"");
+    }
+
+    @Test
+    public void externalReferences_requireVersionThreeAndPreserveFullKeyShape() {
+        JsonObject root = rootWithOnePerson("Alice", "cats");
+        JsonObject reference = new JsonObject();
+        reference.addProperty("translationKey", "gt.blockmachines.multimachine.nanochipassemblycomplex.name");
+        JsonObject membership = new JsonObject();
+        membership.add("cats", reference);
+        root.getAsJsonArray("person")
+            .get(0)
+            .getAsJsonObject()
+            .add("category", membership);
+        assertInvalid(root);
+        root.addProperty("version", 3);
+        assertValid(root);
+        reference.addProperty("translationKey", "contains spaces");
+        assertInvalid(root);
+    }
+
+    @Test
+    public void futureVersions_areRejected() {
+        JsonObject root = minimalValid();
+        root.addProperty("version", 4);
+        assertInvalid(root);
+    }
+
+    @Test
+    public void legacyMetadataAndCombinedMemberships_areAcceptedOnlyInVersionTwo() {
+        for (String person : Arrays.asList(
+            "{\"name\":\"Alice\",\"username\":\"alice_account\",\"category\":\"dev\"}",
+            "{\"name\":\"Alice\",\"category\":{\"dev\":[\"lead\",\"developer\"],\"quests\":\"editor\"}}",
+            "{\"name\":\"Alice\",\"category\":[{\"dev\":\"developer\",\"quests\":\"editor\"}]}")) {
+            JsonObject root = new JsonParser()
+                .parse(
+                    "{\"version\":2,\"category\":[{\"id\":\"dev\"},{\"id\":\"quests\"}],\"person\":[" + person + "]}")
+                .getAsJsonObject();
+            assertValid(root);
+            root.addProperty("version", 3);
+            assertInvalid(root);
+        }
     }
 
     // -------------------------------------------------------------------------

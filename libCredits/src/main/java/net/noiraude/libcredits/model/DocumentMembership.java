@@ -12,15 +12,15 @@ public final class DocumentMembership {
     /** {@code Id} of the category this membership belongs to. */
     public final String categoryId;
 
-    /** Ordered list of role strings held in this category membership. Maybe empty. */
-    public final List<String> roles;
+    /** Ordered list of role labels held in this category membership. May be empty. */
+    public final List<DocumentRole> roles;
 
     public DocumentMembership(String categoryId) {
         this.categoryId = categoryId;
         this.roles = new ArrayList<>();
     }
 
-    public DocumentMembership(String categoryId, List<String> roles) {
+    public DocumentMembership(String categoryId, List<DocumentRole> roles) {
         this.categoryId = categoryId;
         this.roles = new ArrayList<>(roles);
     }

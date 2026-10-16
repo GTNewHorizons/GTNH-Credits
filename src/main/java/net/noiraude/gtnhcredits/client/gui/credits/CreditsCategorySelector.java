@@ -24,8 +24,12 @@ import cpw.mods.fml.relauncher.SideOnly;
 class CreditsCategorySelector extends ListWidget<IWidget, CreditsCategorySelector> {
 
     private static final int SLOT_HEIGHT = 20;
+    private final CreditsController controller;
+    private long revision;
 
     CreditsCategorySelector(int width, CreditsController controller) {
+        this.controller = controller;
+        this.revision = controller.getRevision();
         width(width);
         heightRel(1f);
         List<DocumentCategory> categories = controller.getCategories();
@@ -36,6 +40,18 @@ class CreditsCategorySelector extends ListWidget<IWidget, CreditsCategorySelecto
 
     public static @NotNull CreditsCategorySelector create(int width, CreditsController controller) {
         return new CreditsCategorySelector(width, controller);
+    }
+
+    @Override
+    public void onUpdate() {
+        super.onUpdate();
+        long currentRevision = controller.getRevision();
+        if (revision != currentRevision) {
+            revision = currentRevision;
+            removeAll();
+            for (int i = 0; i < controller.getCategories()
+                .size(); i++) addChild(new CategoryButton(controller, i), i);
+        }
     }
 
     @Override

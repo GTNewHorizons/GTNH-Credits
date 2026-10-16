@@ -1,0 +1,33 @@
+{
+  "version": 3,
+  "category": [
+    {
+      "id": "development",
+      "class": [
+        "detail",
+        "person",
+        "role"
+      ]
+    },
+    {
+      "id": "thanks",
+      "class": "detail"
+    }
+  ],
+  "person": [
+    {
+      "name": "Example Contributor",
+      "category": {
+        "development": "developer"
+      }
+    },
+    {
+      "name": "Example Machine Author",
+      "category": {
+        "development": {
+          "translationKey": "gt.blockmachines.multimachine.nanochipassemblycomplex.name"
+        }
+      }
+    }
+  ]
+}

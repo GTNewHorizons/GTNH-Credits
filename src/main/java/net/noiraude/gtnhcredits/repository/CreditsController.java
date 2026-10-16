@@ -12,9 +12,11 @@ import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.noiraude.gtnhcredits.Config;
 import net.noiraude.libcredits.model.CreditsDocument;
+import net.noiraude.libcredits.model.CreditsKeys;
 import net.noiraude.libcredits.model.DocumentCategory;
 import net.noiraude.libcredits.model.DocumentMembership;
 import net.noiraude.libcredits.model.DocumentPerson;
+import net.noiraude.libcredits.model.DocumentRole;
 import net.noiraude.libcredits.util.FuzzyFinder;
 
 import org.jetbrains.annotations.Nullable;
@@ -25,7 +27,9 @@ import cpw.mods.fml.relauncher.SideOnly;
 @SideOnly(Side.CLIENT)
 public final class CreditsController {
 
-    private final CreditsDocument data;
+    private static long resourceRevision;
+    private CreditsDocument data;
+    private long revision;
     private int selectedIndex = 0;
     private String personFilter = "";
     private Pattern personFilterPattern = null;
@@ -48,14 +52,36 @@ public final class CreditsController {
     }
 
     public CreditsController() {
-        this.data = CreditsRepository.load();
+        reload();
+    }
+
+    /** Called after Minecraft resources are replaced; existing screens reload on their next update. */
+    public static void resourcesReloaded() {
+        resourceRevision++;
+    }
+
+    public long getRevision() {
+        refresh();
+        return revision;
+    }
+
+    private void refresh() {
+        if (revision != resourceRevision) reload();
+    }
+
+    private void reload() {
+        data = CreditsRepository.load();
+        revision = resourceRevision;
+        selectedIndex = Math.min(selectedIndex, Math.max(0, data.categories.size() - 1));
     }
 
     public List<DocumentCategory> getCategories() {
+        refresh();
         return data.categories;
     }
 
     public int getSelectedIndex() {
+        refresh();
         return selectedIndex;
     }
 
@@ -93,6 +119,7 @@ public final class CreditsController {
      * Returns the currently selected category, or {@code null} if there are no categories.
      */
     public @Nullable DocumentCategory getSelectedCategory() {
+        refresh();
         if (data.categories.isEmpty()) return null;
         return data.categories.get(Math.min(selectedIndex, data.categories.size() - 1));
     }
@@ -104,7 +131,7 @@ public final class CreditsController {
      */
     public List<DocumentPerson> getPersonsForCategory(DocumentCategory category) {
         // Phase 1: accumulate roles and display name per person key (plain name, no formatting).
-        Map<String, LinkedHashSet<String>> rolesByKey = new LinkedHashMap<>();
+        Map<String, LinkedHashSet<DocumentRole>> rolesByKey = new LinkedHashMap<>();
         Map<String, String> displayNameByKey = new LinkedHashMap<>();
         for (DocumentPerson p : data.persons) {
             for (DocumentMembership m : p.memberships) {
@@ -120,7 +147,7 @@ public final class CreditsController {
 
         // Phase 2: build lookup index (order guaranteed by CreditsParser contract).
         Map<String, DocumentPerson> personIndex = new LinkedHashMap<>();
-        for (Map.Entry<String, LinkedHashSet<String>> e : rolesByKey.entrySet()) {
+        for (Map.Entry<String, LinkedHashSet<DocumentRole>> e : rolesByKey.entrySet()) {
             String key = e.getKey();
             DocumentPerson dp = new DocumentPerson(displayNameByKey.get(key));
             dp.memberships.add(new DocumentMembership(category.id, new ArrayList<>(e.getValue())));
@@ -136,6 +163,7 @@ public final class CreditsController {
      * Returns the display name for a category, preferring a translation over the raw id.
      */
     public String getCategoryDisplayName(int index) {
+        refresh();
         if (index < 0 || index >= data.categories.size()) return "";
         String id = data.categories.get(index).id;
         String key = "credits.category." + sanitizeKey(id);
@@ -150,10 +178,7 @@ public final class CreditsController {
      * The original unsanitized value should be used as fallback display text.
      */
     public static String sanitizeKey(String key) {
-        return key.replace(".", "")
-            .replace("-", "")
-            .replaceAll(" +", "_")
-            .toLowerCase();
+        return CreditsKeys.sanitize(key);
     }
 
     private Map<String, DocumentPerson> getRegexFilteredNames(Map<String, DocumentPerson> personIndex) {

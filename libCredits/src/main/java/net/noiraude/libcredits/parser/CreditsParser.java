@@ -5,144 +5,195 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.regex.Pattern;
+import java.util.Map;
 
 import net.noiraude.libcredits.model.CreditsDocument;
+import net.noiraude.libcredits.model.CreditsKeys;
 import net.noiraude.libcredits.model.DocumentCategory;
 import net.noiraude.libcredits.model.DocumentMembership;
 import net.noiraude.libcredits.model.DocumentPerson;
+import net.noiraude.libcredits.model.DocumentRole;
+import net.noiraude.libcredits.validation.CreditsValidator;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
 
+/** Reads version-2 documents and version-3 documents containing external translation references. */
 public final class CreditsParser {
 
-    /**
-     * Mirrors the schema's key pattern: letter start, letter/digit end,
-     * letters/digits/spaces/dots/underscores/hyphens inside; 1-32 chars.
-     */
-    private static final Pattern KEY_PATTERN = Pattern.compile("^[A-Za-z]([A-Za-z0-9 ._-]*[A-Za-z0-9])?$");
+    public static final int CURRENT_VERSION = 3;
 
     private CreditsParser() {}
 
     /**
-     * Parses a {@code credits.json} input stream into a {@link CreditsDocument}.
-     * The caller is responsible for closing the stream.
-     * The returned document's {@link CreditsDocument#persons} list is sorted by name,
-     * case-insensitively. {@link CreditsDocument#isDirty()} returns {@code false} on
-     * the returned document.
-     *
-     * @throws IOException           if the stream cannot be read
-     * @throws CreditsParseException if the JSON is structurally invalid
+     * Reads and validates UTF-8 credits without taking ownership of the supplied stream.
+     * Persons are sorted by name, ignoring formatting and case; the result is marked clean.
+     * Legacy version-2 username metadata is ignored, and combined category objects are expanded.
+     * Unsupported versions and malformed or inconsistent documents produce a CreditsParseException.
      */
-    public static CreditsDocument parse(InputStream is) throws IOException, CreditsParseException {
-        try (InputStreamReader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
-            JsonObject root;
-            try {
-                @SuppressWarnings("deprecation") // MC GSON compatible
-                JsonObject parsed = new JsonParser().parse(reader)
-                    .getAsJsonObject();
-                root = parsed;
-            } catch (JsonParseException | IllegalStateException e) {
-                throw new CreditsParseException("malformed credits.json", e);
+    public static CreditsDocument parse(InputStream input) throws IOException, CreditsParseException {
+        try {
+            @SuppressWarnings("deprecation") // Minecraft's Gson predates JsonParser.parseReader.
+            JsonObject root = new JsonParser().parse(new InputStreamReader(input, StandardCharsets.UTF_8))
+                .getAsJsonObject();
+            properties(root, "$schema", "version", "category", "person");
+            JsonElement versionElement = root.get("version");
+            if (
+                versionElement == null || !versionElement.isJsonPrimitive()
+                    || !versionElement.getAsJsonPrimitive()
+                        .isNumber()
+            ) {
+                throw new CreditsParseException("version must be an integer");
             }
-
-            CreditsDocument doc = CreditsDocument.empty();
-
-            for (JsonElement el : root.getAsJsonArray("category")) {
-                doc.categories.add(parseCategory(el.getAsJsonObject()));
+            int version = versionElement.getAsBigDecimal()
+                .intValueExact();
+            if (version != 2 && version != CURRENT_VERSION) {
+                throw new CreditsParseException(
+                    "Unsupported credits format version " + version + "; supported versions: 2, 3");
             }
-
-            if (root.has("person")) {
-                for (JsonElement el : root.getAsJsonArray("person")) {
-                    doc.persons.add(parsePerson(el.getAsJsonObject()));
+            if (root.has("$schema")) string(root.get("$schema"));
+            CreditsDocument document = CreditsDocument.empty();
+            for (JsonElement value : root.getAsJsonArray("category")) {
+                JsonObject category = value.getAsJsonObject();
+                properties(category, "id", "class");
+                DocumentCategory entry = new DocumentCategory(id(string(category.get("id")), "category id"));
+                if (category.has("class")) {
+                    List<String> classes = strings(category.get("class"));
+                    if (new LinkedHashSet<>(classes).size() != classes.size()) {
+                        throw new CreditsParseException("duplicate category class markers");
+                    }
+                    entry.classes.addAll(classes);
                 }
-                doc.persons.sort(Comparator.comparing(p -> stripFormatting(p.name), String.CASE_INSENSITIVE_ORDER));
+                document.categories.add(entry);
             }
-
-            doc.markClean();
-            return doc;
+            if (root.has("person")) {
+                for (JsonElement value : root.getAsJsonArray("person")) {
+                    document.persons.add(person(value.getAsJsonObject(), version));
+                }
+            }
+            List<String> errors = CreditsValidator.validate(document);
+            if (!errors.isEmpty()) throw new CreditsParseException(String.join("; ", errors));
+            document.persons.sort(Comparator.comparing(p -> stripFormatting(p.name), String.CASE_INSENSITIVE_ORDER));
+            document.markClean();
+            return document;
+        } catch (RuntimeException ex) {
+            throw new CreditsParseException("malformed credits.json: " + ex.getMessage(), ex);
         }
     }
 
-    private static DocumentCategory parseCategory(JsonObject obj) throws CreditsParseException {
-        String id = requireValidKey(
-            obj.get("id")
-                .getAsString(),
-            "category id");
-        DocumentCategory cat = new DocumentCategory(id);
-        if (obj.has("class")) {
-            cat.classes = new LinkedHashSet<>(readStringOrArray(obj.get("class")));
-        }
-        return cat;
-    }
-
-    private static DocumentPerson parsePerson(JsonObject obj) throws CreditsParseException {
-        String name = obj.get("name")
-            .getAsString();
-        DocumentPerson person = new DocumentPerson(name);
-        JsonElement catEl = obj.get("category");
-        if (catEl.isJsonArray()) {
-            for (JsonElement entry : catEl.getAsJsonArray()) parseMembershipEntry(entry, person);
+    private static DocumentPerson person(JsonObject object, int version) throws CreditsParseException {
+        if (version == 2) properties(object, "name", "category", "username");
+        else properties(object, "name", "category");
+        DocumentPerson person = new DocumentPerson(string(object.get("name")));
+        JsonElement category = object.get("category");
+        if (category.isJsonArray()) {
+            if (
+                category.getAsJsonArray()
+                    .size() == 0
+            ) throw new CreditsParseException("person category list must not be empty");
+            for (JsonElement entry : category.getAsJsonArray()) membership(entry, person, version);
         } else {
-            parseMembershipEntry(catEl, person);
+            membership(category, person, version);
         }
         return person;
     }
 
-    private static void parseMembershipEntry(JsonElement entry, DocumentPerson person) throws CreditsParseException {
-        if (entry.isJsonPrimitive()) {
-            person.memberships.add(new DocumentMembership(requireValidKey(entry.getAsString(), "category id")));
+    private static void membership(JsonElement element, DocumentPerson person, int version)
+        throws CreditsParseException {
+        if (element.isJsonPrimitive()) {
+            person.memberships.add(new DocumentMembership(id(string(element), "category id")));
             return;
         }
-        if (entry.isJsonObject()) {
-            for (java.util.Map.Entry<String, JsonElement> kv : entry.getAsJsonObject()
-                .entrySet()) {
-                String catId = requireValidKey(kv.getKey(), "category id");
-                List<String> roles = new ArrayList<>();
-                for (String role : readStringOrArray(kv.getValue())) {
-                    roles.add(requireValidKey(role, "role"));
-                }
-                person.memberships.add(new DocumentMembership(catId, roles));
+        JsonObject object = element.getAsJsonObject();
+        if (
+            version != 2 && object.entrySet()
+                .size() != 1
+        ) throw new CreditsParseException("category membership must contain exactly one category");
+        for (Map.Entry<String, JsonElement> entry : object.entrySet()) {
+            List<DocumentRole> roles = new ArrayList<>();
+            JsonElement labels = entry.getValue();
+            if (labels.isJsonArray()) {
+                if (
+                    labels.getAsJsonArray()
+                        .size() == 0
+                ) throw new CreditsParseException("role list must not be empty");
+                for (JsonElement label : labels.getAsJsonArray()) roles.add(role(label, version));
+            } else {
+                roles.add(role(labels, version));
             }
-            return;
+            person.memberships.add(new DocumentMembership(id(entry.getKey(), "category id"), roles));
         }
-        throw new CreditsParseException("person category entry must be a string or object");
     }
 
-    private static List<String> readStringOrArray(JsonElement el) {
-        if (el.isJsonPrimitive()) return Collections.singletonList(el.getAsString());
+    /** Reads one version-3 role JSON value, for explicit references in tabular imports. */
+    public static DocumentRole parseRoleJson(String json) throws CreditsParseException {
+        try {
+            @SuppressWarnings("deprecation")
+            JsonElement value = new JsonParser().parse(json);
+            return role(value, CURRENT_VERSION);
+        } catch (RuntimeException ex) {
+            throw new CreditsParseException("invalid role JSON: " + ex.getMessage(), ex);
+        }
+    }
+
+    private static DocumentRole role(JsonElement element, int version) throws CreditsParseException {
+        if (element.isJsonPrimitive()) return DocumentRole.local(string(element));
+        if (version < CURRENT_VERSION)
+            throw new CreditsParseException("translationKey references require credits format version 3");
+        JsonObject reference = element.getAsJsonObject();
+        properties(reference, "translationKey");
+        return DocumentRole.translation(string(reference.get("translationKey")));
+    }
+
+    private static String id(String value, String field) throws CreditsParseException {
+        if (!CreditsKeys.isValidId(value)) throw new CreditsParseException("invalid " + field + ": \"" + value + "\"");
+        return value;
+    }
+
+    private static String string(JsonElement element) {
+        if (
+            element == null || !element.isJsonPrimitive()
+                || !element.getAsJsonPrimitive()
+                    .isString()
+        ) {
+            throw new IllegalArgumentException("expected a string");
+        }
+        return element.getAsString();
+    }
+
+    private static List<String> strings(JsonElement element) {
+        if (element.isJsonPrimitive()) return Collections.singletonList(string(element));
         List<String> result = new ArrayList<>();
-        for (JsonElement item : el.getAsJsonArray()) result.add(item.getAsString());
+        for (JsonElement value : element.getAsJsonArray()) result.add(string(value));
         return result;
     }
 
-    private static String requireValidKey(String s, String field) throws CreditsParseException {
-        if (
-            KEY_PATTERN.matcher(s)
-                .matches()
-        ) return s;
-        throw new CreditsParseException("invalid " + field + ": \"" + s + "\"");
-    }
-
-    /** Strips chat formatting codes ({@code §X}) from {@code s}. {@code §§} is an escaped literal {@code §}. */
-    private static String stripFormatting(String s) {
-        int len = s.length();
-        StringBuilder sb = new StringBuilder(len);
-        for (int i = 0; i < len; i++) {
-            if (s.charAt(i) == '§' && i + 1 < len) {
-                if (s.charAt(i + 1) == '§') sb.append('§');
-                i++;
-            } else {
-                sb.append(s.charAt(i));
+    private static void properties(JsonObject object, String... allowed) throws CreditsParseException {
+        for (Map.Entry<String, JsonElement> entry : object.entrySet()) {
+            if (
+                !Arrays.asList(allowed)
+                    .contains(entry.getKey())
+            ) {
+                throw new CreditsParseException("unknown property: " + entry.getKey());
             }
         }
-        return sb.toString();
+    }
+
+    private static String stripFormatting(String value) {
+        StringBuilder stripped = new StringBuilder(value.length());
+        for (int i = 0; i < value.length(); i++) {
+            char character = value.charAt(i);
+            if (character == '§' && i + 1 < value.length()) {
+                if (value.charAt(i + 1) == '§') stripped.append('§');
+                i++;
+            } else stripped.append(character);
+        }
+        return stripped.toString();
     }
 }
