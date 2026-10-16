@@ -167,7 +167,9 @@ public final class MembershipTablePanel extends JPanel {
             DocumentMembership m = memberships.get(row);
             return switch (col) {
                 case 0 -> m.categoryId;
-                case 1 -> String.join(", ", m.roles);
+                case 1 -> m.roles.stream()
+                    .map(Object::toString)
+                    .collect(java.util.stream.Collectors.joining(", "));
                 default -> "";
             };
         }

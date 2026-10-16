@@ -32,13 +32,13 @@ import net.noiraude.creditseditor.command.impl.CompoundCommand;
 import net.noiraude.creditseditor.command.impl.MoveRolesOrderCommand;
 import net.noiraude.creditseditor.command.impl.RemovePersonRoleCommand;
 import net.noiraude.creditseditor.mc.McText;
-import net.noiraude.creditseditor.service.KeySanitizer;
 import net.noiraude.creditseditor.ui.I18n;
 import net.noiraude.creditseditor.ui.MsgArg;
 import net.noiraude.creditseditor.ui.component.dnd.ListReorderTransferHandler;
 import net.noiraude.libcredits.model.CreditsDocument;
 import net.noiraude.libcredits.model.DocumentMembership;
 import net.noiraude.libcredits.model.DocumentPerson;
+import net.noiraude.libcredits.model.DocumentRole;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -61,8 +61,8 @@ public final class RoleListPanel extends JPanel {
     private final @NotNull CommandExecutor onCommand;
 
     private final @NotNull JLabel contextLabel = new JLabel();
-    private final @NotNull DefaultListModel<String> roleListModel = new DefaultListModel<>();
-    private final @NotNull JList<String> roleList = new JList<>(roleListModel);
+    private final @NotNull DefaultListModel<DocumentRole> roleListModel = new DefaultListModel<>();
+    private final @NotNull JList<DocumentRole> roleList = new JList<>(roleListModel);
     private final @NotNull JButton addButton = new JButton(I18n.get("button.add"));
     private final @NotNull JButton deleteButton = new JButton(I18n.get("button.delete"));
     private final @NotNull JScrollPane roleListScroll = new JScrollPane(roleList);
@@ -120,7 +120,7 @@ public final class RoleListPanel extends JPanel {
 
     /** Rebuilds the role list from the current membership, preserving the selection. */
     public void refresh() {
-        List<String> previous = roleList.getSelectedValuesList();
+        List<DocumentRole> previous = roleList.getSelectedValuesList();
         rebuildListModel();
         restoreListSelection(previous);
         updateButtons();
@@ -128,7 +128,7 @@ public final class RoleListPanel extends JPanel {
     }
 
     /** Returns the currently selected roles in display order. */
-    public @NotNull List<String> getSelectedRoles() {
+    public @NotNull List<DocumentRole> getSelectedRoles() {
         return roleList.getSelectedValuesList();
     }
 
@@ -137,8 +137,33 @@ public final class RoleListPanel extends JPanel {
         this.selectionListener = listener;
     }
 
-    static @NotNull String langKeyForRole(@NotNull String role) {
-        return "credits.person.role." + KeySanitizer.sanitize(role);
+    static @NotNull String langKeyForRole(@NotNull DocumentRole role) {
+        return role.translationKey();
+    }
+
+    void replaceSelectedReference(String key) {
+        if (currentMembership == null || currentPerson == null || roleList.getSelectedIndices().length != 1) return;
+        try {
+            DocumentRole replacement = DocumentRole.translation(key);
+            int index = roleList.getSelectedIndex();
+            if (replacement.equals(currentMembership.roles.get(index))) return;
+            if (currentMembership.roles.contains(replacement))
+                throw new IllegalArgumentException(I18n.get("role.external.duplicate"));
+            onCommand.execute(
+                new net.noiraude.creditseditor.command.impl.EditPersonRoleCommand(
+                    bus,
+                    currentPerson,
+                    currentMembership,
+                    index,
+                    replacement));
+            roleList.setSelectedIndex(index);
+        } catch (IllegalArgumentException ex) {
+            JOptionPane.showMessageDialog(
+                this,
+                ex.getMessage(),
+                I18n.get("dialog.load.error.title"),
+                JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     private void configureList() {
@@ -157,7 +182,7 @@ public final class RoleListPanel extends JPanel {
                 i -> currentMembership != null));
         roleList.setCellRenderer(new RoleListCellRenderer());
         int cellHeight = roleList.getCellRenderer()
-            .getListCellRendererComponent(roleList, "X", 0, false, false)
+            .getListCellRendererComponent(roleList, DocumentRole.local("X"), 0, false, false)
             .getPreferredSize().height;
         roleList.setFixedCellHeight(cellHeight);
         roleList.setVisibleRowCount(PREFERRED_VISIBLE_ROLE_ROWS);
@@ -196,13 +221,13 @@ public final class RoleListPanel extends JPanel {
     private void rebuildListModel() {
         roleListModel.clear();
         if (currentMembership != null) {
-            for (String role : currentMembership.roles) {
+            for (DocumentRole role : currentMembership.roles) {
                 roleListModel.addElement(role);
             }
         }
     }
 
-    private void restoreListSelection(@NotNull List<String> previous) {
+    private void restoreListSelection(@NotNull List<DocumentRole> previous) {
         if (previous.isEmpty()) return;
         for (int i = 0; i < roleListModel.size(); i++) {
             if (previous.contains(roleListModel.get(i))) {
@@ -224,12 +249,12 @@ public final class RoleListPanel extends JPanel {
     private void onAdd() {
         if (currentMembership == null || currentPerson == null) return;
         CreditsDocument creditsDoc = bus.hasSession() ? bus.creditsDoc() : null;
-        String role = new AddRolePrompt(currentMembership, creditsDoc).show(this);
+        DocumentRole role = new AddRolePrompt(currentMembership, creditsDoc, bus).show(this);
         if (role == null) return;
         if (currentMembership.roles.contains(role)) {
             JOptionPane.showMessageDialog(
                 this,
-                I18n.get("panel.roles.duplicate.message", MsgArg.text(role)),
+                I18n.get("panel.roles.duplicate.message", MsgArg.text(role.value())),
                 I18n.get("panel.roles.duplicate.title"),
                 JOptionPane.WARNING_MESSAGE);
             return;
@@ -238,12 +263,12 @@ public final class RoleListPanel extends JPanel {
     }
 
     private void onDelete() {
-        List<String> selected = roleList.getSelectedValuesList();
+        List<DocumentRole> selected = roleList.getSelectedValuesList();
         if (selected.isEmpty() || currentMembership == null || currentPerson == null) return;
 
         CompoundCommand.Builder builder = new CompoundCommand.Builder(
             I18n.get("command.remove.roles", MsgArg.count(selected.size()), MsgArg.text(currentMembership.categoryId)));
-        for (String role : selected) {
+        for (DocumentRole role : selected) {
             builder.add(new RemovePersonRoleCommand(bus, currentPerson, currentMembership, role));
         }
         onCommand.execute(builder.build());
@@ -267,6 +292,7 @@ public final class RoleListPanel extends JPanel {
     }
 
     private void wireEvents() {
+        bus.addListener(DocumentBus.TOPIC_TRANSLATIONS, e -> roleList.repaint());
         addButton.addActionListener(e -> onAdd());
         deleteButton.addActionListener(e -> onDelete());
         roleList.addListSelectionListener(this::onSelectionChanged);
@@ -278,10 +304,14 @@ public final class RoleListPanel extends JPanel {
         public @NotNull Component getListCellRendererComponent(@NotNull JList<?> list, @Nullable Object value,
             int index, boolean isSelected, boolean cellHasFocus) {
             JLabel label = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
-            if (value instanceof String raw) {
-                String display = bus.hasSession() ? bus.langDoc()
-                    .get(langKeyForRole(raw)) : null;
-                label.setText((display == null || display.isEmpty()) ? raw : McText.strip(display));
+            if (value instanceof DocumentRole raw) {
+                String display = bus.hasSession() ? raw.isExternal()
+                    ? bus.externalTranslation(raw.translationKey(), bus.activeLocale())
+                        .orElse(null)
+                    : bus.langDoc()
+                        .get(langKeyForRole(raw))
+                    : null;
+                label.setText((display == null || display.isEmpty()) ? raw.value() : McText.strip(display));
             }
             return label;
         }

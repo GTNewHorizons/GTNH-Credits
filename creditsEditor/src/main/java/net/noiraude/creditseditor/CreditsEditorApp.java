@@ -1,124 +1,145 @@
 package net.noiraude.creditseditor;
 
-import javax.swing.*;
+import java.io.InputStream;
+import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.util.List;
 
+import javax.swing.SwingUtilities;
+
+import net.noiraude.creditseditor.resource.ResourceManager;
+import net.noiraude.creditseditor.service.TranslationCatalog;
 import net.noiraude.creditseditor.ui.AppIcons;
 import net.noiraude.creditseditor.ui.AppInfo;
 import net.noiraude.creditseditor.ui.EditorApplication;
-
-import org.jetbrains.annotations.Contract;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import net.noiraude.libcredits.validation.CreditsValidator;
 
 import com.formdev.flatlaf.FlatLightLaf;
 
+/** GUI editor and read-only, headless content validation entry point. */
 public class CreditsEditorApp {
 
-    public static void main(@NotNull String[] args) {
-        FlatLightLaf.setup();
-        AppIcons.applyToTaskbar();
+    public static void main(String[] args) {
         new CreditsEditorApp().start(args);
     }
 
-    @Contract(pure = true)
-    public CreditsEditorApp() {}
-
-    public void start(@NotNull String[] argv) {
+    public void start(String[] argv) {
         Args args;
         try {
             args = Args.parse(argv);
-        } catch (IllegalArgumentException e) {
-            String cmd = cmd();
-            System.err.println(cmd + ": " + e.getMessage());
-            System.err.println("Try '" + cmd + " --help' for usage.");
-            System.exit(1);
+        } catch (IllegalArgumentException ex) {
+            System.err.println(cmd() + ": " + ex.getMessage());
+            System.err.println("Try '" + cmd() + " --help' for usage.");
+            System.exit(2);
             return;
         }
-
         if (args.help()) {
             printHelp();
-            System.exit(0);
+            return;
         }
-
         if (args.version()) {
-            System.out.println(cmd() + " " + version());
-            System.exit(0);
+            System.out.println(cmd() + " " + AppInfo.version());
+            return;
         }
-
-        final String resourcePath = args.resource();
-        SwingUtilities.invokeLater(() -> new EditorApplication().start(resourcePath));
+        if (args.schema()) {
+            try (InputStream schema = CreditsEditorApp.class.getResourceAsStream("/credits.schema.json")) {
+                if (schema == null) throw new IllegalStateException("Missing bundled credits schema");
+                System.out.print(new String(schema.readAllBytes(), StandardCharsets.UTF_8));
+            } catch (Exception ex) {
+                System.err.println(ex.getMessage());
+                System.exit(1);
+            }
+            return;
+        }
+        if (args.validate()) {
+            System.exit(validate(args.resource(), args.instance(), System.out, System.err));
+            return;
+        }
+        FlatLightLaf.setup();
+        AppIcons.applyToTaskbar();
+        SwingUtilities.invokeLater(() -> new EditorApplication().start(args.resource(), args.instance()));
     }
 
-    @Contract(pure = true)
-    private static @NotNull String cmd() {
+    /** Validates without creating or rewriting any files. External existence needs an explicit local instance. */
+    public static int validate(String path, String instance, PrintStream output, PrintStream errors) {
+        try (ResourceManager resources = ResourceManager.open(path)) {
+            resources.loadDocuments();
+            TranslationCatalog catalog = instance == null ? TranslationCatalog.empty()
+                : TranslationCatalog.load(Path.of(instance));
+            List<String> problems = CreditsValidator.validateContent(
+                resources.getCreditsDoc(),
+                resources.getLangDoc(),
+                catalog.isAvailable() ? key -> catalog.resolve(key, "en_US")
+                    .isPresent() : null);
+            if (!problems.isEmpty()) {
+                problems.forEach(errors::println);
+                return 1;
+            }
+            output.println("Valid credits: " + resources.displayPath());
+            if (
+                !catalog.isAvailable() && resources.getCreditsDoc().persons.stream()
+                    .flatMap(person -> person.memberships.stream())
+                    .flatMap(membership -> membership.roles.stream())
+                    .anyMatch(role -> role.isExternal())
+            ) {
+                output.println(
+                    "External translation existence was not checked; supply --instance=<path> to check instance language resources.");
+            }
+            return 0;
+        } catch (Exception ex) {
+            errors.println("Credits validation failed: " + ex.getMessage());
+            return 1;
+        }
+    }
+
+    private static String cmd() {
         return System.getProperty("app.name", "gtnh-credits-editor");
     }
 
-    @Contract(pure = true)
-    private static @NotNull String version() {
-        return AppInfo.version();
-    }
-
     private static void printHelp() {
-        String cmd = cmd();
-        System.out.println("Usage: " + cmd + " [OPTIONS] [<path>]");
-        System.out.println();
-        System.out.println("  <path>               Resource directory or .zip resource pack to open on startup.");
-        System.out.println("                       Without a path, use File > Open / New from the GUI.");
-        System.out.println();
-        System.out.println("Options:");
-        System.out.println("  -h, --help           Show this help and exit.");
-        System.out.println("  -v, --version        Show version and exit.");
-        System.out.println("      --resource=<path>");
-        System.out.println("                       Equivalent to the positional <path> argument.");
+        System.out.println("Usage: " + cmd() + " [OPTIONS] [<path>]");
+        System.out.println(
+            "  <path>                Modpack root, credits.json, content directory, resource directory or pack ZIP.");
+        System.out.println("                        Without a path, use File > Open / Open Recent / New.");
+        System.out.println("  -h, --help            Show this help.");
+        System.out.println("  -v, --version         Show version.");
+        System.out.println("      --resource=<path> Equivalent to positional <path>.");
+        System.out.println(
+            "      --instance=<path> Read translations from a local Minecraft instance for previews/validation.");
+        System.out.println(
+            "      --validate        Validate existing content without a GUI or file changes; requires <path>.");
+        System.out.println("      --schema          Print the bundled versioned JSON schema.");
     }
 
-    // -----------------------------------------------------------------------
+    record Args(boolean help, boolean version, String resource, boolean validate, boolean schema, String instance) {
 
-    record Args(boolean help, boolean version, @Nullable String resource) {
-
-        static @NotNull Args parse(String @NotNull [] argv) {
-            Builder b = new Builder();
-            for (String arg : argv) b.accept(arg);
-            return b.build();
-        }
-
-        private static final class Builder {
-
-            boolean help, version, endOfOptions;
-            @Nullable
-            String resource;
-
-            void accept(@NotNull String arg) {
-                if (endOfOptions || !arg.startsWith("-")) {
+        static Args parse(String[] argv) {
+            boolean help = false, version = false, validate = false, schema = false, end = false;
+            String resource = null, instance = null;
+            for (String arg : argv) {
+                if (end || !arg.startsWith("-")) {
                     if (resource != null) throw new IllegalArgumentException("unexpected argument: " + arg);
                     resource = arg;
-                    return;
-                }
-                applyOption(
-                    arg.substring(1)
-                        .split("=", 2));
+                } else if (arg.equals("--")) end = true;
+                else if (arg.equals("-h") || arg.equals("--help")) help = true;
+                else if (arg.equals("-v") || arg.equals("--version")) version = true;
+                else if (arg.equals("--validate")) validate = true;
+                else if (arg.equals("--schema")) schema = true;
+                else if (arg.startsWith("--resource=")) {
+                    if (resource != null) throw new IllegalArgumentException("duplicate resource path");
+                    resource = arg.substring("--resource=".length());
+                } else if (arg.startsWith("--instance=")) {
+                    if (instance != null) throw new IllegalArgumentException("duplicate instance path");
+                    instance = arg.substring("--instance=".length());
+                } else throw new IllegalArgumentException("unknown option: " + arg);
             }
-
-            private void applyOption(String @NotNull [] kv) {
-                switch (kv[0]) {
-                    case "h", "-help" -> help = true;
-                    case "v", "-version" -> version = true;
-                    case "-" -> endOfOptions = true;
-                    case "-resource" -> {
-                        if (kv.length < 2) throw new IllegalArgumentException("--resource requires a value");
-                        if (resource != null) throw new IllegalArgumentException("duplicate option: --resource");
-                        resource = kv[1];
-                    }
-                    default -> throw new IllegalArgumentException("unknown option: -" + kv[0]);
-                }
-            }
-
-            @Contract(" -> new")
-            @NotNull
-            Args build() {
-                return new Args(help, version, resource);
-            }
+            if (resource != null && resource.isBlank() || instance != null && instance.isBlank())
+                throw new IllegalArgumentException("paths must not be blank");
+            if (validate && resource == null && !help)
+                throw new IllegalArgumentException("--validate requires a credits path");
+            if (validate && schema) throw new IllegalArgumentException("choose --validate or --schema");
+            return new Args(help, version, resource, validate, schema, instance);
         }
     }
 }

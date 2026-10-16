@@ -18,6 +18,7 @@ final class OpenPresenter {
     private final @NotNull Frame owner;
     private final @NotNull SessionHolder holder;
     private final @NotNull UnsavedChangesGate gate;
+    private String instancePath;
 
     OpenPresenter(@NotNull DocumentBus bus, @NotNull Frame owner, @NotNull SessionHolder holder,
         @NotNull UnsavedChangesGate gate) {
@@ -27,21 +28,42 @@ final class OpenPresenter {
         this.gate = Objects.requireNonNull(gate);
         bus.addListener(DocumentBus.TOPIC_REQUEST_OPEN, e -> request(false));
         bus.addListener(DocumentBus.TOPIC_REQUEST_NEW, e -> request(true));
+        bus.addListener(
+            DocumentBus.TOPIC_REQUEST_OPEN_PATH,
+            e -> {
+                if (!gate.shouldAbort()) load(
+                    e.getNewValue()
+                        .toString(),
+                    null);
+            });
     }
 
     /** Loads the path supplied on the command line. */
     void loadInitial(@NotNull String path) {
-        load(path);
+        load(path, null);
+    }
+
+    void setInstancePath(String path) {
+        this.instancePath = path;
     }
 
     private void request(boolean createNew) {
         if (gate.shouldAbort()) return;
-        (createNew ? CreditsResourceChooser.chooseForNew(owner) : CreditsResourceChooser.chooseForOpen(owner))
-            .ifPresent(p -> load(p.toString()));
+        if (createNew) {
+            CreditsResourceChooser.chooseForNew(owner)
+                .ifPresent(
+                    target -> load(
+                        target.path()
+                            .toString(),
+                        target.format()));
+        } else {
+            CreditsResourceChooser.chooseForOpen(owner)
+                .ifPresent(path -> load(path.toString(), null));
+        }
     }
 
-    private void load(@NotNull String path) {
-        LoadWorker worker = new LoadWorker(path);
+    private void load(String path, net.noiraude.libcredits.pack.CreditsLayout.Format format) {
+        LoadWorker worker = new LoadWorker(path, format, instancePath);
         ProgressDialog.runWith(
             owner,
             I18n.get("dialog.load.progress.title"),
@@ -63,6 +85,8 @@ final class OpenPresenter {
         }
 
         holder.set(session);
+        if (format == null) RecentLocations.user()
+            .remember(java.nio.file.Path.of(path));
         bus.setActiveLocale(session.defaultLocale());
         bus.fireSessionChanged();
         bus.fireDirtyChanged(session.isDirty());
@@ -72,14 +96,25 @@ final class OpenPresenter {
     private static final class LoadWorker extends SwingWorker<EditorSession, Void> {
 
         private final @NotNull String path;
+        private final net.noiraude.libcredits.pack.CreditsLayout.Format format;
+        private final String instancePath;
 
-        LoadWorker(@NotNull String path) {
+        LoadWorker(String path, net.noiraude.libcredits.pack.CreditsLayout.Format format, String instancePath) {
             this.path = path;
+            this.format = format;
+            this.instancePath = instancePath;
         }
 
         @Override
         protected EditorSession doInBackground() throws Exception {
-            return EditorSession.open(path);
+            EditorSession session = format == null ? EditorSession.open(path) : EditorSession.create(path, format);
+            try {
+                if (instancePath != null) session.loadTranslations(java.nio.file.Path.of(instancePath));
+                return session;
+            } catch (Exception ex) {
+                session.close();
+                throw ex;
+            }
         }
     }
 }

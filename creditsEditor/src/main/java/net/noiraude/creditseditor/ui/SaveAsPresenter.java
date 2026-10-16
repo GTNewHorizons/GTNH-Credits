@@ -33,13 +33,16 @@ final class SaveAsPresenter {
 
     private void chooseAndWrite(@NotNull EditorSession session) {
         CreditsResourceChooser.chooseForSaveAs(owner)
-            .ifPresent(target -> writeTo(session, target));
+            .ifPresent(target -> writeTo(session, target.path(), target.format()));
     }
 
-    private void writeTo(@NotNull EditorSession session, @NotNull Path target) {
+    private void writeTo(@NotNull EditorSession session, @NotNull Path target,
+        net.noiraude.libcredits.pack.CreditsLayout.Format format) {
         if (isNonEmptyTarget(target) && !confirmOverwrite(target)) return;
         try {
-            session.saveAs(target.toString());
+            session.saveAs(target.toString(), format);
+            RecentLocations.user()
+                .remember(target);
         } catch (Exception ex) {
             ErrorPresenter.show(owner, I18n.get("dialog.save_as.error.title"), ex);
             return;

@@ -3,83 +3,74 @@ package net.noiraude.creditseditor.ui;
 import java.awt.Component;
 import java.io.File;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Locale;
 import java.util.Optional;
 
 import javax.swing.JFileChooser;
 import javax.swing.filechooser.FileFilter;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
-import org.jetbrains.annotations.Contract;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import net.noiraude.libcredits.pack.CreditsLayout.Format;
 
-/**
- * File chooser helper for credits resources.
- *
- * <p>
- * A credits resource is either a {@code .zip} archive or a directory. This helper centralizes
- * the dialog wiring (selection mode, filter list, default filter, ".zip" auto-append) for the
- * Open, New, and Save As flows so callers only need to ask for a {@link Path}.
- */
+/** Open resolves existing content; creation explicitly selects a content directory or resource-pack layout. */
 public final class CreditsResourceChooser {
+
+    public record Creation(Path path, Format format) {}
 
     private CreditsResourceChooser() {}
 
-    public static @NotNull Optional<Path> chooseForOpen(@Nullable Component parent) {
-        Filters filters = Filters.create();
-        JFileChooser chooser = configured(I18n.get("filechooser.open.title"), filters);
+    public static Optional<Path> chooseForOpen(Component parent) {
+        JFileChooser chooser = chooser("filechooser.open.title");
+        chooser.setFileFilter(new FileNameExtensionFilter(I18n.get("filechooser.filter.credits"), "json", "zip"));
         if (chooser.showOpenDialog(parent) != JFileChooser.APPROVE_OPTION) return Optional.empty();
         return Optional.of(
-            Paths.get(
-                chooser.getSelectedFile()
-                    .getAbsolutePath()));
+            chooser.getSelectedFile()
+                .toPath());
     }
 
-    public static @NotNull Optional<Path> chooseForNew(@Nullable Component parent) {
-        return chooseForCreate(parent, "filechooser.new.title");
+    public static Optional<Creation> chooseForNew(Component parent) {
+        return create(parent, "filechooser.new.title");
     }
 
-    public static @NotNull Optional<Path> chooseForSaveAs(@Nullable Component parent) {
-        return chooseForCreate(parent, "filechooser.save_as.title");
+    public static Optional<Creation> chooseForSaveAs(Component parent) {
+        return create(parent, "filechooser.save_as.title");
     }
 
-    private static @NotNull Optional<Path> chooseForCreate(@Nullable Component parent, @NotNull String titleKey) {
-        Filters filters = Filters.create();
-        JFileChooser chooser = configured(I18n.get(titleKey), filters);
+    private static Optional<Creation> create(Component parent, String title) {
+        JFileChooser chooser = chooser(title);
+        FileFilter content = new DirectoryFileFilter(I18n.get("filechooser.filter.content"));
+        FileFilter resource = new DirectoryFileFilter(I18n.get("filechooser.filter.resource"));
+        FileFilter zip = new FileNameExtensionFilter(I18n.get("filechooser.filter.zip"), "zip");
+        chooser.addChoosableFileFilter(content);
+        chooser.addChoosableFileFilter(resource);
+        chooser.addChoosableFileFilter(zip);
+        chooser.setFileFilter(content);
         if (chooser.showSaveDialog(parent) != JFileChooser.APPROVE_OPTION) return Optional.empty();
-
-        File selected = chooser.getSelectedFile();
-        if (chooser.getFileFilter() == filters.zip()) {
-            String nameLower = selected.getName()
-                .toLowerCase(Locale.ROOT);
-
-            if (!nameLower.endsWith(".zip")) {
-                selected = new File(selected.getAbsolutePath() + ".zip");
-            }
-        }
-        return Optional.of(Paths.get(selected.getAbsolutePath()));
+        Path path = chooser.getSelectedFile()
+            .toPath();
+        if (
+            chooser.getFileFilter() == zip && !path.toString()
+                .endsWith(".zip")
+        ) path = Path.of(path + ".zip");
+        return Optional.of(
+            new Creation(
+                path,
+                chooser.getFileFilter() == content ? Format.CONTENT_DIRECTORY
+                    : chooser.getFileFilter() == resource ? Format.RESOURCE_DIRECTORY : Format.RESOURCE_PACK));
     }
 
-    private static @NotNull JFileChooser configured(@NotNull String title, @NotNull Filters filters) {
+    private static JFileChooser chooser(String title) {
         JFileChooser chooser = new JFileChooser();
-        chooser.setDialogTitle(title);
+        chooser.setDialogTitle(I18n.get(title));
         chooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
         chooser.setAcceptAllFileFilterUsed(false);
-        chooser.addChoosableFileFilter(filters.zip());
-        chooser.addChoosableFileFilter(filters.dir());
-        chooser.setFileFilter(filters.zip());
-        return chooser;
-    }
-
-    private record Filters(@NotNull FileFilter zip, @NotNull FileFilter dir) {
-
-        @Contract(" -> new")
-        static @NotNull Filters create() {
-            return new Filters(
-                new FileNameExtensionFilter(I18n.get("filechooser.filter.zip"), "zip"),
-                new DirectoryFileFilter(I18n.get("filechooser.filter.dir")));
+        var recent = RecentLocations.user()
+            .paths();
+        if (!recent.isEmpty()) {
+            File parent = Path.of(recent.getFirst())
+                .toFile()
+                .getParentFile();
+            if (parent != null && parent.isDirectory()) chooser.setCurrentDirectory(parent);
         }
+        return chooser;
     }
 }

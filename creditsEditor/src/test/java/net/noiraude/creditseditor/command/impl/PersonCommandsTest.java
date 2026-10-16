@@ -10,6 +10,7 @@ import net.noiraude.creditseditor.bus.TestDocumentSession;
 import net.noiraude.libcredits.model.CreditsDocument;
 import net.noiraude.libcredits.model.DocumentMembership;
 import net.noiraude.libcredits.model.DocumentPerson;
+import net.noiraude.libcredits.model.DocumentRole;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -140,21 +141,27 @@ public class PersonCommandsTest {
     public void addRole_execute_appendsRole() {
         DocumentMembership m = new DocumentMembership("team");
         alice.memberships.add(m);
-        new AddPersonRoleCommand(bus, alice, m, "lead").execute();
+        new AddPersonRoleCommand(bus, alice, m, DocumentRole.local("lead")).execute();
         assertEquals(1, m.roles.size());
-        assertEquals("lead", m.roles.getFirst());
+        assertEquals(
+            "lead",
+            m.roles.getFirst()
+                .value());
     }
 
     @Test
     public void addRole_undo_removesFirstOccurrence() {
         DocumentMembership m = new DocumentMembership("team");
         alice.memberships.add(m);
-        m.roles.add("lead");
-        AddPersonRoleCommand cmd = new AddPersonRoleCommand(bus, alice, m, "infra");
+        m.roles.add(DocumentRole.local("lead"));
+        AddPersonRoleCommand cmd = new AddPersonRoleCommand(bus, alice, m, DocumentRole.local("infra"));
         cmd.execute();
         cmd.undo();
         assertEquals(1, m.roles.size());
-        assertEquals("lead", m.roles.getFirst());
+        assertEquals(
+            "lead",
+            m.roles.getFirst()
+                .value());
     }
 
     // -----------------------------------------------------------------------
@@ -165,24 +172,30 @@ public class PersonCommandsTest {
     public void removeRole_execute_removesFromList() {
         DocumentMembership m = new DocumentMembership("team");
         alice.memberships.add(m);
-        m.roles.add("lead");
-        m.roles.add("infra");
-        new RemovePersonRoleCommand(bus, alice, m, "lead").execute();
+        m.roles.add(DocumentRole.local("lead"));
+        m.roles.add(DocumentRole.local("infra"));
+        new RemovePersonRoleCommand(bus, alice, m, DocumentRole.local("lead")).execute();
         assertEquals(1, m.roles.size());
-        assertEquals("infra", m.roles.getFirst());
+        assertEquals(
+            "infra",
+            m.roles.getFirst()
+                .value());
     }
 
     @Test
     public void removeRole_undo_restoresAtOriginalIndex() {
         DocumentMembership m = new DocumentMembership("team");
         alice.memberships.add(m);
-        m.roles.add("lead");
-        m.roles.add("infra");
-        m.roles.add("devops");
-        RemovePersonRoleCommand cmd = new RemovePersonRoleCommand(bus, alice, m, "infra");
+        m.roles.add(DocumentRole.local("lead"));
+        m.roles.add(DocumentRole.local("infra"));
+        m.roles.add(DocumentRole.local("devops"));
+        RemovePersonRoleCommand cmd = new RemovePersonRoleCommand(bus, alice, m, DocumentRole.local("infra"));
         cmd.execute();
         cmd.undo();
         assertEquals(3, m.roles.size());
-        assertEquals("infra", m.roles.get(1));
+        assertEquals(
+            "infra",
+            m.roles.get(1)
+                .value());
     }
 }

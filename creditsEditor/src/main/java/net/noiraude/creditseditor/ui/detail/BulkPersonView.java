@@ -39,6 +39,7 @@ import net.noiraude.creditseditor.ui.MsgArg;
 import net.noiraude.libcredits.model.DocumentCategory;
 import net.noiraude.libcredits.model.DocumentMembership;
 import net.noiraude.libcredits.model.DocumentPerson;
+import net.noiraude.libcredits.model.DocumentRole;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -175,11 +176,11 @@ public final class BulkPersonView extends JPanel {
         DocumentCategory target = pickCategory(I18n.get("view.bulk.add_role.title"));
         if (target == null) return;
 
-        String role = promptForRole(target);
+        DocumentRole role = new AddRolePrompt(new DocumentMembership(target.id), bus.creditsDoc(), bus).show(this);
         if (role == null) return;
 
         CompoundCommand.Builder builder = new CompoundCommand.Builder(
-            I18n.get("command.bulk.add_role", MsgArg.text(role), MsgArg.text(target.id)));
+            I18n.get("command.bulk.add_role", MsgArg.text(role.value()), MsgArg.text(target.id)));
         RoleAddCounts counts = collectRoleAddCommands(builder, target, role);
 
         if (builder.isEmpty()) {
@@ -195,15 +196,8 @@ public final class BulkPersonView extends JPanel {
         showRoleAddSummary(counts, target);
     }
 
-    private @Nullable String promptForRole(@NotNull DocumentCategory target) {
-        String role = JOptionPane.showInputDialog(this, I18n.get("view.bulk.add_role.prompt", MsgArg.text(target.id)));
-        if (role == null) return null;
-        String stripped = role.strip();
-        return stripped.isEmpty() ? null : stripped;
-    }
-
     private @NotNull RoleAddCounts collectRoleAddCommands(@NotNull CompoundCommand.Builder builder,
-        @NotNull DocumentCategory target, @NotNull String role) {
+        @NotNull DocumentCategory target, @NotNull DocumentRole role) {
         int added = 0;
         int skipped = 0;
         for (DocumentPerson person : persons) {

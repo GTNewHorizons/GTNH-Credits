@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.io.StringReader;
-import java.util.Arrays;
 import java.util.List;
 
 import net.noiraude.creditseditor.service.TsvImporter.Action;
@@ -14,6 +13,7 @@ import net.noiraude.libcredits.model.CreditsDocument;
 import net.noiraude.libcredits.model.DocumentCategory;
 import net.noiraude.libcredits.model.DocumentMembership;
 import net.noiraude.libcredits.model.DocumentPerson;
+import net.noiraude.libcredits.model.DocumentRole;
 
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
@@ -38,7 +38,7 @@ public class TsvImporterTest {
 
         assertEquals(1, lines.size());
         assertEquals("Alice", lines.getFirst().name);
-        assertEquals(List.of("lead", "coder"), lines.getFirst().roles);
+        assertEquals(localRoles("lead", "coder"), lines.getFirst().roles);
     }
 
     @Test
@@ -75,7 +75,7 @@ public class TsvImporterTest {
         List<ImportLine> lines = TsvImporter.parse(new StringReader("Alice\tlead\t\t\n"), doc, "dev");
 
         assertEquals(1, lines.size());
-        assertEquals(List.of("lead"), lines.getFirst().roles);
+        assertEquals(localRoles("lead"), lines.getFirst().roles);
     }
 
     // -----------------------------------------------------------------------
@@ -103,7 +103,7 @@ public class TsvImporterTest {
     public void action_existingPersonInOtherCategory_addDoesNotLeakOtherRoles() throws IOException {
         CreditsDocument doc = docWithCategory("art");
         DocumentPerson alice = new DocumentPerson("Alice");
-        alice.memberships.add(new DocumentMembership("art", List.of("painter")));
+        alice.memberships.add(new DocumentMembership("art", localRoles("painter")));
         doc.persons.add(alice);
 
         List<ImportLine> lines = TsvImporter.parse(new StringReader("Alice\tlead\n"), doc, "dev");
@@ -111,36 +111,36 @@ public class TsvImporterTest {
         assertEquals(1, lines.size());
         assertEquals(Action.ADD, lines.getFirst().action);
         // Only the TSV roles; the "art" membership roles must stay isolated.
-        assertEquals(List.of("lead"), lines.getFirst().roles);
-        assertEquals(List.of("lead"), lines.getFirst().newRoles);
+        assertEquals(localRoles("lead"), lines.getFirst().roles);
+        assertEquals(localRoles("lead"), lines.getFirst().newRoles);
     }
 
     @Test
     public void action_existingPersonInCategoryMissingRoles_complete() throws IOException {
         CreditsDocument doc = docWithCategory("dev");
         DocumentPerson alice = new DocumentPerson("Alice");
-        alice.memberships.add(new DocumentMembership("dev", List.of("coder")));
+        alice.memberships.add(new DocumentMembership("dev", localRoles("coder")));
         doc.persons.add(alice);
 
         List<ImportLine> lines = TsvImporter.parse(new StringReader("Alice\tlead\n"), doc, "dev");
 
         assertEquals(Action.COMPLETE, lines.getFirst().action);
         // roles = merged existing + new; newRoles = only the additions
-        assertEquals(List.of("coder", "lead"), lines.getFirst().roles);
-        assertEquals(List.of("lead"), lines.getFirst().newRoles);
+        assertEquals(localRoles("coder", "lead"), lines.getFirst().roles);
+        assertEquals(localRoles("lead"), lines.getFirst().newRoles);
     }
 
     @Test
     public void action_existingPersonInCategoryAllRolesPresent_noChange() throws IOException {
         CreditsDocument doc = docWithCategory("dev");
         DocumentPerson alice = new DocumentPerson("Alice");
-        alice.memberships.add(new DocumentMembership("dev", Arrays.asList("lead", "coder")));
+        alice.memberships.add(new DocumentMembership("dev", localRoles("lead", "coder")));
         doc.persons.add(alice);
 
         List<ImportLine> lines = TsvImporter.parse(new StringReader("Alice\tlead\tcoder\n"), doc, "dev");
 
         assertEquals(Action.NO_CHANGE, lines.getFirst().action);
-        assertEquals(List.of("lead", "coder"), lines.getFirst().roles);
+        assertEquals(localRoles("lead", "coder"), lines.getFirst().roles);
         assertTrue(lines.getFirst().newRoles.isEmpty());
     }
 
@@ -164,7 +164,7 @@ public class TsvImporterTest {
     public void parse_mixedActions_computedCorrectly() throws IOException {
         CreditsDocument doc = docWithCategory("dev");
         DocumentPerson existing = new DocumentPerson("Bob");
-        existing.memberships.add(new DocumentMembership("dev", List.of("coder")));
+        existing.memberships.add(new DocumentMembership("dev", localRoles("coder")));
         doc.persons.add(existing);
 
         String tsv = "Alice\tlead\nBob\tcoder\nBob\tnewrole\n";
@@ -175,7 +175,7 @@ public class TsvImporterTest {
         assertEquals(Action.CREATE, lines.getFirst().action);
         // Bob's two lines are merged: roles = [coder, newrole], and "newrole" is missing
         assertEquals("Bob", lines.get(1).name);
-        assertEquals(List.of("coder", "newrole"), lines.get(1).roles);
+        assertEquals(localRoles("coder", "newrole"), lines.get(1).roles);
         assertEquals(Action.COMPLETE, lines.get(1).action);
     }
 
@@ -187,7 +187,7 @@ public class TsvImporterTest {
 
         assertEquals(1, lines.size());
         assertEquals("Greg Ewing", lines.getFirst().name);
-        assertEquals(List.of("lead", "coder"), lines.getFirst().roles);
+        assertEquals(localRoles("lead", "coder"), lines.getFirst().roles);
         assertEquals(Action.CREATE, lines.getFirst().action);
     }
 
@@ -198,14 +198,14 @@ public class TsvImporterTest {
         List<ImportLine> lines = TsvImporter.parse(new StringReader(tsv), doc, "dev");
 
         assertEquals(1, lines.size());
-        assertEquals(List.of("lead", "coder"), lines.getFirst().roles);
+        assertEquals(localRoles("lead", "coder"), lines.getFirst().roles);
     }
 
     @Test
     public void parse_existingPersonWithRoles_mergesWithTsvRoles() throws IOException {
         CreditsDocument doc = docWithCategory("dev");
         DocumentPerson greg = new DocumentPerson("Greg Ewing");
-        greg.memberships.add(new DocumentMembership("dev", List.of("lead")));
+        greg.memberships.add(new DocumentMembership("dev", localRoles("lead")));
         doc.persons.add(greg);
 
         String tsv = "Greg Ewing\tcoder\nGreg Ewing\ttester\n";
@@ -215,15 +215,15 @@ public class TsvImporterTest {
         assertEquals("Greg Ewing", lines.getFirst().name);
         assertEquals(Action.COMPLETE, lines.getFirst().action);
         // Full role set: existing "lead" + new "coder" and "tester"
-        assertEquals(List.of("lead", "coder", "tester"), lines.getFirst().roles);
-        assertEquals(List.of("coder", "tester"), lines.getFirst().newRoles);
+        assertEquals(localRoles("lead", "coder", "tester"), lines.getFirst().roles);
+        assertEquals(localRoles("coder", "tester"), lines.getFirst().newRoles);
     }
 
     @Test
     public void parse_existingPersonWithRoles_noNewRoles_noChange() throws IOException {
         CreditsDocument doc = docWithCategory("dev");
         DocumentPerson greg = new DocumentPerson("Greg Ewing");
-        greg.memberships.add(new DocumentMembership("dev", List.of("lead", "coder")));
+        greg.memberships.add(new DocumentMembership("dev", localRoles("lead", "coder")));
         doc.persons.add(greg);
 
         String tsv = "Greg Ewing\tlead\tcoder\n";
@@ -231,7 +231,22 @@ public class TsvImporterTest {
 
         assertEquals(1, lines.size());
         assertEquals(Action.NO_CHANGE, lines.getFirst().action);
-        assertEquals(List.of("lead", "coder"), lines.getFirst().roles);
+        assertEquals(localRoles("lead", "coder"), lines.getFirst().roles);
         assertTrue(lines.getFirst().newRoles.isEmpty());
     }
+
+    @Test
+    public void explicitTranslationReferencesImportWithoutBecomingLocalIds() throws Exception {
+        CreditsDocument document = docWithCategory("dev");
+        List<ImportLine> lines = TsvImporter
+            .parse(new StringReader("Alice\t{\"translationKey\":\"machine.Exact-Key\"}\n"), document, "dev");
+        assertEquals(DocumentRole.translation("machine.Exact-Key"), lines.getFirst().roles.getFirst());
+    }
+
+    private static java.util.List<DocumentRole> localRoles(String... values) {
+        return java.util.Arrays.stream(values)
+            .map(DocumentRole::local)
+            .collect(java.util.stream.Collectors.toList());
+    }
+
 }

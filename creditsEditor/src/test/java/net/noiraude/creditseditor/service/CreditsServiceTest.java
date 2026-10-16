@@ -6,12 +6,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
 import java.util.LinkedHashSet;
-import java.util.List;
 
 import net.noiraude.libcredits.model.CreditsDocument;
 import net.noiraude.libcredits.model.DocumentCategory;
 import net.noiraude.libcredits.model.DocumentMembership;
 import net.noiraude.libcredits.model.DocumentPerson;
+import net.noiraude.libcredits.model.DocumentRole;
 
 import org.junit.jupiter.api.Test;
 
@@ -102,7 +102,7 @@ public class CreditsServiceTest {
         cat.classes = new LinkedHashSet<>(Arrays.asList("person", "role"));
         doc.categories.add(cat);
         DocumentPerson p = new DocumentPerson("Alice");
-        p.memberships.add(new DocumentMembership("team", List.of("lead")));
+        p.memberships.add(new DocumentMembership("team", localRoles("lead")));
         doc.persons.add(p);
         doc.markClean();
         assertFalse(doc.isDirty());
@@ -142,7 +142,14 @@ public class CreditsServiceTest {
     @Test
     public void memberships_preserveRoleOrder() {
         DocumentPerson p = new DocumentPerson("Alice");
-        p.memberships.add(new DocumentMembership("team", Arrays.asList("lead", "dev", "infra")));
-        assertEquals(Arrays.asList("lead", "dev", "infra"), p.memberships.getFirst().roles);
+        p.memberships.add(new DocumentMembership("team", localRoles("lead", "dev", "infra")));
+        assertEquals(localRoles("lead", "dev", "infra"), p.memberships.getFirst().roles);
     }
+
+    private static java.util.List<DocumentRole> localRoles(String... values) {
+        return java.util.Arrays.stream(values)
+            .map(DocumentRole::local)
+            .collect(java.util.stream.Collectors.toList());
+    }
+
 }

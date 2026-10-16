@@ -10,6 +10,7 @@ import java.util.Set;
 import net.noiraude.libcredits.model.CreditsDocument;
 import net.noiraude.libcredits.model.DocumentMembership;
 import net.noiraude.libcredits.model.DocumentPerson;
+import net.noiraude.libcredits.model.DocumentRole;
 
 import org.junit.jupiter.api.Test;
 
@@ -35,7 +36,7 @@ public class RoleIndexTest {
     public void build_singleRole_correctEntry() {
         CreditsDocument doc = CreditsDocument.empty();
         DocumentPerson p = new DocumentPerson("Alice");
-        p.memberships.add(new DocumentMembership("team", List.of("lead")));
+        p.memberships.add(new DocumentMembership("team", localRoles("lead")));
         doc.persons.add(p);
 
         RoleIndex index = RoleIndex.build(doc);
@@ -46,7 +47,7 @@ public class RoleIndexTest {
                 .size());
         RoleIndex.Entry e = index.entries()
             .getFirst();
-        assertEquals("lead", e.raw);
+        assertEquals("lead", e.raw.value());
         assertEquals("credits.person.role.lead", e.langKey);
         assertEquals(1, e.count);
         assertTrue(e.categoryIds.contains("team"));
@@ -56,7 +57,7 @@ public class RoleIndexTest {
     public void build_langKeyUsesKeysSanitizer() {
         CreditsDocument doc = CreditsDocument.empty();
         DocumentPerson p = new DocumentPerson("Alice");
-        p.memberships.add(new DocumentMembership("team", List.of("gtnh-creator")));
+        p.memberships.add(new DocumentMembership("team", localRoles("gtnh-creator")));
         doc.persons.add(p);
 
         RoleIndex.Entry e = RoleIndex.build(doc)
@@ -73,9 +74,9 @@ public class RoleIndexTest {
     public void build_roleSharedByTwoPersons_countIsTwo() {
         CreditsDocument doc = CreditsDocument.empty();
         DocumentPerson alice = new DocumentPerson("Alice");
-        alice.memberships.add(new DocumentMembership("team", List.of("lead")));
+        alice.memberships.add(new DocumentMembership("team", localRoles("lead")));
         DocumentPerson bob = new DocumentPerson("Bob");
-        bob.memberships.add(new DocumentMembership("dev", List.of("lead")));
+        bob.memberships.add(new DocumentMembership("dev", localRoles("lead")));
         doc.persons.add(alice);
         doc.persons.add(bob);
 
@@ -89,8 +90,8 @@ public class RoleIndexTest {
     public void build_samePersonRoleInMultipleCategories_countIsOne() {
         CreditsDocument doc = CreditsDocument.empty();
         DocumentPerson alice = new DocumentPerson("Alice");
-        alice.memberships.add(new DocumentMembership("team", List.of("lead")));
-        alice.memberships.add(new DocumentMembership("dev", List.of("lead")));
+        alice.memberships.add(new DocumentMembership("team", localRoles("lead")));
+        alice.memberships.add(new DocumentMembership("dev", localRoles("lead")));
         doc.persons.add(alice);
 
         RoleIndex.Entry e = RoleIndex.build(doc)
@@ -108,8 +109,8 @@ public class RoleIndexTest {
     public void build_roleInMultipleCategories_allCategoryIdsPresent() {
         CreditsDocument doc = CreditsDocument.empty();
         DocumentPerson p = new DocumentPerson("Alice");
-        p.memberships.add(new DocumentMembership("team", List.of("dev")));
-        p.memberships.add(new DocumentMembership("contrib", List.of("dev")));
+        p.memberships.add(new DocumentMembership("team", localRoles("dev")));
+        p.memberships.add(new DocumentMembership("contrib", localRoles("dev")));
         doc.persons.add(p);
 
         RoleIndex.Entry e = RoleIndex.build(doc)
@@ -127,14 +128,14 @@ public class RoleIndexTest {
     public void build_multipleRoles_sortedAlphabetically() {
         CreditsDocument doc = CreditsDocument.empty();
         DocumentPerson p = new DocumentPerson("Alice");
-        p.memberships.add(new DocumentMembership("team", List.of("zzz", "aaa", "mmm")));
+        p.memberships.add(new DocumentMembership("team", localRoles("zzz", "aaa", "mmm")));
         doc.persons.add(p);
 
         List<RoleIndex.Entry> entries = RoleIndex.build(doc)
             .entries();
-        assertEquals("aaa", entries.getFirst().raw);
-        assertEquals("mmm", entries.get(1).raw);
-        assertEquals("zzz", entries.get(2).raw);
+        assertEquals("aaa", entries.getFirst().raw.value());
+        assertEquals("mmm", entries.get(1).raw.value());
+        assertEquals("zzz", entries.get(2).raw.value());
     }
 
     // -----------------------------------------------------------------------
@@ -145,15 +146,15 @@ public class RoleIndexTest {
     public void rolesForCategory_returnsOnlyRolesInThatCategory() {
         CreditsDocument doc = CreditsDocument.empty();
         DocumentPerson p = new DocumentPerson("Alice");
-        p.memberships.add(new DocumentMembership("team", List.of("lead", "infra")));
-        p.memberships.add(new DocumentMembership("dev", List.of("backend")));
+        p.memberships.add(new DocumentMembership("team", localRoles("lead", "infra")));
+        p.memberships.add(new DocumentMembership("dev", localRoles("backend")));
         doc.persons.add(p);
 
         RoleIndex index = RoleIndex.build(doc);
-        Set<String> teamRoles = index.rolesForCategory("team");
-        assertTrue(teamRoles.contains("lead"));
-        assertTrue(teamRoles.contains("infra"));
-        assertFalse(teamRoles.contains("backend"));
+        Set<DocumentRole> teamRoles = index.rolesForCategory("team");
+        assertTrue(teamRoles.contains(DocumentRole.local("lead")));
+        assertTrue(teamRoles.contains(DocumentRole.local("infra")));
+        assertFalse(teamRoles.contains(DocumentRole.local("backend")));
     }
 
     @Test
@@ -172,17 +173,24 @@ public class RoleIndexTest {
     public void contains_existingRole_returnsTrue() {
         CreditsDocument doc = CreditsDocument.empty();
         DocumentPerson p = new DocumentPerson("Alice");
-        p.memberships.add(new DocumentMembership("team", List.of("lead")));
+        p.memberships.add(new DocumentMembership("team", localRoles("lead")));
         doc.persons.add(p);
         assertTrue(
             RoleIndex.build(doc)
-                .contains("lead"));
+                .contains(DocumentRole.local("lead")));
     }
 
     @Test
     public void contains_unknownRole_returnsFalse() {
         assertFalse(
             RoleIndex.build(CreditsDocument.empty())
-                .contains("lead"));
+                .contains(DocumentRole.local("lead")));
     }
+
+    private static java.util.List<DocumentRole> localRoles(String... values) {
+        return java.util.Arrays.stream(values)
+            .map(DocumentRole::local)
+            .collect(java.util.stream.Collectors.toList());
+    }
+
 }

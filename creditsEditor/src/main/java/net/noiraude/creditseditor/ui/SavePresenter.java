@@ -31,6 +31,8 @@ final class SavePresenter implements SaveService {
     private boolean writeAndFire(@NotNull EditorSession session) {
         try {
             session.save();
+            RecentLocations.user()
+                .remember(session.openPath());
         } catch (Exception ex) {
             ErrorPresenter.show(owner, I18n.get("dialog.save.error.title"), ex);
             return false;

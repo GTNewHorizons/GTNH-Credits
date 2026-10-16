@@ -11,6 +11,8 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Stream;
 
+import net.noiraude.libcredits.pack.CreditsLayout;
+
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
@@ -31,18 +33,23 @@ final class ZipPackStorage implements ResourceStorage {
     }
 
     @Override
+    public boolean isArchive() {
+        return true;
+    }
+
+    @Override
     public boolean hasNoFile(@NotNull String relPath) {
-        return !Files.exists(fs.getPath("/", relPath));
+        return !Files.exists(fs.getPath("/", CreditsLayout.RESOURCE_DIRECTORY, relPath));
     }
 
     @Override
     public @NotNull InputStream openRead(@NotNull String relPath) throws IOException {
-        return Files.newInputStream(fs.getPath("/", relPath));
+        return Files.newInputStream(fs.getPath("/", CreditsLayout.RESOURCE_DIRECTORY, relPath));
     }
 
     @Override
     public @NotNull OutputStream openWrite(@NotNull String relPath) throws IOException {
-        Path target = fs.getPath("/", relPath);
+        Path target = fs.getPath("/", CreditsLayout.RESOURCE_DIRECTORY, relPath);
         Path parent = target.getParent();
         if (parent != null) {
             Files.createDirectories(parent);
@@ -52,12 +59,12 @@ final class ZipPackStorage implements ResourceStorage {
 
     @Override
     public void delete(@NotNull String relPath) throws IOException {
-        Files.deleteIfExists(fs.getPath("/", relPath));
+        Files.deleteIfExists(fs.getPath("/", CreditsLayout.RESOURCE_DIRECTORY, relPath));
     }
 
     @Override
     public @NotNull Stream<String> listFiles(@NotNull String relDir) throws IOException {
-        Path dir = fs.getPath("/", relDir);
+        Path dir = fs.getPath("/", CreditsLayout.RESOURCE_DIRECTORY, relDir);
         if (!Files.isDirectory(dir)) {
             return Stream.empty();
         }

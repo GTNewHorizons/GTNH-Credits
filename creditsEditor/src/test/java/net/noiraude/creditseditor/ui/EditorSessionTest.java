@@ -24,16 +24,11 @@ public class EditorSessionTest {
     Path temp;
 
     @Test
-    public void freshOpenDirectory_loadsEmptyAndNotDirty() throws Exception {
+    public void openUnrecognizedDirectory_doesNotCreateAProject() throws Exception {
         Path dir = Files.createDirectory(temp.resolve("root"));
-
-        EditorSession session = EditorSession.open(dir.toString());
-        try {
-            assertTrue(session.creditsDoc().categories.isEmpty());
-            assertTrue(session.creditsDoc().persons.isEmpty());
-            assertFalse(session.isDirty());
-        } finally {
-            session.close();
+        assertThrows(java.io.IOException.class, () -> EditorSession.open(dir.toString()));
+        try (var entries = Files.list(dir)) {
+            assertEquals(0, entries.count());
         }
     }
 
@@ -41,7 +36,7 @@ public class EditorSessionTest {
     public void editing_marksDirty_andSaveClearsIt() throws Exception {
         Path dir = Files.createDirectory(temp.resolve("root"));
 
-        EditorSession session = EditorSession.open(dir.toString());
+        EditorSession session = fixtureSession(dir.toString());
         try {
             assertFalse(session.isDirty());
             session.creditsDoc().categories.add(new DocumentCategory("dev"));
@@ -57,11 +52,11 @@ public class EditorSessionTest {
     }
 
     @Test
-    public void openNonExistentZip_createsAndLoadsItEmpty() throws Exception {
+    public void newZip_createsAndLoadsItEmpty() throws Exception {
         Path zip = temp.resolve("fresh.zip");
         assertFalse(Files.exists(zip));
 
-        EditorSession session = EditorSession.open(zip.toString());
+        EditorSession session = fixtureSession(zip.toString());
         try {
             assertTrue(Files.exists(zip));
             assertTrue(session.creditsDoc().categories.isEmpty());
@@ -77,7 +72,7 @@ public class EditorSessionTest {
         Path sourceDir = Files.createDirectory(temp.resolve("source"));
         Path destZip = temp.resolve("fork.zip");
 
-        EditorSession session = EditorSession.open(sourceDir.toString());
+        EditorSession session = fixtureSession(sourceDir.toString());
         session.creditsDoc().categories.add(new DocumentCategory("dev"));
         assertTrue(session.isDirty());
 
@@ -85,7 +80,10 @@ public class EditorSessionTest {
 
         assertTrue(Files.exists(destZip), "destination zip must be created");
         assertFalse(session.isDirty(), "dirty flag must clear after Save As");
-        assertEquals("fork.zip", session.displayPath(), "session must retarget to the new path");
+        assertEquals(
+            destZip.toAbsolutePath() + "!/assets/gtnhcredits/credits.json",
+            session.displayPath(),
+            "session must retarget to the new path");
 
         // Subsequent save() writes to the new destination, not the old directory.
         session.creditsDoc().categories.add(new DocumentCategory("art"));
@@ -113,7 +111,7 @@ public class EditorSessionTest {
         Path sourceZip = temp.resolve("source.zip");
         Path destDir = temp.resolve("fork");
 
-        EditorSession session = EditorSession.open(sourceZip.toString());
+        EditorSession session = fixtureSession(sourceZip.toString());
         session.creditsDoc().categories.add(new DocumentCategory("dev"));
         assertTrue(session.isDirty());
 
@@ -123,7 +121,12 @@ public class EditorSessionTest {
             Files.exists(destDir.resolve("assets/gtnhcredits/credits.json")),
             "destination directory must contain credits.json");
         assertFalse(session.isDirty(), "dirty flag must clear after Save As");
-        assertEquals("fork", session.displayPath(), "session must retarget to the new path");
+        assertEquals(
+            destDir.resolve("assets/gtnhcredits/credits.json")
+                .toAbsolutePath()
+                .toString(),
+            session.displayPath(),
+            "session must retarget to the new path");
 
         session.creditsDoc().categories.add(new DocumentCategory("art"));
         session.save();
@@ -147,7 +150,7 @@ public class EditorSessionTest {
 
         Path destZip = temp.resolve("fork.zip");
 
-        EditorSession session = EditorSession.open(sourceDir.toString());
+        EditorSession session = fixtureSession(sourceDir.toString());
         session.saveAs(destZip.toString());
         session.close();
 
@@ -190,7 +193,7 @@ public class EditorSessionTest {
 
         // Save a different project over the existing zip.
         Path freshSource = Files.createDirectory(temp.resolve("fresh"));
-        EditorSession session = EditorSession.open(freshSource.toString());
+        EditorSession session = fixtureSession(freshSource.toString());
         session.creditsDoc().categories.add(new DocumentCategory("dev"));
         session.saveAs(destZip.toString());
         session.close();
@@ -225,7 +228,7 @@ public class EditorSessionTest {
         Locale previous = Locale.getDefault();
         Locale.setDefault(Locale.FRANCE);
         try {
-            EditorSession session = EditorSession.open(dir.toString());
+            EditorSession session = fixtureSession(dir.toString());
             try {
                 assertEquals("fr_FR", session.defaultLocale());
             } finally {
@@ -246,7 +249,7 @@ public class EditorSessionTest {
         Locale previous = Locale.getDefault();
         Locale.setDefault(Locale.GERMANY);
         try {
-            EditorSession session = EditorSession.open(dir.toString());
+            EditorSession session = fixtureSession(dir.toString());
             try {
                 assertEquals("en_US", session.defaultLocale());
             } finally {
@@ -259,14 +262,9 @@ public class EditorSessionTest {
 
     @Test
     public void saveFailure_leavesDirtyFlagSet() throws Exception {
-        // Place a regular file at the "assets" segment so ResourceManager cannot create
-        // the assets/gtnhcredits subtree during save. Load still succeeds because the
-        // target credits.json path does not resolve, so notExists() returns true and
-        // an empty document is created in memory.
-        Path dir = Files.createDirectory(temp.resolve("root"));
-        Files.writeString(dir.resolve("assets"), "blocker");
-
-        EditorSession session = EditorSession.open(dir.toString());
+        Path dir = temp.resolve("root");
+        EditorSession session = EditorSession.create(dir.toString(), CreditsLayout.Format.CONTENT_DIRECTORY);
+        Files.createDirectory(dir.resolve("credits.json"));
         try {
             session.creditsDoc().categories.add(new DocumentCategory("dev"));
             assertTrue(session.isDirty());
@@ -278,4 +276,28 @@ public class EditorSessionTest {
             session.close();
         }
     }
+
+    private EditorSession fixtureSession(String pathString) throws Exception {
+        Path path = Path.of(pathString);
+        if (Files.isDirectory(path)) {
+            try (var entries = Files.list(path)) {
+                if (
+                    entries.findAny()
+                        .isEmpty()
+                ) {
+                    Files.delete(path);
+                    return EditorSession.create(pathString, CreditsLayout.Format.RESOURCE_PACK);
+                }
+            }
+            if (
+                !Files.exists(path.resolve("credits.json"))
+                    && !Files.exists(path.resolve("assets/gtnhcredits/credits.json"))
+            ) {
+                Files.writeString(path.resolve("credits.json"), "{\"version\":2,\"category\":[{\"id\":\"team\"}]}");
+            }
+        }
+        if (Files.exists(path)) return EditorSession.open(pathString);
+        return EditorSession.create(pathString, CreditsLayout.Format.RESOURCE_PACK);
+    }
+
 }

@@ -143,7 +143,15 @@ tasks.register("generateActionIcons") {
 }
 
 tasks.named<JavaExec>("run") {
-    args(rootProject.file("src/main/resources"))
+    jvmArgs("-ea")
+}
+
+tasks.register<JavaExec>("runExample") {
+    group = "application"
+    description = "Opens explicit development credits fixtures."
+    classpath = sourceSets.main.get().runtimeClasspath
+    mainClass.set(application.mainClass)
+    args(rootProject.file("fixtures/content"))
     jvmArgs("-ea")
 }
 

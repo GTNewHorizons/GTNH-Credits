@@ -31,6 +31,7 @@ public class LocaleLifecycleCommandTest {
     @Test
     public void addLocaleCommand_executesAndUndoes() throws Exception {
         Path dir = Files.createDirectory(temp.resolve("root"));
+        Files.writeString(dir.resolve("credits.json"), "{\"version\":2,\"category\":[{\"id\":\"team\"}]}");
         try (ResourceManager rm = ResourceManager.open(dir.toString())) {
             rm.loadDocuments();
             MutableSessionSource source = new MutableSessionSource();
@@ -55,6 +56,7 @@ public class LocaleLifecycleCommandTest {
     @Test
     public void removeLocaleCommand_restoresLangDocumentVerbatimOnUndo() throws Exception {
         Path dir = Files.createDirectory(temp.resolve("root"));
+        Files.writeString(dir.resolve("credits.json"), "{\"version\":2,\"category\":[{\"id\":\"team\"}]}");
         Path langDir = dir.resolve(CreditsLayout.LANG_DIR.get());
         Files.createDirectories(langDir);
         Files.writeString(
@@ -96,6 +98,7 @@ public class LocaleLifecycleCommandTest {
     @Test
     public void addLocaleCommand_snapshotPreservesPriorRemovedState() throws Exception {
         Path dir = Files.createDirectory(temp.resolve("root"));
+        Files.writeString(dir.resolve("credits.json"), "{\"version\":2,\"category\":[{\"id\":\"team\"}]}");
         Path langDir = dir.resolve(CreditsLayout.LANG_DIR.get());
         Files.createDirectories(langDir);
         Files.writeString(langDir.resolve("de_DE.lang"), "credits.category.team=Team\n", StandardCharsets.UTF_8);

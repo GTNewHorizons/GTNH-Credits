@@ -38,7 +38,7 @@ import org.jetbrains.annotations.UnmodifiableView;
  * backend-agnostic {@link ResourceStorage}.
  *
  * <p>
- * Get an instance via {@code open(String, String)}, then call {@link #loadDocuments()}
+ * Get an instance via {@link #open(String)}, then call {@link #loadDocuments()}
  * to parse the resource files. The instance owns its storage and must be closed when
  * done; use try-with-resources.
  */
@@ -66,9 +66,9 @@ public final class ResourceManager implements Closeable {
     }
 
     /**
-     * Returns {@code true} when a resource container exists at {@code pathArg} and is in
-     * a state that {@link #open(String)} would accept. Inexpensive probe meant to be paired with
-     * {@link #open(String)} or {@link #create(String, String)} to choose the next action.
+     * Tests whether the filesystem location is a candidate directory, JSON file or ZIP.
+     * Opening separately validates that existing credits can be resolved; this probe must not
+     * be used to decide whether to silently initialize a new project.
      */
     @Contract(pure = true)
     public static boolean exists(@NotNull String pathArg) {
@@ -95,6 +95,31 @@ public final class ResourceManager implements Closeable {
     public static @NotNull ResourceManager create(@NotNull String pathArg, @NotNull String packDescription)
         throws IOException {
         return new ResourceManager(ResourceStorage.create(pathArg, packDescription));
+    }
+
+    /**
+     * Creates a new container in {@code format}; an existing path is rejected.
+     * Resource-pack formats seed {@code pack.mcmeta} with {@code description}.
+     * The caller owns the returned manager and must close it.
+     *
+     * @throws IOException if the path already exists or the container cannot be created
+     */
+    public static @NotNull ResourceManager create(String path, String description, CreditsLayout.Format format)
+        throws IOException {
+        return new ResourceManager(ResourceStorageFactory.create(path, description, format));
+    }
+
+    /**
+     * Opens or creates a Save As destination in {@code format}, without loading its documents.
+     * Preparing the layout may create directories, an archive and pack metadata immediately;
+     * existing files are preserved until the caller writes documents. The caller must close
+     * the returned manager.
+     *
+     * @throws IOException if the destination cannot be opened or initialized
+     */
+    public static @NotNull ResourceManager destination(String path, String description, CreditsLayout.Format format)
+        throws IOException {
+        return new ResourceManager(ResourceStorageFactory.destination(path, description, format));
     }
 
     /**
@@ -249,12 +274,34 @@ public final class ResourceManager implements Closeable {
         return false;
     }
 
-    /** Returns the file name of the directory or zip backing this manager, for UI display. */
+    @Contract(pure = true)
+    public boolean isArchive() {
+        return storage.isArchive();
+    }
+
+    /**
+     * Returns the JSON location or archive path accepted by Open once the credits have been saved.
+     * A newly created container may not contain its JSON file yet.
+     */
+    public java.nio.file.Path openPath() {
+        return storage.isArchive() ? storage.location()
+            : storage.location()
+                .resolve("credits.json");
+    }
+
+    /** Returns the full JSON path, including its entry path for an archive. */
     @Contract(pure = true)
     public @NotNull String displayPath() {
-        return storage.location()
-            .getFileName()
+        String path = storage.location()
+            .toAbsolutePath()
+            .normalize()
             .toString();
+        return storage.isArchive() ? path + "!/assets/gtnhcredits/credits.json"
+            : storage.location()
+                .resolve("credits.json")
+                .toAbsolutePath()
+                .normalize()
+                .toString();
     }
 
     /**
