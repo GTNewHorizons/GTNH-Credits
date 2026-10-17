@@ -45,9 +45,9 @@ public final class TranslationCatalog {
     /**
      * Reads Minecraft 1.7.10 base resources from standard launcher or Prism/MultiMC layouts,
      * saved GregTech.lang defaults as English fallback, then sorted active mod archives, TX Loader load
-     * resources, enabled packs in options order, and TX Loader force resources. Later values replace
-     * earlier values. Does not write to the instance or execute mod code. Generated defaults require
-     * an instance that has already saved GregTech.lang.
+     * resources, enabled packs in options order, and TX Loader force resources. Later resource values
+     * replace earlier values; saved defaults only fill missing English keys. Does not write to the
+     * instance or execute mod code. Generated defaults require an instance that has already saved GregTech.lang.
      *
      * @throws IOException if the mods directory is missing or a resource cannot be read
      */
@@ -223,7 +223,7 @@ public final class TranslationCatalog {
                     Matcher property = GREGTECH_STRING_PROPERTY.matcher(line);
                     if (property.matches()) {
                         String key = property.group(1) != null ? property.group(1) : property.group(2);
-                        english.put(key, property.group(3));
+                        english.putIfAbsent(key, property.group(3));
                     }
                 }
             }

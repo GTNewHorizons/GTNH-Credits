@@ -15,6 +15,8 @@ import java.util.zip.ZipOutputStream;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class TranslationCatalogTest {
 
@@ -227,6 +229,34 @@ class TranslationCatalogTest {
             catalogue.resolve("missing.machine.name", "en_US")
                 .isEmpty());
         assertArrayEquals(original, Files.readAllBytes(generated));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = { "Stale saved name", "" })
+    void usesGregTechDefaultsOnlyForMissingEnglishTranslations(String savedName) throws Exception {
+        Files.createDirectory(instance.resolve("mods"));
+        archive(
+            instance.resolve("versions/1.7.10/1.7.10.jar"),
+            Map.of("assets/minecraft/lang/en_US.lang", "tile.furnace.name=Furnace\n"));
+        Files.writeString(
+            instance.resolve("GregTech.lang"),
+            "languagefile {\n    S:tile.furnace.name=" + savedName + "\n    S:saved.only=Saved default\n}\n");
+
+        TranslationCatalog catalogue = TranslationCatalog.load(instance);
+
+        assertTrue(catalogue.isAvailable());
+        assertEquals(
+            "Furnace",
+            catalogue.resolve("tile.furnace.name", "en_US")
+                .orElseThrow());
+        assertEquals(
+            "Furnace",
+            catalogue.resolve("tile.furnace.name", "fr_FR")
+                .orElseThrow());
+        assertEquals(
+            "Saved default",
+            catalogue.resolve("saved.only", "en_US")
+                .orElseThrow());
     }
 
     @Test
