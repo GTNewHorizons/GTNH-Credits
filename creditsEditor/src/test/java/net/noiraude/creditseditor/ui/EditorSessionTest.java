@@ -1,5 +1,6 @@
 package net.noiraude.creditseditor.ui;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -8,9 +9,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Locale;
 
-import net.noiraude.libcredits.lang.LangDocument;
 import net.noiraude.libcredits.model.DocumentCategory;
 import net.noiraude.libcredits.pack.CreditsLayout;
 
@@ -90,102 +91,63 @@ public class EditorSessionTest {
         }
     }
 
-    @Test
-    public void saveAs_dirToZip_writesPackAndRetargetsSession() throws Exception {
-        Path sourceDir = temp.resolve("source");
-        Path destZip = temp.resolve("fork.zip");
-
-        EditorSession session = EditorSession.create(sourceDir.toString(), CreditsLayout.Format.RESOURCE_DIRECTORY);
-        session.creditsDoc().categories.add(new DocumentCategory("dev"));
-        assertTrue(session.isDirty());
-
-        session.saveAs(destZip.toString());
-
-        assertTrue(Files.exists(destZip), "destination zip must be created");
-        assertFalse(session.isDirty(), "dirty flag must clear after Save As");
-        assertEquals(
-            destZip.toAbsolutePath() + "!/assets/gtnhcredits/credits.json",
-            session.displayPath(),
-            "session must retarget to the new path");
-
-        // Subsequent save() writes to the new destination, not the old directory.
-        session.creditsDoc().categories.add(new DocumentCategory("art"));
-        assertTrue(session.isDirty());
-        session.save();
-        assertFalse(session.isDirty());
-        session.close();
-
-        // Original directory must remain untouched by the saveAs (no credits.json written there).
-        assertFalse(
-            Files.exists(sourceDir.resolve("assets/gtnhcredits/credits.json")),
-            "Save As must not write to the original directory");
-
-        // Reopen the destination zip and verify both edits are present.
-        EditorSession reopened = EditorSession.open(destZip.toString());
+    @ParameterizedTest
+    @CsvSource({ "RESOURCE_DIRECTORY,RESOURCE_PACK", "RESOURCE_PACK,RESOURCE_DIRECTORY" })
+    public void saveAs_preservesLocalesAndSourceAndRetargetsSubsequentSaves(CreditsLayout.Format sourceFormat,
+        CreditsLayout.Format destinationFormat) throws Exception {
+        Path source = temp.resolve(sourceFormat == CreditsLayout.Format.RESOURCE_PACK ? "source.zip" : "source");
+        Path destination = temp.resolve(destinationFormat == CreditsLayout.Format.RESOURCE_PACK ? "fork.zip" : "fork");
+        EditorSession original = EditorSession.create(source.toString(), sourceFormat);
         try {
-            assertEquals(2, reopened.creditsDoc().categories.size());
+            original.creditsDoc().categories.add(new DocumentCategory("dev"));
+            original.langDoc()
+                .set("credits.category.dev", "Developers");
+            original.addLocale("fr_FR");
+            original.langDoc("fr_FR")
+                .orElseThrow()
+                .set("credits.category.dev", "Equipe");
+            original.save();
         } finally {
-            reopened.close();
+            original.close();
         }
-    }
+        Path sourceFile = sourceFormat == CreditsLayout.Format.RESOURCE_PACK ? source
+            : source.resolve("assets/gtnhcredits/credits.json");
+        byte[] sourceBytes = Files.readAllBytes(sourceFile);
 
-    @Test
-    public void saveAs_zipToDir_writesPackAndRetargetsSession() throws Exception {
-        Path sourceZip = temp.resolve("source.zip");
-        Path destDir = temp.resolve("fork");
-
-        EditorSession session = EditorSession.create(sourceZip.toString(), CreditsLayout.Format.RESOURCE_PACK);
-        session.creditsDoc().categories.add(new DocumentCategory("dev"));
-        assertTrue(session.isDirty());
-
-        session.saveAs(destDir.toString());
-
-        assertTrue(
-            Files.exists(destDir.resolve("assets/gtnhcredits/credits.json")),
-            "destination directory must contain credits.json");
-        assertFalse(session.isDirty(), "dirty flag must clear after Save As");
-        assertEquals(
-            destDir.resolve("assets/gtnhcredits/credits.json")
-                .toAbsolutePath()
-                .toString(),
-            session.displayPath(),
-            "session must retarget to the new path");
-
-        session.creditsDoc().categories.add(new DocumentCategory("art"));
-        session.save();
-        session.close();
-
-        EditorSession reopened = EditorSession.open(destDir.toString());
+        EditorSession session = EditorSession.open(source.toString());
         try {
-            assertEquals(2, reopened.creditsDoc().categories.size());
+            session.creditsDoc().categories.add(new DocumentCategory("art"));
+            assertTrue(session.isDirty());
+            session.saveAs(destination.toString(), destinationFormat);
+            assertFalse(session.isDirty());
+            assertEquals(
+                destinationFormat == CreditsLayout.Format.RESOURCE_PACK ? destination
+                    : destination.resolve("assets/gtnhcredits/credits.json"),
+                session.openPath());
+            session.creditsDoc().categories.add(new DocumentCategory("support"));
+            session.save();
+            assertFalse(session.isDirty());
         } finally {
-            reopened.close();
+            session.close();
         }
-    }
 
-    @Test
-    public void saveAs_preservesNonEnglishLocale() throws Exception {
-        Path sourceDir = contentWithTeam("source");
-        Path langDir = sourceDir.resolve(CreditsLayout.LANG_DIR.get());
-        Files.createDirectories(langDir);
-        Files.writeString(langDir.resolve("en_US.lang"), "credits.category.team=Team\n", StandardCharsets.UTF_8);
-        Files.writeString(langDir.resolve("fr_FR.lang"), "credits.category.team=Equipe\n", StandardCharsets.UTF_8);
-
-        Path destZip = temp.resolve("fork.zip");
-
-        EditorSession session = EditorSession.open(sourceDir.toString());
-        session.saveAs(destZip.toString());
-        session.close();
-
-        EditorSession reopened = EditorSession.open(destZip.toString());
+        assertArrayEquals(sourceBytes, Files.readAllBytes(sourceFile), "Save As must leave the source intact");
+        EditorSession reopened = EditorSession.open(destination.toString());
         try {
-            LangDocument fr = reopened.langDoc("fr_FR")
-                .orElseThrow();
-            assertTrue(
-                reopened.availableLocales()
-                    .contains("fr_FR"),
-                "fr_FR must survive Save As to a fresh zip");
-            assertEquals("Equipe", fr.get("credits.category.team"));
+            assertEquals(
+                List.of("dev", "art", "support"),
+                reopened.creditsDoc().categories.stream()
+                    .map(category -> category.id)
+                    .toList());
+            assertEquals(
+                "Developers",
+                reopened.langDoc()
+                    .get("credits.category.dev"));
+            assertEquals(
+                "Equipe",
+                reopened.langDoc("fr_FR")
+                    .orElseThrow()
+                    .get("credits.category.dev"));
         } finally {
             reopened.close();
         }
