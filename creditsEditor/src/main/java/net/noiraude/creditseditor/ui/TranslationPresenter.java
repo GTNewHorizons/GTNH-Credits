@@ -5,7 +5,6 @@ import java.nio.file.Path;
 import java.util.function.Consumer;
 
 import javax.swing.JFileChooser;
-import javax.swing.SwingWorker;
 
 import net.noiraude.creditseditor.bus.DocumentBus;
 import net.noiraude.creditseditor.ui.dialog.ProgressDialog;
@@ -33,14 +32,7 @@ final class TranslationPresenter {
             if (chooser.showOpenDialog(owner) != JFileChooser.APPROVE_OPTION) return;
             Path instance = chooser.getSelectedFile()
                 .toPath();
-            SwingWorker<Void, Void> worker = new SwingWorker<>() {
-
-                @Override
-                protected Void doInBackground() throws Exception {
-                    session.loadTranslations(instance);
-                    return null;
-                }
-            };
+            TranslationLoadWorker worker = new TranslationLoadWorker(session, instance);
             ProgressDialog.runWith(owner, I18n.get("translations.loading"), instance.toString(), worker);
             try {
                 worker.get();

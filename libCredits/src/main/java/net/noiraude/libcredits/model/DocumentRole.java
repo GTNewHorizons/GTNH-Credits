@@ -55,7 +55,7 @@ public final class DocumentRole {
 
     @Override
     public boolean equals(Object other) {
-        if (!(other instanceof DocumentRole)) return false;
+        if (other == null || getClass() != other.getClass()) return false;
         DocumentRole role = (DocumentRole) other;
         return external == role.external && value.equals(role.value);
     }

@@ -249,8 +249,9 @@ public final class RoleListPanel extends JPanel {
     private void onAdd() {
         if (currentMembership == null || currentPerson == null) return;
         CreditsDocument creditsDoc = bus.hasSession() ? bus.creditsDoc() : null;
-        DocumentRole role = new AddRolePrompt(currentMembership, creditsDoc, bus).show(this);
-        if (role == null) return;
+        var selection = new AddRolePrompt(currentMembership, creditsDoc, bus).show(this);
+        if (selection.isEmpty()) return;
+        DocumentRole role = selection.get();
         if (currentMembership.roles.contains(role)) {
             JOptionPane.showMessageDialog(
                 this,

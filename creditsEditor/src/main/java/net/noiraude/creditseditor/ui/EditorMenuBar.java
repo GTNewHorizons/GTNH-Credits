@@ -2,37 +2,25 @@ package net.noiraude.creditseditor.ui;
 
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
+import javax.swing.event.MenuEvent;
+import javax.swing.event.MenuListener;
+
+import net.noiraude.creditseditor.bus.DocumentBus;
 
 import org.jetbrains.annotations.NotNull;
 
 /** Composes the editor's menu bar from the shared action registry. */
-final class EditorMenuBar extends JMenuBar {
+final class EditorMenuBar extends JMenuBar implements MenuListener {
+
+    private final JMenu recent = new JMenu(I18n.get("menu.open_recent"));
+    private final DocumentBus bus;
 
     EditorMenuBar(@NotNull EditorActions actions) {
+        bus = actions.bus;
         JMenu fileMenu = newMenu("menu.file", "menu.file.mnemonic");
         fileMenu.add(actions.open);
-        JMenu recent = new JMenu(I18n.get("menu.open_recent"));
-        recent.addMenuListener(new javax.swing.event.MenuListener() {
-
-            public void menuSelected(javax.swing.event.MenuEvent event) {
-                recent.removeAll();
-                for (String path : RecentLocations.user()
-                    .paths()) {
-                    javax.swing.JMenuItem item = new javax.swing.JMenuItem(path);
-                    item.addActionListener(e -> actions.bus.fireOpenPathRequested(path));
-                    recent.add(item);
-                }
-                if (recent.getItemCount() == 0) {
-                    javax.swing.JMenuItem empty = new javax.swing.JMenuItem(I18n.get("menu.open_recent.empty"));
-                    empty.setEnabled(false);
-                    recent.add(empty);
-                }
-            }
-
-            public void menuDeselected(javax.swing.event.MenuEvent event) {}
-
-            public void menuCanceled(javax.swing.event.MenuEvent event) {}
-        });
+        recent.addMenuListener(this);
         fileMenu.add(recent);
         fileMenu.add(actions.newDoc);
         fileMenu.addSeparator();
@@ -70,6 +58,28 @@ final class EditorMenuBar extends JMenuBar {
         add(editMenu);
         add(helpMenu);
     }
+
+    @Override
+    public void menuSelected(MenuEvent event) {
+        recent.removeAll();
+        for (String path : RecentLocations.user()
+            .paths()) {
+            JMenuItem item = new JMenuItem(path);
+            item.addActionListener(e -> bus.fireOpenPathRequested(path));
+            recent.add(item);
+        }
+        if (recent.getItemCount() == 0) {
+            JMenuItem empty = new JMenuItem(I18n.get("menu.open_recent.empty"));
+            empty.setEnabled(false);
+            recent.add(empty);
+        }
+    }
+
+    @Override
+    public void menuDeselected(MenuEvent event) {}
+
+    @Override
+    public void menuCanceled(MenuEvent event) {}
 
     private static @NotNull JMenu newMenu(@NotNull String labelKey, @NotNull String mnemonicKey) {
         JMenu menu = new JMenu(I18n.get(labelKey));

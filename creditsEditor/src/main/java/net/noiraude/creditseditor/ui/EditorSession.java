@@ -73,8 +73,8 @@ final class EditorSession implements DocumentSession, LocaleEditor {
             rm.loadDocuments();
             EditorSession session = new EditorSession(rm);
             try {
-                Path instance = findInstance(rm.location());
-                if (instance != null) session.loadTranslations(instance);
+                Optional<Path> instance = findInstance(rm.location());
+                if (instance.isPresent()) session.loadTranslations(instance.get());
             } catch (IOException ex) {
                 LOG.log(Level.WARNING, "Could not load optional translation catalogue", ex);
             }
@@ -100,7 +100,7 @@ final class EditorSession implements DocumentSession, LocaleEditor {
         }
     }
 
-    static Path findInstance(Path location) throws IOException {
+    static Optional<Path> findInstance(Path location) throws IOException {
         Path current = java.nio.file.Files.isDirectory(location) ? location : location.getParent();
         for (; current != null; current = current.getParent()) {
             Path mods = current.resolve("mods");
@@ -110,11 +110,11 @@ final class EditorSession implements DocumentSession, LocaleEditor {
                         entries.anyMatch(
                             p -> p.toString()
                                 .endsWith(".jar") && java.nio.file.Files.isRegularFile(p))
-                    ) return current;
+                    ) return Optional.of(current);
                 }
             }
         }
-        return null;
+        return Optional.empty();
     }
 
     void loadTranslations(Path instance) throws IOException {

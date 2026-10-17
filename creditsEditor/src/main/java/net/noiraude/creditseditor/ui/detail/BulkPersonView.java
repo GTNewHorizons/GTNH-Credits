@@ -176,8 +176,9 @@ public final class BulkPersonView extends JPanel {
         DocumentCategory target = pickCategory(I18n.get("view.bulk.add_role.title"));
         if (target == null) return;
 
-        DocumentRole role = new AddRolePrompt(new DocumentMembership(target.id), bus.creditsDoc(), bus).show(this);
-        if (role == null) return;
+        var selection = new AddRolePrompt(new DocumentMembership(target.id), bus.creditsDoc(), bus).show(this);
+        if (selection.isEmpty()) return;
+        DocumentRole role = selection.get();
 
         CompoundCommand.Builder builder = new CompoundCommand.Builder(
             I18n.get("command.bulk.add_role", MsgArg.text(role.value()), MsgArg.text(target.id)));

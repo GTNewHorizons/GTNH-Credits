@@ -5,6 +5,7 @@ import static net.noiraude.creditseditor.ui.ScaledMetrics.gapSmall;
 import java.awt.BorderLayout;
 import java.awt.Component;
 import java.util.List;
+import java.util.Optional;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -21,6 +22,7 @@ import net.noiraude.creditseditor.bus.DocumentBus;
 import net.noiraude.creditseditor.service.RoleIndex;
 import net.noiraude.creditseditor.ui.I18n;
 import net.noiraude.creditseditor.ui.MsgArg;
+import net.noiraude.creditseditor.ui.component.AnyChangeListener;
 import net.noiraude.creditseditor.ui.component.KeyHintLabel;
 import net.noiraude.libcredits.model.CreditsDocument;
 import net.noiraude.libcredits.model.DocumentMembership;
@@ -57,39 +59,22 @@ final class AddRolePrompt {
         JPanel below = new JPanel();
         below.setLayout(new BoxLayout(below, BoxLayout.Y_AXIS));
         below.setBorder(BorderFactory.createEmptyBorder(gapSmall, 0, 0, 0));
-        if (
-            combo.getEditor()
-                .getEditorComponent() instanceof JTextComponent editor
-        ) {
-            below.add(new KeyHintLabel(editor));
-            below.add(Box.createVerticalStrut(gapSmall));
-        }
+        JTextComponent editor = (JTextComponent) combo.getEditor()
+            .getEditorComponent();
+        KeyHintLabel keyHint = new KeyHintLabel(editor);
+        below.add(keyHint);
+        below.add(Box.createVerticalStrut(gapSmall));
         below.add(showAll);
         below.add(external);
         below.add(new JLabel(I18n.get("role.external.search")));
         below.add(search);
         search.setEnabled(false);
         search.getDocument()
-            .addDocumentListener(new javax.swing.event.DocumentListener() {
-
-                public void insertUpdate(javax.swing.event.DocumentEvent e) {
-                    populate();
-                }
-
-                public void removeUpdate(javax.swing.event.DocumentEvent e) {
-                    populate();
-                }
-
-                public void changedUpdate(javax.swing.event.DocumentEvent e) {
-                    populate();
-                }
-            });
+            .addDocumentListener(new AnyChangeListener(this::populate));
         external.addActionListener(e -> {
             search.setEnabled(external.isSelected());
             showAll.setVisible(!external.isSelected());
-            for (Component child : below.getComponents()) {
-                if (child instanceof KeyHintLabel) child.setVisible(!external.isSelected());
-            }
+            keyHint.setVisible(!external.isSelected());
             populate();
         });
 
@@ -101,8 +86,10 @@ final class AddRolePrompt {
     }
 
     private void populate() {
-        String typed = combo.getEditor()
-            .getItem() instanceof String s ? s : "";
+        String typed = java.util.Objects.toString(
+            combo.getEditor()
+                .getItem(),
+            "");
         combo.removeAllItems();
         if (external.isSelected()) {
             String query = search.getText()
@@ -131,27 +118,26 @@ final class AddRolePrompt {
             .setItem(typed);
     }
 
-    @Nullable
-    DocumentRole show(@NotNull Component parent) {
+    Optional<DocumentRole> show(@NotNull Component parent) {
         int result = JOptionPane.showConfirmDialog(
             parent,
             content,
             I18n.get("dialog.add_role.title", MsgArg.text(membership.categoryId)),
             JOptionPane.OK_CANCEL_OPTION,
             JOptionPane.PLAIN_MESSAGE);
-        if (result != JOptionPane.OK_OPTION) return null;
+        if (result != JOptionPane.OK_OPTION) return Optional.empty();
         String role = ((String) combo.getEditor()
             .getItem()).strip();
-        if (role.isEmpty()) return null;
+        if (role.isEmpty()) return Optional.empty();
         try {
-            return external.isSelected() ? DocumentRole.translation(role) : DocumentRole.local(role);
+            return Optional.of(external.isSelected() ? DocumentRole.translation(role) : DocumentRole.local(role));
         } catch (IllegalArgumentException ex) {
             JOptionPane.showMessageDialog(
                 parent,
                 ex.getMessage(),
                 I18n.get("dialog.load.error.title"),
                 JOptionPane.ERROR_MESSAGE);
-            return null;
+            return Optional.empty();
         }
     }
 }
