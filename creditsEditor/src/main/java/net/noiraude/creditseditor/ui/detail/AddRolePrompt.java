@@ -4,22 +4,30 @@ import static net.noiraude.creditseditor.ui.ScaledMetrics.gapSmall;
 
 import java.awt.BorderLayout;
 import java.awt.Component;
+import java.util.List;
+import java.util.Optional;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
+import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JTextField;
 import javax.swing.text.JTextComponent;
 
+import net.noiraude.creditseditor.bus.DocumentBus;
 import net.noiraude.creditseditor.service.RoleIndex;
 import net.noiraude.creditseditor.ui.I18n;
 import net.noiraude.creditseditor.ui.MsgArg;
+import net.noiraude.creditseditor.ui.component.AnyChangeListener;
 import net.noiraude.creditseditor.ui.component.KeyHintLabel;
 import net.noiraude.libcredits.model.CreditsDocument;
 import net.noiraude.libcredits.model.DocumentMembership;
+import net.noiraude.libcredits.model.DocumentRole;
+import net.noiraude.libcredits.validation.CreditsValidator;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -32,27 +40,47 @@ import org.jetbrains.annotations.Nullable;
 final class AddRolePrompt {
 
     private final @NotNull DocumentMembership membership;
+    private final @Nullable CreditsDocument creditsDoc;
     private final @Nullable RoleIndex index;
     private final @NotNull JComboBox<String> combo = new JComboBox<>();
     private final @NotNull JCheckBox showAll = new JCheckBox(I18n.get("dialog.add_role.show_all"));
     private final @NotNull JPanel content;
+    private final JCheckBox external = new JCheckBox(I18n.get("role.external.use"));
+    private final JTextField search = new JTextField();
+    private final List<String> translationKeys;
+    private final DocumentBus bus;
 
-    AddRolePrompt(@NotNull DocumentMembership membership, @Nullable CreditsDocument creditsDoc) {
+    AddRolePrompt(@NotNull DocumentMembership membership, @Nullable CreditsDocument creditsDoc,
+        @NotNull DocumentBus bus) {
         this.membership = membership;
+        this.creditsDoc = creditsDoc;
+        this.bus = bus;
+        this.translationKeys = bus.externalTranslationKeys();
         this.index = creditsDoc != null ? RoleIndex.build(creditsDoc) : null;
+        combo.setName("addRoleValue");
         combo.setEditable(true);
 
         JPanel below = new JPanel();
         below.setLayout(new BoxLayout(below, BoxLayout.Y_AXIS));
         below.setBorder(BorderFactory.createEmptyBorder(gapSmall, 0, 0, 0));
-        if (
-            combo.getEditor()
-                .getEditorComponent() instanceof JTextComponent editor
-        ) {
-            below.add(new KeyHintLabel(editor));
-            below.add(Box.createVerticalStrut(gapSmall));
-        }
+        JTextComponent editor = (JTextComponent) combo.getEditor()
+            .getEditorComponent();
+        KeyHintLabel keyHint = new KeyHintLabel(editor);
+        below.add(keyHint);
+        below.add(Box.createVerticalStrut(gapSmall));
         below.add(showAll);
+        below.add(external);
+        below.add(new JLabel(I18n.get("role.external.search")));
+        below.add(search);
+        search.setEnabled(false);
+        search.getDocument()
+            .addDocumentListener(new AnyChangeListener(this::populate));
+        external.addActionListener(e -> {
+            search.setEnabled(external.isSelected());
+            showAll.setVisible(!external.isSelected());
+            keyHint.setVisible(!external.isSelected());
+            populate();
+        });
 
         content = new JPanel(new BorderLayout(0, gapSmall));
         content.add(combo, BorderLayout.CENTER);
@@ -62,16 +90,31 @@ final class AddRolePrompt {
     }
 
     private void populate() {
-        String typed = combo.getEditor()
-            .getItem() instanceof String s ? s : "";
+        String typed = java.util.Objects.toString(
+            combo.getEditor()
+                .getItem(),
+            "");
         combo.removeAllItems();
-        if (index != null) {
+        if (external.isSelected()) {
+            String query = search.getText()
+                .toLowerCase(java.util.Locale.ROOT);
+            translationKeys.stream()
+                .filter(
+                    key -> key.toLowerCase(java.util.Locale.ROOT)
+                        .contains(query)
+                        || bus.externalTranslation(key, "en_US")
+                            .orElse("")
+                            .toLowerCase(java.util.Locale.ROOT)
+                            .contains(query))
+                .limit(200)
+                .forEach(combo::addItem);
+        } else if (index != null) {
             for (RoleIndex.Entry entry : index.entries()) {
                 if (
-                    !membership.roles.contains(entry.raw)
+                    !entry.raw.isExternal() && !membership.roles.contains(entry.raw)
                         && (showAll.isSelected() || entry.categoryIds.contains(membership.categoryId))
                 ) {
-                    combo.addItem(entry.raw);
+                    combo.addItem(entry.raw.value());
                 }
             }
         }
@@ -79,17 +122,31 @@ final class AddRolePrompt {
             .setItem(typed);
     }
 
-    @Nullable
-    String show(@NotNull Component parent) {
+    Optional<DocumentRole> show(@NotNull Component parent) {
         int result = JOptionPane.showConfirmDialog(
             parent,
             content,
             I18n.get("dialog.add_role.title", MsgArg.text(membership.categoryId)),
             JOptionPane.OK_CANCEL_OPTION,
             JOptionPane.PLAIN_MESSAGE);
-        if (result != JOptionPane.OK_OPTION) return null;
+        if (result != JOptionPane.OK_OPTION) return Optional.empty();
         String role = ((String) combo.getEditor()
             .getItem()).strip();
-        return role.isEmpty() ? null : role;
+        if (role.isEmpty()) return Optional.empty();
+        try {
+            DocumentRole candidate = external.isSelected() ? DocumentRole.translation(role) : DocumentRole.local(role);
+            if (creditsDoc != null) {
+                List<String> errors = CreditsValidator.validateRoleAdditions(creditsDoc, List.of(candidate));
+                if (!errors.isEmpty()) throw new IllegalArgumentException(String.join("\n", errors));
+            }
+            return Optional.of(candidate);
+        } catch (IllegalArgumentException ex) {
+            JOptionPane.showMessageDialog(
+                parent,
+                ex.getMessage(),
+                I18n.get("dialog.load.error.title"),
+                JOptionPane.ERROR_MESSAGE);
+            return Optional.empty();
+        }
     }
 }

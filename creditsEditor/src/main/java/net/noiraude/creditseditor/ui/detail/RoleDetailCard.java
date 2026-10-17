@@ -41,6 +41,10 @@ public final class RoleDetailCard {
     private final @NotNull JTextField roleValueField = new JTextField();
     private final @NotNull JLabel langKeyLabel = new JLabel();
     private final @NotNull LocalizedMcEditor displayNameEditor = new LocalizedMcEditor(false);
+    private final javax.swing.JButton editReference = new javax.swing.JButton(I18n.get("role.external.edit"));
+    private final JTextField externalKey = new JTextField();
+    private final JTextField externalPreview = new JTextField();
+    private final JLabel externalStatus = new JLabel();
     private boolean loading;
 
     RoleDetailCard(@NotNull Runnable onDisplayNameChanged) {
@@ -49,6 +53,17 @@ public final class RoleDetailCard {
         langKeyLabel.setForeground(UIManager.getColor("Label.disabledForeground"));
         buildEmptyCard();
         buildDetailCard();
+        JPanel external = new JPanel(new java.awt.GridLayout(0, 1, gapSmall, gapSmall));
+        external.setBorder(javax.swing.BorderFactory.createEmptyBorder(gapSmall, gapMedium, gapSmall, gapMedium));
+        externalKey.setEditable(false);
+        externalPreview.setEditable(false);
+        external.add(new JLabel(I18n.get("role.external.key")));
+        external.add(externalKey);
+        external.add(editReference);
+        external.add(new JLabel(I18n.get("role.external.preview")));
+        external.add(externalPreview);
+        external.add(externalStatus);
+        panel.add(external, "external");
         clear();
 
         displayNameEditor.addTextChangeListener(text -> { if (!loading) onDisplayNameChanged.run(); });
@@ -139,6 +154,21 @@ public final class RoleDetailCard {
             loading = false;
         }
         cards.show(panel, CARD_DETAIL);
+    }
+
+    void setReferenceCommit(java.util.function.Consumer<String> commit) {
+        editReference.addActionListener(event -> {
+            String key = javax.swing.JOptionPane
+                .showInputDialog(panel, I18n.get("role.external.key"), externalKey.getText());
+            if (key != null) commit.accept(key);
+        });
+    }
+
+    void loadExternal(String key, String preview, String status) {
+        externalKey.setText(key);
+        externalPreview.setText(preview);
+        externalStatus.setText(status);
+        cards.show(panel, "external");
     }
 
     void clear() {

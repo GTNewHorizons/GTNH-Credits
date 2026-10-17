@@ -22,7 +22,7 @@ import com.google.gson.JsonPrimitive;
  * <p>
  * Two groups of tests:
  * <ul>
- * <li>Integration: the bundled {@code credits.json} must produce no errors.</li>
+ * <li>Integration: the test fixture's {@code credits.json} must produce no errors.</li>
  * <li>Unit: individual rules are verified with crafted synthetic documents.</li>
  * </ul>
  *
@@ -39,7 +39,7 @@ public class CreditsJsonValidationTest {
     // -------------------------------------------------------------------------
 
     @Test
-    public void bundledCreditsJsonIsValid() throws Exception {
+    public void fixtureCreditsJsonIsValid() throws Exception {
         try (InputStreamReader reader = new InputStreamReader(
             Objects.requireNonNull(getClass().getResourceAsStream("/assets/gtnhcredits/credits.json")),
             StandardCharsets.UTF_8)) {
@@ -62,10 +62,12 @@ public class CreditsJsonValidationTest {
     }
 
     @Test
-    public void version_mustBeAtLeastOne() {
-        JsonObject root = minimalValid();
-        root.addProperty("version", 0);
-        assertInvalid(root);
+    public void unsupportedVersions_areRejected() {
+        for (int version : new int[] { 0, 1, 4 }) {
+            JsonObject root = minimalValid();
+            root.addProperty("version", version);
+            assertInvalid(root);
+        }
     }
 
     @Test
@@ -79,35 +81,31 @@ public class CreditsJsonValidationTest {
         assertInvalid(root);
     }
 
-    @Test
-    public void version_mustBeAtLeastTwo() {
-        JsonObject root = minimalValid();
-        root.addProperty("version", 1);
-        assertInvalid(root);
-    }
-
     // -------------------------------------------------------------------------
     // category array
     // -------------------------------------------------------------------------
 
     @Test
     public void category_isRequired() {
-        assertInvalid(new JsonObject());
+        JsonObject root = minimalValid();
+        root.remove("category");
+        assertInvalid(root);
     }
 
     @Test
     public void category_mustBeArray() {
-        JsonObject root = new JsonObject();
+        JsonObject root = minimalValid();
         root.addProperty("category", "not-an-array");
         assertInvalid(root);
     }
 
     @Test
     public void categoryId_mustBePresent() {
-        JsonObject root = new JsonObject();
-        JsonArray cats = new JsonArray();
-        cats.add(new JsonObject());
-        root.add("category", cats);
+        JsonObject root = minimalValid();
+        root.getAsJsonArray("category")
+            .get(0)
+            .getAsJsonObject()
+            .remove("id");
         assertInvalid(root);
     }
 
@@ -321,6 +319,63 @@ public class CreditsJsonValidationTest {
         persons.add(person);
         root.add("person", persons);
         assertHasError(root, "unknown category id \"nonexistent\"");
+    }
+
+    @Test
+    public void externalReferences_requireVersionThreeAndPreserveFullKeyShape() {
+        JsonObject root = rootWithOnePerson("Alice", "cats");
+        JsonObject reference = new JsonObject();
+        reference.addProperty("translationKey", "gt.blockmachines.multimachine.nanochipassemblycomplex.name");
+        JsonObject membership = new JsonObject();
+        membership.add("cats", reference);
+        root.getAsJsonArray("person")
+            .get(0)
+            .getAsJsonObject()
+            .add("category", membership);
+        assertInvalid(root);
+        root.addProperty("version", 3);
+        assertValid(root);
+        reference.addProperty("translationKey", "contains spaces");
+        assertInvalid(root);
+    }
+
+    @Test
+    public void schemaChecksMembershipIdsInBothVersions() {
+        for (int version : new int[] { 2, 3 }) {
+            JsonObject root = new JsonParser().parse(
+                "{\"version\":" + version
+                    + ",\"category\":[{\"id\":\"cats\"}],\"person\":[{\"name\":\"Alice\",\"category\":{\"cats\":\"developer\"}}]}")
+                .getAsJsonObject();
+            assertTrue(
+                CreditsValidator.validateSchema(root)
+                    .isEmpty());
+            JsonObject membership = root.getAsJsonArray("person")
+                .get(0)
+                .getAsJsonObject()
+                .getAsJsonObject("category");
+            membership.remove("cats");
+            membership.addProperty("1bad", "developer");
+            assertFalse(
+                "version " + version + " schema must reject invalid membership ids",
+                CreditsValidator.validateSchema(root)
+                    .isEmpty());
+        }
+    }
+
+    @Test
+    public void legacyMetadataAndCombinedMemberships_areAcceptedOnlyInVersionTwo() {
+        for (String person : Arrays.asList(
+            "{\"name\":\"Alice\",\"username\":\"alice_account\",\"category\":\"dev\"}",
+            "{\"name\":\"Alice\",\"category\":{\"dev\":[\"lead\",\"developer\"],\"quests\":\"editor\"}}",
+            "{\"name\":\"Alice\",\"category\":[{\"dev\":\"developer\",\"quests\":\"editor\"}]}")) {
+            JsonObject root = new JsonParser()
+                .parse(
+                    "{\"version\":2,\"category\":[{\"id\":\"dev\"},{\"id\":\"quests\"}],\"person\":[" + person + "]}")
+                .getAsJsonObject();
+            assertValid(root);
+            root.addProperty("version", 3);
+            assertInvalid(root);
+        }
     }
 
     // -------------------------------------------------------------------------

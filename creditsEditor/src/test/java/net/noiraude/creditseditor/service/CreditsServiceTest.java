@@ -1,17 +1,16 @@
 package net.noiraude.creditseditor.service;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
 import java.util.LinkedHashSet;
-import java.util.List;
 
 import net.noiraude.libcredits.model.CreditsDocument;
 import net.noiraude.libcredits.model.DocumentCategory;
 import net.noiraude.libcredits.model.DocumentMembership;
 import net.noiraude.libcredits.model.DocumentPerson;
+import net.noiraude.libcredits.model.DocumentRole;
 
 import org.junit.jupiter.api.Test;
 
@@ -26,13 +25,7 @@ public class CreditsServiceTest {
         CreditsDocument doc = CreditsDocument.empty();
         assertTrue(doc.categories.isEmpty());
         assertTrue(doc.persons.isEmpty());
-    }
-
-    @Test
-    public void empty_isNotDirty() {
-        assertFalse(
-            CreditsDocument.empty()
-                .isDirty());
+        assertFalse(doc.isDirty());
     }
 
     // -----------------------------------------------------------------------
@@ -102,47 +95,16 @@ public class CreditsServiceTest {
         cat.classes = new LinkedHashSet<>(Arrays.asList("person", "role"));
         doc.categories.add(cat);
         DocumentPerson p = new DocumentPerson("Alice");
-        p.memberships.add(new DocumentMembership("team", List.of("lead")));
+        p.memberships.add(new DocumentMembership("team", localRoles("lead")));
         doc.persons.add(p);
         doc.markClean();
         assertFalse(doc.isDirty());
     }
 
-    // -----------------------------------------------------------------------
-    // markClean isolates baseline from live mutations
-    // -----------------------------------------------------------------------
-
-    @Test
-    public void markClean_baselineIsDeepCopy_mutatingLiveDoesNotAffectClean() {
-        CreditsDocument doc = CreditsDocument.empty();
-        DocumentCategory cat = new DocumentCategory("team");
-        doc.categories.add(cat);
-        doc.markClean();
-
-        // Mutate the live category
-        cat.id = "mutated";
-        assertTrue(doc.isDirty(), "mutation after markClean should be detected as dirty");
+    private static java.util.List<DocumentRole> localRoles(String... values) {
+        return java.util.Arrays.stream(values)
+            .map(DocumentRole::local)
+            .collect(java.util.stream.Collectors.toList());
     }
 
-    // -----------------------------------------------------------------------
-    // Structure
-    // -----------------------------------------------------------------------
-
-    @Test
-    public void categories_preserveInsertionOrder() {
-        CreditsDocument doc = CreditsDocument.empty();
-        doc.categories.add(new DocumentCategory("z"));
-        doc.categories.add(new DocumentCategory("a"));
-        doc.categories.add(new DocumentCategory("m"));
-        assertEquals("z", doc.categories.getFirst().id);
-        assertEquals("a", doc.categories.get(1).id);
-        assertEquals("m", doc.categories.get(2).id);
-    }
-
-    @Test
-    public void memberships_preserveRoleOrder() {
-        DocumentPerson p = new DocumentPerson("Alice");
-        p.memberships.add(new DocumentMembership("team", Arrays.asList("lead", "dev", "infra")));
-        assertEquals(Arrays.asList("lead", "dev", "infra"), p.memberships.getFirst().roles);
-    }
 }

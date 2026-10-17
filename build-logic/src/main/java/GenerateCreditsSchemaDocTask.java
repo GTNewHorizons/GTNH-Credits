@@ -44,6 +44,8 @@ public class GenerateCreditsSchemaDocTask extends DefaultTask {
 
         JsonObject defs   = obj(schema, "definitions");
         JsonObject typeKey = obj(defs, "key");
+        JsonObject roleDef = obj(defs, "role");
+        JsonObject translationDef = obj(defs, "translationReference");
         JsonObject catDef  = obj(defs, "category");
         JsonObject perDef  = obj(defs, "person");
         JsonObject pceDef  = obj(defs, "personCategoryEntry");
@@ -81,6 +83,8 @@ public class GenerateCreditsSchemaDocTask extends DefaultTask {
             - [PersonCategoryEntry](#personcategoryentry)
             - [Shared Types](#shared-types)
               - [`key`](#key)
+              - [Role](#role)
+              - [TranslationReference](#translationreference)
 
             ---
 
@@ -139,6 +143,20 @@ public class GenerateCreditsSchemaDocTask extends DefaultTask {
 
             ---
 
+            ### Role
+
+            %s
+
+            ### TranslationReference
+
+            %s
+
+            | Property | Type | Required | Constraints | Description |
+            |---|---|---|---|---|
+            %s
+
+            ---
+
             _JSON Schema draft: [draft-07](https://json-schema.org/draft-07/schema)._
             """.formatted(
                 rootDesc,
@@ -154,7 +172,10 @@ public class GenerateCreditsSchemaDocTask extends DefaultTask {
                 tkType,
                 tkMin,
                 tkMax,
-                tkChars
+                tkChars,
+                str(roleDef, "description"),
+                str(translationDef, "description"),
+                defTableRows(requiredSet(translationDef), obj(translationDef, "properties"))
             );
 
         //noinspection BlockingMethodInNonBlockingContext

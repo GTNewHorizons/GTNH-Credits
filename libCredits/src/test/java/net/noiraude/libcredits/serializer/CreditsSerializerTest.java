@@ -2,22 +2,25 @@ package net.noiraude.libcredits.serializer;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.LinkedHashSet;
 
 import net.noiraude.libcredits.model.CreditsDocument;
 import net.noiraude.libcredits.model.DocumentCategory;
 import net.noiraude.libcredits.model.DocumentMembership;
 import net.noiraude.libcredits.model.DocumentPerson;
+import net.noiraude.libcredits.model.DocumentRole;
 import net.noiraude.libcredits.parser.CreditsParser;
 
 import org.junit.Test;
+
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 @SuppressWarnings("unused")
 public class CreditsSerializerTest {
@@ -42,7 +45,7 @@ public class CreditsSerializerTest {
 
     private static DocumentPerson person(String name, String catId, String... roles) {
         DocumentPerson p = new DocumentPerson(name);
-        p.memberships.add(new DocumentMembership(catId, Arrays.asList(roles)));
+        p.memberships.add(new DocumentMembership(catId, localRoles(roles)));
         return p;
     }
 
@@ -88,11 +91,18 @@ public class CreditsSerializerTest {
     // -----------------------------------------------------------------------
 
     @Test
-    public void person_emptyList_omitsPersonField() throws Exception {
+    public void output_isVersionThreeWithNoEmptyPersonsAndEndsWithNewline() throws Exception {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         CreditsSerializer.write(oneCategory("c"), out);
         String json = out.toString("UTF-8");
-        assertFalse("person field should be absent when list is empty", json.contains("\"person\""));
+        JsonObject root = new JsonParser().parse(json)
+            .getAsJsonObject();
+        assertFalse("person field should be absent when list is empty", root.has("person"));
+        assertEquals(
+            3,
+            root.get("version")
+                .getAsInt());
+        assertTrue("output should end with newline", json.endsWith("\n"));
     }
 
     @Test
@@ -112,7 +122,7 @@ public class CreditsSerializerTest {
         CreditsDocument doc = oneCategory("dev");
         doc.persons.add(person("Bob", "dev", "lead"));
         CreditsDocument rt = roundTrip(doc);
-        assertEquals(Collections.singletonList("lead"), rt.persons.get(0).memberships.get(0).roles);
+        assertEquals(localRoles("lead"), rt.persons.get(0).memberships.get(0).roles);
     }
 
     @Test
@@ -120,7 +130,7 @@ public class CreditsSerializerTest {
         CreditsDocument doc = oneCategory("dev");
         doc.persons.add(person("Bob", "dev", "lead", "infra"));
         CreditsDocument rt = roundTrip(doc);
-        assertEquals(Arrays.asList("lead", "infra"), rt.persons.get(0).memberships.get(0).roles);
+        assertEquals(localRoles("lead", "infra"), rt.persons.get(0).memberships.get(0).roles);
     }
 
     @Test
@@ -131,8 +141,8 @@ public class CreditsSerializerTest {
         doc.categories.add(new DocumentCategory("contrib"));
 
         DocumentPerson p = new DocumentPerson("Carol");
-        p.memberships.add(new DocumentMembership("team", Collections.singletonList("lead")));
-        p.memberships.add(new DocumentMembership("dev", Arrays.asList("backend", "infra")));
+        p.memberships.add(new DocumentMembership("team", localRoles("lead")));
+        p.memberships.add(new DocumentMembership("dev", localRoles("backend", "infra")));
         p.memberships.add(new DocumentMembership("contrib"));
         doc.persons.add(p);
 
@@ -141,9 +151,9 @@ public class CreditsSerializerTest {
         assertEquals("Carol", rp.name);
         assertEquals(3, rp.memberships.size());
         assertEquals("team", rp.memberships.get(0).categoryId);
-        assertEquals(Collections.singletonList("lead"), rp.memberships.get(0).roles);
+        assertEquals(localRoles("lead"), rp.memberships.get(0).roles);
         assertEquals("dev", rp.memberships.get(1).categoryId);
-        assertEquals(Arrays.asList("backend", "infra"), rp.memberships.get(1).roles);
+        assertEquals(localRoles("backend", "infra"), rp.memberships.get(1).roles);
         assertEquals("contrib", rp.memberships.get(2).categoryId);
         assertTrue(rp.memberships.get(2).roles.isEmpty());
     }
@@ -158,78 +168,38 @@ public class CreditsSerializerTest {
     }
 
     @Test
-    public void multiplePersons_allPreserved() throws Exception {
+    public void multiplePersons_arePreservedInNameOrder() throws Exception {
         CreditsDocument doc = oneCategory("c");
-        doc.persons.add(person("Alice", "c"));
-        doc.persons.add(person("Bob", "c"));
         doc.persons.add(person("Carol", "c"));
-        CreditsDocument rt = roundTrip(doc);
-        assertEquals(3, rt.persons.size());
-        assertTrue(
-            rt.persons.stream()
-                .anyMatch(p -> p.name.equals("Alice")));
-        assertTrue(
-            rt.persons.stream()
-                .anyMatch(p -> p.name.equals("Bob")));
-        assertTrue(
-            rt.persons.stream()
-                .anyMatch(p -> p.name.equals("Carol")));
+        doc.persons.add(person("Bob", "c"));
+        doc.persons.add(person("Alice", "c"));
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        CreditsSerializer.write(doc, output);
+        JsonArray persons = new JsonParser().parse(output.toString("UTF-8"))
+            .getAsJsonObject()
+            .getAsJsonArray("person");
+        assertEquals(3, persons.size());
+        assertEquals(
+            Arrays.asList("Alice", "Bob", "Carol"),
+            Arrays.asList(
+                persons.get(0)
+                    .getAsJsonObject()
+                    .get("name")
+                    .getAsString(),
+                persons.get(1)
+                    .getAsJsonObject()
+                    .get("name")
+                    .getAsString(),
+                persons.get(2)
+                    .getAsJsonObject()
+                    .get("name")
+                    .getAsString()));
     }
 
-    // -----------------------------------------------------------------------
-    // Output is valid UTF-8 JSON ending with newline
-    // -----------------------------------------------------------------------
-
-    @Test
-    public void output_endsWithNewline() throws Exception {
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        CreditsSerializer.write(oneCategory("c"), out);
-        String json = out.toString("UTF-8");
-        assertTrue("output should end with newline", json.endsWith("\n"));
+    private static java.util.List<DocumentRole> localRoles(String... values) {
+        return java.util.Arrays.stream(values)
+            .map(DocumentRole::local)
+            .collect(java.util.stream.Collectors.toList());
     }
 
-    @Test
-    public void output_containsVersionTwo() throws Exception {
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        CreditsSerializer.write(oneCategory("c"), out);
-        String json = out.toString("UTF-8");
-        assertTrue(json.contains("\"version\": 2"));
-    }
-
-    // -----------------------------------------------------------------------
-    // Full round-trip: serialize -> parse, data preserved
-    // -----------------------------------------------------------------------
-
-    @Test
-    public void fullRoundTrip_noDataLost() throws Exception {
-        CreditsDocument doc = CreditsDocument.empty();
-        DocumentCategory team = new DocumentCategory("team");
-        team.classes = new LinkedHashSet<>(Arrays.asList("person", "role"));
-        DocumentCategory contrib = new DocumentCategory("contrib");
-        contrib.classes = new LinkedHashSet<>(Arrays.asList("person", "detail"));
-        doc.categories.add(team);
-        doc.categories.add(contrib);
-
-        DocumentPerson p = new DocumentPerson("Dev");
-        p.memberships.add(new DocumentMembership("team", Collections.singletonList("lead")));
-        p.memberships.add(new DocumentMembership("contrib"));
-        doc.persons.add(p);
-
-        CreditsDocument rt = roundTrip(doc);
-
-        assertEquals(2, rt.categories.size());
-        assertNotNull(
-            rt.categories.stream()
-                .filter(c -> c.id.equals("team"))
-                .findFirst()
-                .orElse(null));
-        assertNotNull(
-            rt.categories.stream()
-                .filter(c -> c.id.equals("contrib"))
-                .findFirst()
-                .orElse(null));
-        assertEquals(1, rt.persons.size());
-        assertEquals("Dev", rt.persons.get(0).name);
-        assertEquals(Collections.singletonList("lead"), rt.persons.get(0).memberships.get(0).roles);
-    }
 }

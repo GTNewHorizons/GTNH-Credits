@@ -1,6 +1,6 @@
 package net.noiraude.creditseditor.service;
 
-import java.util.Locale;
+import net.noiraude.libcredits.model.CreditsKeys;
 
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
@@ -9,8 +9,7 @@ import org.jetbrains.annotations.NotNull;
  * Converts a category id or role string into its lang key suffix.
  *
  * <p>
- * The algorithm is an independent reimplementation that must produce the same output as
- * the GTNH Credits mod at runtime so that the game finds lang keys written by this editor.
+ * The algorithm is shared with the mod through libCredits.
  * The algorithm is:
  * <ol>
  * <li>Delete all {@code .} characters.</li>
@@ -35,9 +34,6 @@ public final class KeySanitizer {
 
     /** Returns the lang key suffix for {@code value}. */
     public static @NotNull String sanitize(@NotNull String value) {
-        return value.replace(".", "")
-            .replace("-", "")
-            .replaceAll(" +", "_")
-            .toLowerCase(Locale.ROOT);
+        return CreditsKeys.sanitize(value);
     }
 }

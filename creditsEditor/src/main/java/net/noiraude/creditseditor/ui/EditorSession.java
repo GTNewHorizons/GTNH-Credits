@@ -1,6 +1,7 @@
 package net.noiraude.creditseditor.ui;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.nio.file.Path;
@@ -18,9 +19,11 @@ import net.noiraude.creditseditor.command.CommandStackSnapshot;
 import net.noiraude.creditseditor.command.EditAbortedException;
 import net.noiraude.creditseditor.resource.ResourceManager;
 import net.noiraude.creditseditor.service.LangResolver;
+import net.noiraude.creditseditor.service.TranslationCatalog;
 import net.noiraude.libcredits.lang.LangDocument;
 import net.noiraude.libcredits.lang.MinecraftLangBasename;
 import net.noiraude.libcredits.model.CreditsDocument;
+import net.noiraude.libcredits.pack.CreditsLayout;
 
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
@@ -31,12 +34,12 @@ import org.jetbrains.annotations.Unmodifiable;
  * documents, and the undo/redo stack.
  *
  * <p>
- * Instances are created via {@link #open(String)}. The resource they point to is
- * immutable; the document data inside is mutable (edits happen in place).
+ * Documents are edited in place. Save As retargets the session only after the destination
+ * has been written successfully; undo history remains attached to the edited documents.
  *
  * <p>
  * Dirty state is content-based: {@link #isDirty()} returns {@code true} only when the
- * serialized JSON or the lang file would differ from what is currently on disk. The
+ * serialized JSON or any owned lang content would differ from what is currently on disk. The
  * {@link CommandStack} is kept solely for undo/redo; it is not authoritative for dirty state.
  *
  * <p>
@@ -48,6 +51,7 @@ final class EditorSession implements DocumentSession, LocaleEditor {
     private static final Logger LOG = System.getLogger(EditorSession.class.getName());
 
     private @NotNull ResourceManager resourceManager;
+    private TranslationCatalog translations = TranslationCatalog.empty();
     private final @NotNull CommandStack stack = new CommandStack();
 
     @Contract(pure = true)
@@ -56,19 +60,26 @@ final class EditorSession implements DocumentSession, LocaleEditor {
     }
 
     /**
-     * Opens a resource at {@code path} (directory or zip) and loads the credit JSON
-     * and lang file.
+     * Opens existing credits at a direct JSON path, content directory, modpack root,
+     * resource directory or ZIP. Missing or ambiguous content is an error; this never creates files.
      *
-     * @param path filesystem path to the resource directory or zip file
+     * @param path filesystem location containing existing credits
      * @return a ready-to-use session
      * @throws Exception if the path cannot be opened or the files cannot be parsed
      */
     @Contract("_ -> new")
     static @NotNull EditorSession open(@NotNull String path) throws Exception {
-        ResourceManager rm = openOrCreate(path);
+        ResourceManager rm = ResourceManager.open(path);
         try {
             rm.loadDocuments();
-            return new EditorSession(rm);
+            EditorSession session = new EditorSession(rm);
+            try {
+                Optional<Path> instance = findInstance(rm.location());
+                if (instance.isPresent()) session.loadTranslations(instance.get());
+            } catch (IOException | UncheckedIOException ex) {
+                LOG.log(Level.WARNING, "Could not load optional translation catalogue", ex);
+            }
+            return session;
         } catch (Exception ex) {
             try {
                 rm.close();
@@ -79,14 +90,51 @@ final class EditorSession implements DocumentSession, LocaleEditor {
         }
     }
 
-    /**
-     * Returns a manager rooted at {@code path}: opens it if a resource container already
-     * exists, otherwise creates a fresh one. The pack description is built only when
-     * creating, so opening an existing project never touches {@link AppInfo}.
-     */
-    private static @NotNull ResourceManager openOrCreate(@NotNull String path) throws IOException {
-        return ResourceManager.exists(path) ? ResourceManager.open(path)
-            : ResourceManager.create(path, packDescription());
+    static @NotNull EditorSession create(String path, CreditsLayout.Format format) throws Exception {
+        ResourceManager manager = ResourceManager.create(path, packDescription(), format);
+        try {
+            manager.loadDocuments();
+            return new EditorSession(manager);
+        } catch (Exception ex) {
+            manager.close();
+            throw ex;
+        }
+    }
+
+    static Optional<Path> findInstance(Path location) throws IOException {
+        Path current = java.nio.file.Files.isDirectory(location) ? location : location.getParent();
+        for (; current != null; current = current.getParent()) {
+            Path mods = current.resolve("mods");
+            if (java.nio.file.Files.isDirectory(mods)) {
+                try (var entries = java.nio.file.Files.walk(mods)) {
+                    if (
+                        entries.anyMatch(
+                            p -> p.toString()
+                                .endsWith(".jar") && java.nio.file.Files.isRegularFile(p))
+                    ) return Optional.of(current);
+                }
+            }
+        }
+        return Optional.empty();
+    }
+
+    void loadTranslations(Path instance) throws IOException {
+        translations = TranslationCatalog.load(instance);
+    }
+
+    @Override
+    public Optional<String> externalTranslation(String key, String locale) {
+        return translations.resolve(key, locale);
+    }
+
+    @Override
+    public java.util.List<String> externalTranslationKeys() {
+        return translations.keys();
+    }
+
+    @Override
+    public boolean hasTranslationCatalog() {
+        return translations.isAvailable();
     }
 
     private static @NotNull String packDescription() {
@@ -146,6 +194,18 @@ final class EditorSession implements DocumentSession, LocaleEditor {
         resourceManager.applyLocaleSnapshot(locale, snapshot);
     }
 
+    java.util.List<String> validateContent() {
+        return net.noiraude.libcredits.validation.CreditsValidator.validateContent(
+            creditsDoc(),
+            langDoc(),
+            translations.isAvailable() ? key -> translations.resolve(key, "en_US")
+                .isPresent() : null);
+    }
+
+    Path openPath() {
+        return resourceManager.openPath();
+    }
+
     /** Executes a command. */
     void execute(@NotNull Command cmd) throws EditAbortedException {
         stack.execute(cmd);
@@ -188,11 +248,15 @@ final class EditorSession implements DocumentSession, LocaleEditor {
     @Contract(pure = true)
     @NotNull
     String defaultLocale() {
+        if (
+            resourceManager.location()
+                .endsWith(Paths.get(CreditsLayout.MODPACK_DIRECTORY))
+        ) return LangResolver.DEFAULT_LOCALE;
         return MinecraftLangBasename.forJavaLocale(Locale.getDefault(), availableLocales())
             .orElse(LangResolver.DEFAULT_LOCALE);
     }
 
-    /** Returns the file name of the resource directory or zip, for use in the title bar. */
+    /** Returns the full credits JSON location, including the entry path inside an archive. */
     @Contract(pure = true)
     @NotNull
     String displayPath() {
@@ -200,7 +264,7 @@ final class EditorSession implements DocumentSession, LocaleEditor {
     }
 
     /**
-     * Returns {@code true} if either the JSON or the lang file would differ from what is
+     * Returns {@code true} if the JSON or any owned lang content would differ from what is
      * currently on disk. Always returns {@code false} immediately after a successful
      * {@link #save()} or a fresh {@link #open(String)}.
      *
@@ -224,6 +288,9 @@ final class EditorSession implements DocumentSession, LocaleEditor {
      */
     void save() throws Exception {
         CreditsDocument creditsDoc = resourceManager.getCreditsDoc();
+        var errors = net.noiraude.libcredits.validation.CreditsValidator.validate(creditsDoc);
+        if (!errors.isEmpty())
+            throw new net.noiraude.libcredits.parser.CreditsParseException(String.join("; ", errors));
 
         if (creditsDoc.isDirty()) {
             resourceManager.writeCredits();
@@ -238,24 +305,33 @@ final class EditorSession implements DocumentSession, LocaleEditor {
     }
 
     /**
-     * Writes the current documents to a fresh destination (directory or zip) and retargets
-     * this session at it; subsequent {@link #save()} calls write to the new location.
-     *
-     * <p>
-     * If {@code pathArg} resolves to the same on-disk location as the current target, this
-     * method delegates to {@link #save()} to avoid reopening the same zip filesystem twice.
-     *
-     * @throws Exception if the destination cannot be opened, or if writing fails. On failure
-     *                   the original target stays active so the user can retry.
+     * Saves as a standard resource pack: a ZIP for a {@code .zip} path, otherwise a directory.
+     * See {@link #saveAs(String, CreditsLayout.Format)} for retargeting and failure behavior.
      */
     void saveAs(@NotNull String pathArg) throws Exception {
+        saveAs(pathArg, CreditsLayout.Format.RESOURCE_PACK);
+    }
+
+    /**
+     * Writes the documents in {@code format}, preserving unrelated destination content, then
+     * retargets this session. If the resolved content directory and archive kind match the
+     * current target, delegates to {@link #save()} without reopening the storage.
+     *
+     * @throws Exception if opening or writing fails; the original target stays active, but
+     *                   partial destination writes are not rolled back
+     */
+    void saveAs(@NotNull String pathArg, CreditsLayout.Format format) throws Exception {
         Path newPath = Paths.get(pathArg)
             .toAbsolutePath()
             .normalize();
         Path curPath = resourceManager.location()
             .toAbsolutePath()
             .normalize();
-        if (newPath.equals(curPath)) {
+        boolean archive = format == CreditsLayout.Format.RESOURCE_PACK && pathArg.toLowerCase(Locale.ROOT)
+            .endsWith(".zip");
+        Path destinationRoot = archive || format == CreditsLayout.Format.CONTENT_DIRECTORY ? newPath
+            : newPath.resolve(CreditsLayout.RESOURCE_DIRECTORY);
+        if (destinationRoot.equals(curPath) && archive == resourceManager.isArchive()) {
             save();
             return;
         }
@@ -263,7 +339,7 @@ final class EditorSession implements DocumentSession, LocaleEditor {
         CreditsDocument credits = resourceManager.getCreditsDoc();
         Map<String, LangDocument> langs = langDocs();
 
-        ResourceManager newRm = openOrCreate(pathArg);
+        ResourceManager newRm = ResourceManager.destination(pathArg, packDescription(), format);
         try {
             newRm.adoptDocuments(credits, langs);
             newRm.writeCredits();

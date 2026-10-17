@@ -1,8 +1,11 @@
 package net.noiraude.gtnhcredits;
 
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.resources.IReloadableResourceManager;
 import net.minecraftforge.common.MinecraftForge;
 import net.noiraude.gtnhcredits.client.minecraft.gui.main_menu.CmmActionHandler;
 import net.noiraude.gtnhcredits.client.minecraft.gui.main_menu.GuiMainMenuHandler;
+import net.noiraude.gtnhcredits.repository.CreditsController;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -21,6 +24,8 @@ public class ClientProxy extends CommonProxy {
 
     @Override
     public void init(@NotNull FMLInitializationEvent ignoredEvent) {
+        ((IReloadableResourceManager) Minecraft.getMinecraft()
+            .getResourceManager()).registerReloadListener(manager -> CreditsController.resourcesReloaded());
         if (Config.getInstance().menuButtonEnabled) {
             MinecraftForge.EVENT_BUS.register(new GuiMainMenuHandler());
         }

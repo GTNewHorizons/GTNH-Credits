@@ -38,6 +38,11 @@ import org.jetbrains.annotations.UnmodifiableView;
  */
 public final class DocumentBus {
 
+    public static final String TOPIC_REQUEST_VALIDATE = "request.validate";
+    public static final String TOPIC_TRANSLATIONS = "translations";
+    public static final String TOPIC_REQUEST_TRANSLATIONS = "request.translations";
+    public static final String TOPIC_REQUEST_OPEN_PATH = "request.openPath";
+
     /**
      * Session presence and/or documents changed. {@code newValue} is the {@link Boolean}
      * session-presence flag after the change.
@@ -144,6 +149,23 @@ public final class DocumentBus {
         return requireSession().langDoc(locale);
     }
 
+    public Optional<String> externalTranslation(String key, String locale) {
+        return source.session()
+            .flatMap(session -> session.externalTranslation(key, locale));
+    }
+
+    public java.util.List<String> externalTranslationKeys() {
+        return source.session()
+            .map(DocumentSession::externalTranslationKeys)
+            .orElse(java.util.List.of());
+    }
+
+    public boolean hasTranslationCatalog() {
+        return source.session()
+            .map(DocumentSession::hasTranslationCatalog)
+            .orElse(false);
+    }
+
     private @NotNull DocumentSession requireSession() {
         return source.session()
             .orElseThrow(() -> new IllegalStateException("No session loaded"));
@@ -192,6 +214,22 @@ public final class DocumentBus {
     /** Fires {@link #TOPIC_DIRTY} carrying the session's current unsaved-changes flag. */
     public void fireDirtyChanged(boolean dirty) {
         pcs.firePropertyChange(TOPIC_DIRTY, null, dirty);
+    }
+
+    public void fireValidationRequested() {
+        pcs.firePropertyChange(TOPIC_REQUEST_VALIDATE, null, Boolean.TRUE);
+    }
+
+    public void fireTranslationsChanged() {
+        pcs.firePropertyChange(TOPIC_TRANSLATIONS, null, Boolean.TRUE);
+    }
+
+    public void fireTranslationsRequested() {
+        pcs.firePropertyChange(TOPIC_REQUEST_TRANSLATIONS, null, Boolean.TRUE);
+    }
+
+    public void fireOpenPathRequested(String path) {
+        pcs.firePropertyChange(TOPIC_REQUEST_OPEN_PATH, null, path);
     }
 
     /** Fires {@link #TOPIC_REQUEST_OPEN}. */

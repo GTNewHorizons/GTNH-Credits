@@ -162,7 +162,9 @@ final class TsvPreviewController {
             ImportLine line = lines.get(row);
             return switch (col) {
                 case 0 -> line.name;
-                case 1 -> String.join(", ", line.roles);
+                case 1 -> line.roles.stream()
+                    .map(Object::toString)
+                    .collect(java.util.stream.Collectors.joining(", "));
                 case 2 -> line.action.name()
                     .replace('_', ' ')
                     .toLowerCase(Locale.ROOT); // Keep it consistent

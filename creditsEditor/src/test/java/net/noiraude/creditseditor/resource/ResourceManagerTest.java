@@ -38,7 +38,7 @@ public class ResourceManagerTest {
 
     @Test
     public void exists_directory_isTrue() throws Exception {
-        Path dir = Files.createDirectory(temp.resolve("root"));
+        Path dir = contentDirectory("root");
         assertTrue(ResourceManager.exists(dir.toString()));
     }
 
@@ -81,7 +81,7 @@ public class ResourceManagerTest {
 
     @Test
     public void create_existingPath_throws() throws Exception {
-        Path dir = Files.createDirectory(temp.resolve("root"));
+        Path dir = contentDirectory("root");
         assertThrows(IOException.class, () -> ResourceManager.create(dir.toString(), TEST_PACK_DESCRIPTION));
     }
 
@@ -118,27 +118,27 @@ public class ResourceManagerTest {
     }
 
     @Test
-    public void open_emptyDirectory_loadsEmptyDocuments() throws Exception {
+    public void open_emptyDirectory_reportsMissingCreditsWithoutCreatingFiles() throws Exception {
         Path dir = Files.createDirectory(temp.resolve("root"));
-
-        try (ResourceManager rm = ResourceManager.open(dir.toString())) {
-            rm.loadDocuments();
-            assertTrue(rm.getCreditsDoc().categories.isEmpty());
-            assertTrue(rm.getCreditsDoc().persons.isEmpty());
-            assertFalse(rm.isDirty());
+        assertThrows(IOException.class, () -> ResourceManager.open(dir.toString()));
+        try (var entries = Files.list(dir)) {
+            assertEquals(0, entries.count());
         }
     }
 
     @Test
     public void open_directoryWithCreditsJsonButNoLangDir_loadsCreditsAndEmptyLang() throws Exception {
-        Path dir = Files.createDirectory(temp.resolve("root"));
+        Path dir = contentDirectory("root");
         Path creditsJson = dir.resolve(CreditsLayout.CREDITS.get());
         Files.createDirectories(creditsJson.getParent());
-        Files.writeString(creditsJson, "{\"version\":2,\"category\":[],\"person\":[]}\n", StandardCharsets.UTF_8);
+        Files.writeString(
+            creditsJson,
+            "{\"version\":2,\"category\":[{\"id\":\"team\"}],\"person\":[]}\n",
+            StandardCharsets.UTF_8);
 
         try (ResourceManager rm = ResourceManager.open(dir.toString())) {
             rm.loadDocuments();
-            assertTrue(rm.getCreditsDoc().categories.isEmpty());
+            assertEquals(1, rm.getCreditsDoc().categories.size());
             assertFalse(rm.isDirty(), "loading a missing lang directory must not mark the document dirty");
         }
     }
@@ -157,7 +157,7 @@ public class ResourceManagerTest {
 
     @Test
     public void open_directoryWithLangFiles_loadsAllLocales() throws Exception {
-        Path dir = Files.createDirectory(temp.resolve("root"));
+        Path dir = contentDirectory("root");
         Path langDir = dir.resolve(CreditsLayout.LANG_DIR.get());
         Files.createDirectories(langDir);
         Files.writeString(langDir.resolve("en_US.lang"), "credits.category.team=Team\n", StandardCharsets.UTF_8);
@@ -185,7 +185,7 @@ public class ResourceManagerTest {
 
     @Test
     public void addLocale_seedsEmptyDocumentAndIsIdempotent() throws Exception {
-        Path dir = Files.createDirectory(temp.resolve("root"));
+        Path dir = contentDirectory("root");
 
         try (ResourceManager rm = ResourceManager.open(dir.toString())) {
             rm.loadDocuments();
@@ -208,7 +208,7 @@ public class ResourceManagerTest {
 
     @Test
     public void removeLocale_dropsDocumentFromMemoryAndStripsOwnedKeysOnSave() throws Exception {
-        Path dir = Files.createDirectory(temp.resolve("root"));
+        Path dir = contentDirectory("root");
         Path langDir = dir.resolve(CreditsLayout.LANG_DIR.get());
         Files.createDirectories(langDir);
         Files.writeString(langDir.resolve("en_US.lang"), "", StandardCharsets.UTF_8);
@@ -246,7 +246,7 @@ public class ResourceManagerTest {
 
     @Test
     public void removeLocale_writeLang_isNoOpWhenFileMissing() throws Exception {
-        Path dir = Files.createDirectory(temp.resolve("root"));
+        Path dir = contentDirectory("root");
 
         try (ResourceManager rm = ResourceManager.open(dir.toString())) {
             rm.loadDocuments();
@@ -267,7 +267,7 @@ public class ResourceManagerTest {
 
     @Test
     public void writeLang_preservesForeignKeysAtDestination() throws Exception {
-        Path dir = Files.createDirectory(temp.resolve("root"));
+        Path dir = contentDirectory("root");
         Path langDir = dir.resolve(CreditsLayout.LANG_DIR.get());
         Files.createDirectories(langDir);
         Files.writeString(
@@ -291,7 +291,7 @@ public class ResourceManagerTest {
 
     @Test
     public void writeAllLang_overExistingDestination_preservesForeignKeys() throws Exception {
-        Path destDir = Files.createDirectory(temp.resolve("dest"));
+        Path destDir = contentDirectory("dest");
         Path destLangDir = destDir.resolve(CreditsLayout.LANG_DIR.get());
         Files.createDirectories(destLangDir);
         Files.writeString(
@@ -319,7 +319,7 @@ public class ResourceManagerTest {
 
     @Test
     public void loadAddRemoveSaveReload_threeLocales_roundTrip() throws Exception {
-        Path dir = Files.createDirectory(temp.resolve("root"));
+        Path dir = contentDirectory("root");
         Path langDir = dir.resolve(CreditsLayout.LANG_DIR.get());
         Files.createDirectories(langDir);
         Files.writeString(langDir.resolve("en_US.lang"), "credits.category.team=Team\n", StandardCharsets.UTF_8);
@@ -370,7 +370,7 @@ public class ResourceManagerTest {
 
     @Test
     public void langDocs_returnsEveryLoadedLocale() throws Exception {
-        Path dir = Files.createDirectory(temp.resolve("root"));
+        Path dir = contentDirectory("root");
         Path langDir = dir.resolve(CreditsLayout.LANG_DIR.get());
         Files.createDirectories(langDir);
         Files.writeString(langDir.resolve("en_US.lang"), "", StandardCharsets.UTF_8);
@@ -386,7 +386,7 @@ public class ResourceManagerTest {
 
     @Test
     public void snapshotAndApplyLocaleSnapshot_restoreLoadedLocaleAfterRemoval() throws Exception {
-        Path dir = Files.createDirectory(temp.resolve("root"));
+        Path dir = contentDirectory("root");
         Path langDir = dir.resolve(CreditsLayout.LANG_DIR.get());
         Files.createDirectories(langDir);
         Files.writeString(langDir.resolve("en_US.lang"), "", StandardCharsets.UTF_8);
@@ -418,7 +418,7 @@ public class ResourceManagerTest {
 
     @Test
     public void applyLocaleSnapshot_restoresPendingRemovalForUnloadedLocale() throws Exception {
-        Path dir = Files.createDirectory(temp.resolve("root"));
+        Path dir = contentDirectory("root");
 
         try (ResourceManager rm = ResourceManager.open(dir.toString())) {
             rm.loadDocuments();
@@ -432,17 +432,21 @@ public class ResourceManagerTest {
     }
 
     @Test
-    public void displayPath_returnsContainerFileName() throws Exception {
-        Path dir = Files.createDirectory(temp.resolve("my-pack"));
+    public void displayPath_returnsResolvedJsonPath() throws Exception {
+        Path dir = contentDirectory("my-pack");
 
         try (ResourceManager rm = ResourceManager.open(dir.toString())) {
-            assertEquals("my-pack", rm.displayPath());
+            assertEquals(
+                dir.resolve("credits.json")
+                    .toAbsolutePath()
+                    .toString(),
+                rm.displayPath());
         }
     }
 
     @Test
     public void location_returnsContainerPath() throws Exception {
-        Path dir = Files.createDirectory(temp.resolve("root"));
+        Path dir = contentDirectory("root");
 
         try (ResourceManager rm = ResourceManager.open(dir.toString())) {
             assertEquals(
@@ -454,11 +458,12 @@ public class ResourceManagerTest {
 
     @Test
     public void writeCredits_persistsDocumentAndRoundTrips() throws Exception {
-        Path dir = Files.createDirectory(temp.resolve("root"));
+        Path dir = contentDirectory("root");
 
         try (ResourceManager rm = ResourceManager.open(dir.toString())) {
             rm.loadDocuments();
             CreditsDocument doc = rm.getCreditsDoc();
+            doc.categories.clear();
             doc.categories.add(new DocumentCategory("team"));
 
             rm.writeCredits();
@@ -473,7 +478,7 @@ public class ResourceManagerTest {
 
     @Test
     public void writeLang_writesEveryDirtyLocale_andClearsDirtyAfterReload() throws Exception {
-        Path dir = Files.createDirectory(temp.resolve("root"));
+        Path dir = contentDirectory("root");
         Path langDir = dir.resolve(CreditsLayout.LANG_DIR.get());
         Files.createDirectories(langDir);
         Files.writeString(langDir.resolve("en_US.lang"), "credits.category.team=Team\n", StandardCharsets.UTF_8);
@@ -506,4 +511,11 @@ public class ResourceManagerTest {
             assertFalse(rm2.isDirty(), "freshly reloaded manager must not be dirty");
         }
     }
+
+    private Path contentDirectory(String name) throws Exception {
+        Path dir = Files.createDirectory(temp.resolve(name));
+        Files.writeString(dir.resolve("credits.json"), "{\"version\":2,\"category\":[{\"id\":\"team\"}]}");
+        return dir;
+    }
+
 }

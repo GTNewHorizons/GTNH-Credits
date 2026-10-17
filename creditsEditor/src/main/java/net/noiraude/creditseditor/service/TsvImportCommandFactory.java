@@ -11,6 +11,7 @@ import net.noiraude.creditseditor.command.impl.CompoundCommand;
 import net.noiraude.creditseditor.service.TsvImporter.ImportLine;
 import net.noiraude.libcredits.model.DocumentMembership;
 import net.noiraude.libcredits.model.DocumentPerson;
+import net.noiraude.libcredits.model.DocumentRole;
 
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
@@ -76,8 +77,8 @@ public final class TsvImportCommandFactory {
     }
 
     private static void addRoles(@NotNull CompoundCommand.Builder builder, @NotNull DocumentBus bus,
-        @NotNull DocumentPerson person, @NotNull DocumentMembership membership, @NotNull List<String> roles) {
-        for (String role : roles) {
+        @NotNull DocumentPerson person, @NotNull DocumentMembership membership, @NotNull List<DocumentRole> roles) {
+        for (DocumentRole role : roles) {
             builder.add(new AddPersonRoleCommand(bus, person, membership, role));
         }
     }

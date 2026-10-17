@@ -7,6 +7,7 @@ import java.util.List;
 import net.noiraude.creditseditor.bus.DocumentBus;
 import net.noiraude.libcredits.model.DocumentMembership;
 import net.noiraude.libcredits.model.DocumentPerson;
+import net.noiraude.libcredits.model.DocumentRole;
 
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
@@ -30,7 +31,7 @@ public final class MoveRolesOrderCommand extends AbstractCommand {
     private final @NotNull DocumentMembership membership;
     private final int @NotNull [] fromIndices;
     private final int dropIndex;
-    private @Nullable List<String> originalOrder;
+    private @Nullable List<DocumentRole> originalOrder;
 
     public MoveRolesOrderCommand(@NotNull DocumentBus bus, @NotNull DocumentPerson person,
         @NotNull DocumentMembership membership, int @NotNull [] fromIndices, int dropIndex) {

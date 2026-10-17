@@ -4,17 +4,21 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.util.StatCollector;
 import net.minecraft.util.StringTranslate;
+import net.noiraude.gtnhcredits.GTNHCredits;
 import net.noiraude.gtnhcredits.repository.CreditsController;
 import net.noiraude.libcredits.model.DocumentCategory;
 import net.noiraude.libcredits.model.DocumentPerson;
+import net.noiraude.libcredits.model.DocumentRole;
 
 import com.cleanroommc.modularui.api.drawable.IKey;
 import com.cleanroommc.modularui.api.drawable.ITextLine;
@@ -52,10 +56,15 @@ final class CreditsContentRenderer {
 
     // -------------------------------------------------------------------------
 
+    private static final Set<String> MISSING_TRANSLATIONS = new HashSet<>();
+
     static void render(RichText rt, CreditsController controller, int contentWidth) {
         rt.alignment(Alignment.CenterLeft);
         DocumentCategory category = controller.getSelectedCategory();
-        if (category == null) return;
+        if (category == null) {
+            rt.addLine(IKey.lang("gui.credits.empty"));
+            return;
+        }
         boolean detailRendered = category.classes.contains("detail") && appendDetail(rt, category.id);
         if (!category.classes.contains("person")) return;
         List<DocumentPerson> persons = controller.getPersonsForCategory(category);
@@ -215,7 +224,7 @@ final class CreditsContentRenderer {
 
     private static String buildPersonText(DocumentPerson person) {
         // Persons returned by getPersonsForCategory have exactly one category membership.
-        List<String> personRoles = person.memberships.isEmpty() ? Collections.emptyList()
+        List<DocumentRole> personRoles = person.memberships.isEmpty() ? Collections.emptyList()
             : person.memberships.get(0).roles;
         if (personRoles.isEmpty()) return person.name + "§r";
         String rolesText = personRoles.stream()
@@ -257,9 +266,13 @@ final class CreditsContentRenderer {
         }
     }
 
-    private static String roleDisplayName(String role) {
-        String key = "credits.person.role." + CreditsController.sanitizeKey(role);
-        return StatCollector.canTranslate(key) ? StatCollector.translateToLocal(key) : role;
+    private static String roleDisplayName(DocumentRole role) {
+        String key = role.translationKey();
+        if (StatCollector.canTranslate(key)) return StatCollector.translateToLocal(key);
+        if (role.isExternal() && MISSING_TRANSLATIONS.add(key)) {
+            GTNHCredits.LOG.warn("Credits reference missing translation key {}", key);
+        }
+        return role.value();
     }
 
     private static final class CenteredLine implements ITextLine {

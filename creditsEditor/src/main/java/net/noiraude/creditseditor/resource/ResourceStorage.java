@@ -12,25 +12,24 @@ import org.jetbrains.annotations.NotNull;
 
 /**
  * Backend-agnostic byte-level access to a GTNH Credits resource container. Implementations
- * back this interface with either a directory tree on disk or a Minecraft resource pack zip
- * file; callers cannot tell them apart.
+ * mount either a credits content directory on disk or {@code assets/gtnhcredits} inside a
+ * Minecraft resource pack zip file.
  *
  * <p>
- * Every {@code relPath} argument is a forward-slash separated path relative to the resource
- * root; values from {@link net.noiraude.libcredits.pack.CreditsLayout} are the canonical
+ * Every {@code relPath} argument is a forward-slash separated path relative to the mounted
+ * content directory; values from {@link net.noiraude.libcredits.pack.CreditsLayout} are the canonical
  * source.
  *
  * <p>
- * Use {@link #exists(String)} to query whether a resource container is available at a path,
- * then {@link #open(String)} or {@link #create(String, String)} to get an instance.
+ * Use {@link #open(String)} for existing credits and {@link #create(String, String)} for a new
+ * container. The caller owns the returned storage and must close it.
  */
 public interface ResourceStorage extends Closeable {
 
     /**
-     * Returns {@code true} when {@code pathArg} points to an existing resource container
-     * (a directory or a {@code .zip} file) that can be opened by {@link #open(String)}.
-     * False on missing paths, unsupported file types, or anything that fails to be
-     * recognized as a resource container.
+     * Tests for a candidate directory, {@code credits.json} file or ZIP. A positive result
+     * does not establish that {@link #open(String)} can resolve existing credits there.
+     * Returns {@code false} for missing paths and unsupported file types.
      */
     @Contract(pure = true)
     static boolean exists(@NotNull String pathArg) {
@@ -38,10 +37,11 @@ public interface ResourceStorage extends Closeable {
     }
 
     /**
-     * Opens an existing resource container at {@code pathArg}.
+     * Resolves existing credits from a direct JSON path, content directory, modpack root,
+     * resource-pack directory or ZIP. No files are created. Directory inputs must resolve
+     * to exactly one supported credits location; select the JSON file to disambiguate.
      *
-     * @throws IOException if {@code pathArg} does not exist or is not a recognized resource
-     *                     container
+     * @throws IOException if credits are missing, ambiguous or cannot be opened
      */
     @Contract("_ -> new")
     static @NotNull ResourceStorage open(@NotNull String pathArg) throws IOException {
@@ -52,7 +52,8 @@ public interface ResourceStorage extends Closeable {
      * Creates a new resource container at {@code pathArg}, seeded with a {@code pack.mcmeta}
      * carrying {@code packDescription}. The backend is chosen from {@code pathArg}: paths
      * ending with {@code .zip} produce a Minecraft resource pack zip; everything else
-     * produces a directory. Callers do not need to know which.
+     * produces an unpacked resource-pack directory. Both mount {@code assets/gtnhcredits}
+     * as the content directory.
      *
      * @throws IOException if {@code pathArg} already exists, or any I/O error occurs
      */
@@ -60,6 +61,10 @@ public interface ResourceStorage extends Closeable {
     static @NotNull ResourceStorage create(@NotNull String pathArg, @NotNull String packDescription)
         throws IOException {
         return ResourceStorageFactory.create(pathArg, packDescription);
+    }
+
+    default boolean isArchive() {
+        return false;
     }
 
     /** Returns {@code false} if {@code relPath} resolves to an existing file inside this storage. */

@@ -6,8 +6,6 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.List;
-
 import net.noiraude.creditseditor.bus.DocumentBus;
 import net.noiraude.creditseditor.bus.MutableSessionSource;
 import net.noiraude.creditseditor.bus.TestDocumentSession;
@@ -16,6 +14,7 @@ import net.noiraude.libcredits.model.CreditsDocument;
 import net.noiraude.libcredits.model.DocumentCategory;
 import net.noiraude.libcredits.model.DocumentMembership;
 import net.noiraude.libcredits.model.DocumentPerson;
+import net.noiraude.libcredits.model.DocumentRole;
 
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
@@ -168,14 +167,15 @@ public class CompoundCommandTest {
         DocumentMembership membership = new DocumentMembership("dev");
         Command compound = new CompoundCommand.Builder("assign with role")
             .add(new AddMembershipCommand(bus, person, membership))
-            .add(new AddPersonRoleCommand(bus, person, membership, "lead"))
+            .add(new AddPersonRoleCommand(bus, person, membership, DocumentRole.local("lead")))
             .build();
 
         compound.execute();
         assertEquals(1, person.memberships.size());
-        assertEquals(List.of("lead"), person.memberships.getFirst().roles);
+        assertEquals(java.util.List.of(DocumentRole.local("lead")), person.memberships.getFirst().roles);
 
         compound.undo();
         assertTrue(person.memberships.isEmpty());
     }
+
 }

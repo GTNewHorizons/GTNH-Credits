@@ -12,6 +12,8 @@ import java.util.Map;
 import net.noiraude.libcredits.model.CreditsDocument;
 import net.noiraude.libcredits.model.DocumentMembership;
 import net.noiraude.libcredits.model.DocumentPerson;
+import net.noiraude.libcredits.model.DocumentRole;
+import net.noiraude.libcredits.validation.CreditsValidator;
 
 import org.jetbrains.annotations.Blocking;
 import org.jetbrains.annotations.Contract;
@@ -22,7 +24,8 @@ import org.jetbrains.annotations.UnmodifiableView;
  * Parses a TSV file and computes the import plan against a {@link CreditsDocument}.
  *
  * <p>
- * File format: one person per line, tab-separated. First column is the person name
+ * File format: one person per line, tab-separated. Role columns are credits-owned ids or explicit translationKey JSON
+ * objects; existing external references are preserved. First column is the person name
  * (required). Subsequent columns are roles within the target category. Empty lines
  * and lines starting with {@code #} are ignored.
  */
@@ -45,13 +48,13 @@ public final class TsvImporter {
 
         public final @NotNull String name;
         /** All roles the person will have after import (existing + new, deduplicated). */
-        public final @NotNull List<String> roles;
+        public final @NotNull List<DocumentRole> roles;
         /** Roles that will actually be added by the import (subset of {@link #roles}). */
-        public final @NotNull List<String> newRoles;
+        public final @NotNull List<DocumentRole> newRoles;
         public final @NotNull Action action;
 
         @Contract(pure = true)
-        ImportLine(@NotNull String name, @NotNull List<String> roles, @NotNull List<String> newRoles,
+        ImportLine(@NotNull String name, @NotNull List<DocumentRole> roles, @NotNull List<DocumentRole> newRoles,
             @NotNull Action action) {
             this.name = name;
             this.roles = roles;
@@ -65,18 +68,19 @@ public final class TsvImporter {
 
     /**
      * Parses the TSV content and computes the import plan.
+     * The supplied reader is closed, including on failure; the document is not mutated.
      *
      * @param reader     source of TSV data
      * @param doc        the current document (for computing actions)
      * @param categoryId the target category id
      * @return list of parsed lines with their actions
-     * @throws IOException on read failure
+     * @throws IOException on read failure, an invalid role value or colliding local role keys
      */
     @Blocking
     public static @NotNull @UnmodifiableView List<ImportLine> parse(@NotNull Reader reader,
         @NotNull CreditsDocument doc, @NotNull String categoryId) throws IOException {
         // Merge duplicate names: later lines add their roles to the first occurrence.
-        Map<String, List<String>> merged = new LinkedHashMap<>();
+        Map<String, List<DocumentRole>> merged = new LinkedHashMap<>();
         try (BufferedReader br = new BufferedReader(reader)) {
             String line;
             while ((line = br.readLine()) != null) {
@@ -87,20 +91,36 @@ public final class TsvImporter {
                 String name = parts[0].strip();
                 if (name.isEmpty()) continue;
 
-                List<String> roles = merged.computeIfAbsent(name, k -> new ArrayList<>());
+                List<DocumentRole> roles = merged.computeIfAbsent(name, k -> new ArrayList<>());
                 for (int i = 1; i < parts.length; i++) {
-                    String role = parts[i].strip();
-                    if (!role.isEmpty() && !roles.contains(role)) {
-                        roles.add(role);
+                    String value = parts[i].strip();
+                    if (!value.isEmpty()) {
+                        DocumentRole role;
+                        try {
+                            role = value.startsWith("{")
+                                ? net.noiraude.libcredits.parser.CreditsParser.parseRoleJson(value)
+                                : DocumentRole.local(value);
+                        } catch (IllegalArgumentException | net.noiraude.libcredits.parser.CreditsParseException ex) {
+                            throw new IOException("Invalid role for " + name + ": " + ex.getMessage(), ex);
+                        }
+                        if (!roles.contains(role)) roles.add(role);
                     }
                 }
             }
         }
 
+        List<String> errors = CreditsValidator.validateRoleAdditions(
+            doc,
+            merged.values()
+                .stream()
+                .flatMap(List::stream)
+                .toList());
+        if (!errors.isEmpty()) throw new IOException(String.join("\n", errors));
+
         List<ImportLine> lines = new ArrayList<>();
-        for (Map.Entry<String, List<String>> entry : merged.entrySet()) {
+        for (Map.Entry<String, List<DocumentRole>> entry : merged.entrySet()) {
             String name = entry.getKey();
-            List<String> tsvRoles = entry.getValue();
+            List<DocumentRole> tsvRoles = entry.getValue();
             lines.add(buildImportLine(doc, categoryId, name, tsvRoles));
         }
         return Collections.unmodifiableList(lines);
@@ -108,7 +128,7 @@ public final class TsvImporter {
 
     @Contract("_, _, _, _ -> new")
     private static @NotNull ImportLine buildImportLine(@NotNull CreditsDocument doc, @NotNull String categoryId,
-        @NotNull String name, @NotNull List<String> tsvRoles) {
+        @NotNull String name, @NotNull List<DocumentRole> tsvRoles) {
         DocumentPerson person = doc.persons.stream()
             .filter(p -> p.name.equals(name))
             .findFirst()
@@ -136,9 +156,9 @@ public final class TsvImporter {
         }
 
         // Merge: existing roles first, then any new roles from the TSV
-        List<String> allRoles = new ArrayList<>(membership.roles);
-        List<String> newRoles = new ArrayList<>();
-        for (String role : tsvRoles) {
+        List<DocumentRole> allRoles = new ArrayList<>(membership.roles);
+        List<DocumentRole> newRoles = new ArrayList<>();
+        for (DocumentRole role : tsvRoles) {
             if (!allRoles.contains(role)) {
                 allRoles.add(role);
                 newRoles.add(role);

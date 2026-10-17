@@ -23,6 +23,7 @@ import net.noiraude.creditseditor.ui.I18n;
 import net.noiraude.libcredits.lang.LangKey;
 import net.noiraude.libcredits.model.DocumentMembership;
 import net.noiraude.libcredits.model.DocumentPerson;
+import net.noiraude.libcredits.model.DocumentRole;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -49,6 +50,7 @@ public final class MembershipRolePanel extends JPanel {
         this.onCommand = onCommand;
         this.roleListPanel = new RoleListPanel(bus, onCommand);
         this.roleDetailCard = new RoleDetailCard(this::onRoleDisplayNameChanged);
+        this.roleDetailCard.setReferenceCommit(roleListPanel::replaceSelectedReference);
         this.roleDetailCard.setEnglishValueSupplier(this::englishDisplayName);
         this.roleDetailCard.setActiveLocale(bus.activeLocale());
 
@@ -58,6 +60,7 @@ public final class MembershipRolePanel extends JPanel {
 
         roleListPanel.setSelectionListener(this::refreshDetailForm);
         bus.addListener(DocumentBus.TOPIC_LOCALE, e -> onLocaleChanged());
+        bus.addListener(DocumentBus.TOPIC_TRANSLATIONS, e -> refreshDetailForm());
         bus.addListener(DocumentBus.TOPIC_LANG, e -> {
             Object nv = e.getNewValue();
             if (nv != null) onLangChanged(nv.toString());
@@ -102,20 +105,31 @@ public final class MembershipRolePanel extends JPanel {
     }
 
     private void refreshDetailForm() {
-        List<String> selected = roleListPanel.getSelectedRoles();
+        List<DocumentRole> selected = roleListPanel.getSelectedRoles();
         if (selected.size() != 1) {
             currentRoleKey = Optional.empty();
             shadowRoleDisplayName = "";
             roleDetailCard.clear();
             return;
         }
-        String role = selected.getFirst();
+        DocumentRole role = selected.getFirst();
+        if (role.isExternal()) {
+            currentRoleKey = Optional.empty();
+            Optional<String> preview = bus.externalTranslation(role.translationKey(), bus.activeLocale());
+            roleDetailCard.loadExternal(
+                role.value(),
+                preview.orElse(""),
+                I18n.get(
+                    preview.isPresent() ? "role.external.read_only"
+                        : bus.hasTranslationCatalog() ? "role.external.missing" : "role.external.no_catalog"));
+            return;
+        }
         String langKeyStr = RoleListPanel.langKeyForRole(role);
         LangKey langKey = new LangKey(langKeyStr);
         String displayName = resolveDisplayName(langKey);
         currentRoleKey = Optional.of(langKey);
         shadowRoleDisplayName = displayName;
-        roleDetailCard.load(role, langKeyStr, displayName);
+        roleDetailCard.load(role.value(), langKeyStr, displayName);
     }
 
     private void onLocaleChanged() {

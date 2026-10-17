@@ -146,9 +146,11 @@ public class EditorMenuBarTest {
 
     @Contract(" -> new")
     private @NotNull EditorSession newSession() throws Exception {
-        return EditorSession.open(
+        return EditorSession.create(
             Files.createTempDirectory(temp, "session")
-                .toString());
+                .resolve("content")
+                .toString(),
+            net.noiraude.libcredits.pack.CreditsLayout.Format.CONTENT_DIRECTORY);
     }
 
     @Contract("_, _, _, _ -> new")

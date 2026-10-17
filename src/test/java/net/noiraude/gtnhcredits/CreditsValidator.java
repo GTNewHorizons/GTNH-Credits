@@ -3,15 +3,9 @@ package net.noiraude.gtnhcredits;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 import com.google.gson.Gson;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.networknt.schema.Error;
 import com.networknt.schema.InputFormat;
@@ -44,6 +38,22 @@ public final class CreditsValidator {
      * An empty list means the document is valid.
      */
     public static List<String> validate(JsonObject root) {
+        List<String> errors = validateSchema(root);
+        if (!errors.isEmpty()) return errors;
+
+        try {
+            net.noiraude.libcredits.parser.CreditsParser.parse(
+                new java.io.ByteArrayInputStream(
+                    GSON.toJson(root)
+                        .getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+        } catch (Exception ex) {
+            errors.add(ex.getMessage());
+        }
+        return errors;
+    }
+
+    /** Checks the published schema independently of stricter reader validation. */
+    static List<String> validateSchema(JsonObject root) {
         List<String> errors = new ArrayList<>();
 
         try (InputStream schemaStream = new FileInputStream("credits.schema.json")) {
@@ -54,90 +64,7 @@ public final class CreditsValidator {
             }
         } catch (Exception e) {
             errors.add("schema validation error: " + e.getMessage());
-            return errors;
         }
-
-        if (!errors.isEmpty()) return errors;
-
-        JsonArray categoryArray = root.getAsJsonArray("category");
-        JsonArray personArray = root.has("person") ? root.getAsJsonArray("person") : new JsonArray();
-        validateSemantics(categoryArray, personArray, errors);
         return errors;
-    }
-
-    private static void validateSemantics(JsonArray categoryArray, JsonArray personArray, List<String> errors) {
-        List<String> ids = collectCategoryIds(categoryArray);
-        checkDuplicateIds(ids, errors);
-        checkPersonCategoryRefs(personArray, new HashSet<>(ids), errors);
-    }
-
-    private static List<String> collectCategoryIds(JsonArray categoryArray) {
-        List<String> ids = new ArrayList<>();
-        for (JsonElement el : categoryArray) {
-            if (
-                el.isJsonObject() && el.getAsJsonObject()
-                    .has("id")
-            ) {
-                ids.add(
-                    el.getAsJsonObject()
-                        .get("id")
-                        .getAsString());
-            }
-        }
-        return ids;
-    }
-
-    private static void checkDuplicateIds(List<String> ids, List<String> errors) {
-        Set<String> seen = new HashSet<>();
-        Set<String> dupes = new LinkedHashSet<>();
-        for (String id : ids) {
-            if (!seen.add(id)) dupes.add(id);
-        }
-        if (!dupes.isEmpty()) errors.add("duplicate category ids: " + dupes);
-    }
-
-    private static void checkPersonCategoryRefs(JsonArray personArray, Set<String> categoryIdSet, List<String> errors) {
-        for (int i = 0; i < personArray.size(); i++) {
-            if (
-                !personArray.get(i)
-                    .isJsonObject()
-            ) continue;
-            JsonObject person = personArray.get(i)
-                .getAsJsonObject();
-            if (!person.has("name") || !person.has("category")) continue;
-            String name = person.get("name")
-                .getAsString();
-            for (String catId : extractCategoryIds(person.get("category"))) {
-                if (!categoryIdSet.contains(catId)) {
-                    errors.add("person[" + i + "] (\"" + name + "\"): unknown category id \"" + catId + "\"");
-                }
-            }
-        }
-    }
-
-    /**
-     * Extracts all category ids from a person's {@code category} field.
-     * Each entry is either a plain string (the id) or a single-property object (the property name is the id).
-     */
-    static List<String> extractCategoryIds(JsonElement categoryEl) {
-        List<String> ids = new ArrayList<>();
-        List<JsonElement> entries = new ArrayList<>();
-        if (categoryEl.isJsonArray()) {
-            categoryEl.getAsJsonArray()
-                .forEach(entries::add);
-        } else {
-            entries.add(categoryEl);
-        }
-        for (JsonElement entry : entries) {
-            if (entry.isJsonPrimitive()) {
-                ids.add(entry.getAsString());
-            } else if (entry.isJsonObject()) {
-                for (Map.Entry<String, JsonElement> kv : entry.getAsJsonObject()
-                    .entrySet()) {
-                    ids.add(kv.getKey());
-                }
-            }
-        }
-        return ids;
     }
 }

@@ -29,9 +29,8 @@ val flatLafVersion: String by gradle.extra
 dependencies {
     add("implementation", project(":libCredits"))
     // libCredits declares gson as compileOnly (Minecraft provides it at runtime in the mod);
-    // the standalone editor must satisfy that runtime dependency itself, but never imports gson.
-    add("runtimeOnly", "com.google.code.gson:gson:$gsonVersion")
-    add("testRuntimeOnly", "com.google.code.gson:gson:$gsonVersion")
+    // The standalone editor also reads Minecraft launcher and asset-index metadata.
+    add("implementation", "com.google.code.gson:gson:$gsonVersion")
     add("implementation", "com.formdev:flatlaf:$flatLafVersion")
     add("testImplementation", "org.junit.jupiter:junit-jupiter:$junitJupiterVersion")
     add("testRuntimeOnly", "org.junit.platform:junit-platform-launcher")
@@ -143,7 +142,15 @@ tasks.register("generateActionIcons") {
 }
 
 tasks.named<JavaExec>("run") {
-    args(rootProject.file("src/main/resources"))
+    jvmArgs("-ea")
+}
+
+tasks.register<JavaExec>("runExample") {
+    group = "application"
+    description = "Opens explicit development credits fixtures."
+    classpath = sourceSets.main.get().runtimeClasspath
+    mainClass.set(application.mainClass)
+    args(rootProject.file("fixtures/content"))
     jvmArgs("-ea")
 }
 

@@ -12,6 +12,7 @@ import net.noiraude.libcredits.model.CreditsDocument;
 import net.noiraude.libcredits.model.DocumentCategory;
 import net.noiraude.libcredits.model.DocumentMembership;
 import net.noiraude.libcredits.model.DocumentPerson;
+import net.noiraude.libcredits.model.DocumentRole;
 import net.noiraude.libcredits.util.PersonSortKey;
 
 import com.google.gson.GsonBuilder;
@@ -32,14 +33,18 @@ public final class CreditsSerializer {
     private CreditsSerializer() {}
 
     /**
-     * Writes {@code doc} as a {@code credits.json} document to {@code out}.
+     * Writes {@code doc} as a version-3 {@code credits.json} document to {@code out},
+     * including documents originally read from version 2. The input is not mutated.
      * The caller is responsible for closing the stream.
      *
-     * @throws IOException if the stream cannot be written
+     * @throws IllegalArgumentException if the document violates structural or reference constraints
+     * @throws IOException              if the stream cannot be written
      */
     public static void write(CreditsDocument doc, OutputStream out) throws IOException {
+        List<String> errors = net.noiraude.libcredits.validation.CreditsValidator.validate(doc);
+        if (!errors.isEmpty()) throw new IllegalArgumentException(String.join("; ", errors));
         JsonObject root = new JsonObject();
-        root.addProperty("version", 2);
+        root.addProperty("version", net.noiraude.libcredits.parser.CreditsParser.CURRENT_VERSION);
         root.add("category", serializeCategories(doc.categories));
         if (!doc.persons.isEmpty()) {
             root.add("person", serializePersons(doc.persons));
@@ -111,12 +116,19 @@ public final class CreditsSerializer {
         }
         JsonObject obj = new JsonObject();
         if (m.roles.size() == 1) {
-            obj.addProperty(m.categoryId, m.roles.getFirst());
+            obj.add(m.categoryId, serializeRole(m.roles.getFirst()));
         } else {
             JsonArray arr = new JsonArray();
-            for (String role : m.roles) arr.add(role);
+            for (DocumentRole role : m.roles) arr.add(serializeRole(role));
             obj.add(m.categoryId, arr);
         }
         return obj;
+    }
+
+    private static JsonElement serializeRole(DocumentRole role) {
+        if (!role.isExternal()) return new JsonPrimitive(role.value());
+        JsonObject reference = new JsonObject();
+        reference.addProperty("translationKey", role.value());
+        return reference;
     }
 }

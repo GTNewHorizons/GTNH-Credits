@@ -5,20 +5,22 @@ GTNH Credits mod.
 
 ## Running from the repository (development)
 
-This runs the editor directly via Gradle, pointing it at the mod's resource
-directory:
+Run the editor with no document selected:
 
 ```sh
 ./gradlew :creditsEditor:run
 ```
 
-The `run` task passes `src/main/resources` as the working directory
-automatically.
-
-To pass a different path:
+Open a local modpack checkout directly:
 
 ```sh
-./gradlew :creditsEditor:run --args="<path_to_resources>"
+./gradlew :creditsEditor:run --args="/path/to/GT-New-Horizons-Modpack"
+```
+
+Open explicit development examples:
+
+```sh
+./gradlew :creditsEditor:runExample
 ```
 
 ## Installing
@@ -122,30 +124,94 @@ On Windows, `.exe`-installed copies are removed via the Windows
 
 ## Usage
 
+```sh
+gtnh-credits-editor /path/to/GT-New-Horizons-Modpack
+gtnh-credits-editor /path/to/credits.json
+gtnh-credits-editor /path/to/content-directory
+gtnh-credits-editor /path/to/resource-directory
+gtnh-credits-editor my-pack.zip
 ```
-gtnh-credits-editor [<path>]
-```
 
-The path argument is optional. Without it, the editor opens with no file loaded, 
-and you can use **File > Open** or **File > New** from the GUI.
+A modpack root resolves to `config/txloader/load/gtnhcredits`. A content directory
+contains `credits.json` and `lang/`. A standard resource directory or ZIP contains
+`assets/gtnhcredits/credits.json` and `assets/gtnhcredits/lang/`.
 
-When a path is supplied, the editor opens it directly on startup:
+Open requires existing credits. Missing or ambiguous locations produce an error
+and are not initialized as projects. Selecting a direct `credits.json` resolves
+ambiguity. The window title displays the resolved JSON path. With no argument,
+use File > Open, Open Recent, or New; recent locations are stored locally per user.
 
-| Path form                           | Behaviour                                                     |
-|:------------------------------------|:--------------------------------------------------------------|
-| Existing directory                  | Opened as a resource tree                                     |
-| Existing `.zip` file                | Opened as a Minecraft resource pack                           |
-| Non-existent path, no `.zip` suffix | Directory is created and opened as a resource tree            |
-| Non-existent path, `.zip` suffix    | Resource pack zip is created with `pack.mcmeta` for MC 1.7.10 |
+New and Save As explicitly offer a content directory, a standard resource
+directory, or a resource-pack ZIP. Content directories are suitable for TX Loader;
+standard resource packs include `pack.mcmeta`. Saving an opened project preserves
+its original layout. Save As writes to the selected layout and retargets the
+session. Existing unrelated files and foreign language entries are preserved.
 
-**Examples:**
+### Content editing and external names
+
+The editor remains distributed with GTNH-Credits because it owns the format. It
+edits local modpack content in place; content can be committed independently of a
+mod release. JSON saves use version 3, while version-2 documents remain readable.
+Opening or validating a document does not upgrade it on disk.
+
+A normal role is a credits-owned id with editable language text. In the add-role
+prompt, select **Use an external Minecraft translation key** to reference a name
+owned by another mod. The complete key is preserved. External names have a
+read-only preview; use **Edit reference...** to change the key with undo support.
+They are never copied into the credits language files. TSV import role columns
+accept either a local role id or an explicit `{ "translationKey": "..." }` JSON
+object; imported references retain their source and existing references are preserved.
+
+For search and previews, load a local Minecraft instance using
+**Edit > Load Minecraft translations...**, or pass it explicitly:
 
 ```sh
-gtnh-credits-editor                        # open GUI, choose file from menu
-gtnh-credits-editor src/main/resources     # open existing resource tree
-gtnh-credits-editor my-pack.zip            # open or create a resource pack
+gtnh-credits-editor /path/to/modpack-checkout --instance=/path/to/minecraft
 ```
 
-The editor reads and writes `assets/gtnhcredits/credits.json` and
-`assets/gtnhcredits/lang/*.lang` inside the resource root.
-See [credits.schema.md](../credits.schema.md) for the JSON format.
+Opening content inside an installed instance automatically uses the nearest
+ancestor with mod jars. A config-only checkout can edit and preserve references
+without a catalogue. When base-game English resources cannot be located, known
+translations remain available for search and previews, but unresolved references
+are reported as unchecked rather than missing.
+
+The catalogue reads Minecraft 1.7.10's base language resources from standard
+launcher `versions/1.7.10/1.7.10.jar` or Prism/MultiMC's selected Minecraft component
+and shared libraries. Downloaded vanilla languages are read from the matching
+local asset index and objects. Unsupported launcher layouts leave external
+existence checks unavailable.
+
+Mod `.jar` and `.zip` archives are read directly from `mods/` and `mods/1.7.10/`;
+archives in other version directories or nested backup folders are ignored. The
+catalogue also reads TX Loader and enabled resource packs listed in `options.txt`;
+it never starts Minecraft or executes mod code.
+It also reads the installed instance's generated `GregTech.lang` as an English
+fallback. Standard language resources take precedence over these saved defaults.
+Run the instance once to generate that file. Other runtime-generated translations
+without saved resources and unusual mod-specific loading behavior require an
+in-game check. Names fall back from the selected locale to English.
+
+GTNH's official TX Loader content opens on the English source locale. Community
+translations continue through GTNH-Translations / ParaTranz. The editor retains
+multi-locale support for standalone resource packs.
+
+### Validation for contributors and CI
+
+Use **Edit > Validate Credits** for the active document, or validate without a GUI:
+
+```sh
+gtnh-credits-editor --validate /path/to/modpack-checkout
+gtnh-credits-editor --validate /path/to/modpack-checkout --instance=/path/to/minecraft
+gtnh-credits-editor --schema > credits.schema.json
+```
+
+Validation reads existing content without creating or rewriting files. Exit code
+`0` means the requested checks passed; `1` means validation or I/O failed; `2`
+means command-line arguments were invalid. It checks structure, supported format
+versions, references, normalized-key collisions, and source English text. External
+key existence is checked when `--instance` is supplied and its base-game English
+resources are available; otherwise that check is explicitly reported as skipped
+when external references are present.
+
+See [the schema reference](../credits.schema.md) and
+[the pack upgrade instructions](../README.md#upgrading-an-existing-pack).

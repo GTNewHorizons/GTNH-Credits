@@ -15,6 +15,7 @@ class CreditsView extends ScrollWidget<CreditsView> {
 
     private final CachedRichTextWidget richTextWidget;
     private final CreditsController controller;
+    private long lastRevision = -1;
     private int lastSelectedIndex = -1;
     private String lastFilter = "";
     private FilterMethod lastFilterMethod = null;
@@ -43,6 +44,11 @@ class CreditsView extends ScrollWidget<CreditsView> {
     public void onUpdate() {
         super.onUpdate();
 
+        long revision = controller.getRevision();
+        if (revision != lastRevision) {
+            lastRevision = revision;
+            this.richTextWidget.markDirty();
+        }
         int currentIndex = this.controller.getSelectedIndex();
         if (currentIndex != this.lastSelectedIndex) {
             this.lastSelectedIndex = currentIndex;

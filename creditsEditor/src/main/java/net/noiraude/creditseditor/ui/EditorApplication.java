@@ -24,6 +24,7 @@ public final class EditorApplication {
         new SaveAsPresenter(bus, window, holder);
         this.openPresenter = new OpenPresenter(bus, window, holder, gate);
         new QuitPresenter(bus, holder, gate);
+        new TranslationPresenter(bus, window, holder, path -> openPresenter.setInstancePath(path.toString()));
         new UndoRedoPresenter(bus, holder, commandPresenter);
         new HelpPresenter(bus, window);
         new TitlePresenter(bus, window, holder);
@@ -32,6 +33,11 @@ public final class EditorApplication {
 
     /** Shows the main window and loads {@code initialPath} if provided. */
     public void start(@Nullable String initialPath) {
+        start(initialPath, null);
+    }
+
+    public void start(@Nullable String initialPath, @Nullable String instancePath) {
+        openPresenter.setInstancePath(instancePath);
         window.setVisible(true);
         if (initialPath != null) openPresenter.loadInitial(initialPath);
     }

@@ -35,3 +35,8 @@ configurations.matching { it.name == "runtimeElements" || it.name == "apiElement
         attribute(rfgTransformed, true)
     }
 }
+
+// Ship the format contract with both the mod library and the standalone editor.
+tasks.processResources {
+    from(rootProject.file("credits.schema.json"))
+}

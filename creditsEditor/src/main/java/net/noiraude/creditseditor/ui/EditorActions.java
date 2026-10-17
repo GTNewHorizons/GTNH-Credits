@@ -7,6 +7,7 @@ import org.jetbrains.annotations.NotNull;
 /** Registry of every editor action instance, shared by the menu bar and the toolbar. */
 final class EditorActions {
 
+    final DocumentBus bus;
     final @NotNull OpenAction open;
     final @NotNull NewAction newDoc;
     final @NotNull SaveAction save;
@@ -19,6 +20,7 @@ final class EditorActions {
     final @NotNull AboutAction about;
 
     EditorActions(@NotNull DocumentBus bus) {
+        this.bus = bus;
         open = new OpenAction(bus);
         newDoc = new NewAction(bus);
         save = new SaveAction(bus);

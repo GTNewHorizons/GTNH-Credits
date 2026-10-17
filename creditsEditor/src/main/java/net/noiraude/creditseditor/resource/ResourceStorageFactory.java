@@ -8,84 +8,117 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
+import net.noiraude.libcredits.pack.CreditsLayout;
+import net.noiraude.libcredits.pack.CreditsLayout.Format;
 import net.noiraude.libcredits.pack.PackMcmeta;
 
-import org.jetbrains.annotations.Contract;
-import org.jetbrains.annotations.NotNull;
-
-/**
- * Internal helpers that decide which {@link ResourceStorage} implementation backs a given
- * user-supplied path. The only place in the codebase that knows about directories vs jar
- * URIs vs {@link PackMcmeta} seeding.
- */
+/** Resolves user-selected locations once; all storage paths are then relative to the credits content. */
 final class ResourceStorageFactory {
 
-    private static final String ZIP_SUFFIX = ".zip";
-
-    @Contract(pure = true)
     private ResourceStorageFactory() {}
 
-    static boolean exists(@NotNull String pathArg) {
+    static boolean exists(String pathArg) {
         Path path = Paths.get(pathArg);
-        if (!Files.exists(path) || !Files.isReadable(path)) {
-            return false;
-        }
-        return Files.isDirectory(path) || (pathArg.endsWith(ZIP_SUFFIX) && Files.isRegularFile(path));
+        return Files.isDirectory(path) || Files.isRegularFile(path) && (pathArg.toLowerCase(java.util.Locale.ROOT)
+            .endsWith(".zip")
+            || path.getFileName()
+                .toString()
+                .equals("credits.json"));
     }
 
-    @Contract("_ -> new")
-    static @NotNull ResourceStorage open(@NotNull String pathArg) throws IOException {
-        Path path = Paths.get(pathArg);
-        if (!Files.exists(path)) {
-            throw new IOException("No resource container at " + path);
+    static ResourceStorage open(String pathArg) throws IOException {
+        Path path = Paths.get(pathArg)
+            .toAbsolutePath()
+            .normalize();
+        if (Files.isDirectory(path)) return new DirectoryStorage(resolveDirectory(path));
+        if (
+            Files.isRegularFile(path) && path.getFileName()
+                .toString()
+                .equals("credits.json")
+        ) {
+            return new DirectoryStorage(path.getParent());
         }
-        if (Files.isDirectory(path)) {
-            return new DirectoryStorage(path);
+        if (
+            Files.isRegularFile(path) && pathArg.toLowerCase(java.util.Locale.ROOT)
+                .endsWith(".zip")
+        ) {
+            ResourceStorage storage = zip(path, false, "");
+            if (storage.hasNoFile(CreditsLayout.CREDITS.get())) {
+                storage.close();
+                throw new IOException("No assets/gtnhcredits/credits.json in " + path);
+            }
+            return storage;
         }
-        if (pathArg.endsWith(ZIP_SUFFIX) && Files.isRegularFile(path)) {
-            return new ZipPackStorage(path, openZipFilesystem(path, false));
-        }
-        throw new IOException("Path is not a recognized resource container: " + path);
+        throw new IOException("No credits found at " + path + ". Use New to create credits.");
     }
 
-    @Contract("_, _ -> new")
-    static @NotNull ResourceStorage create(@NotNull String pathArg, @NotNull String packDescription)
-        throws IOException {
-        Path path = Paths.get(pathArg);
-        if (Files.exists(path)) {
-            throw new IOException("Refusing to overwrite existing path: " + path);
+    private static Path resolveDirectory(Path root) throws IOException {
+        List<Path> candidates = new ArrayList<>();
+        for (String relative : new String[] { "", CreditsLayout.RESOURCE_DIRECTORY, CreditsLayout.MODPACK_DIRECTORY }) {
+            Path candidate = root.resolve(relative);
+            if (Files.isRegularFile(candidate.resolve("credits.json"))) candidates.add(candidate);
         }
-        if (pathArg.endsWith(ZIP_SUFFIX)) {
-            return new ZipPackStorage(path, createResourcePackZip(path, packDescription));
+        if (candidates.size() == 1) return candidates.getFirst();
+        if (
+            candidates.isEmpty()
+        ) throw new IOException(
+            "No credits.json found at " + root
+                + ". Select a credits file, content directory, modpack root or resource pack.");
+        throw new IOException(
+            "Multiple credits locations in " + root
+                + ": "
+                + candidates
+                + ". Select the intended credits.json explicitly.");
+    }
+
+    static ResourceStorage create(String pathArg, String description) throws IOException {
+        return create(pathArg, description, Format.RESOURCE_PACK);
+    }
+
+    static ResourceStorage create(String pathArg, String description, Format format) throws IOException {
+        Path path = Paths.get(pathArg)
+            .toAbsolutePath()
+            .normalize();
+        if (Files.exists(path)) throw new IOException("Refusing to overwrite existing path: " + path);
+        return destination(pathArg, description, format);
+    }
+
+    /** Opens a destination in the explicitly chosen format, preserving unrelated existing files. */
+    static ResourceStorage destination(String pathArg, String description, Format format) throws IOException {
+        Path path = Paths.get(pathArg)
+            .toAbsolutePath()
+            .normalize();
+        if (
+            format == Format.RESOURCE_PACK && pathArg.toLowerCase(java.util.Locale.ROOT)
+                .endsWith(".zip")
+        ) return zip(path, !Files.exists(path), description);
+        if (Files.exists(path) && !Files.isDirectory(path)) throw new IOException("Not a directory: " + path);
+        Files.createDirectories(path);
+        if (format != Format.CONTENT_DIRECTORY) {
+            Path metadata = path.resolve(PackMcmeta.PATH);
+            if (!Files.exists(metadata))
+                Files.writeString(metadata, PackMcmeta.build(description), StandardCharsets.UTF_8);
+            path = path.resolve(CreditsLayout.RESOURCE_DIRECTORY);
         }
         Files.createDirectories(path);
-        Path mcmeta = path.resolve(PackMcmeta.PATH);
-        Files.writeString(mcmeta, PackMcmeta.build(packDescription), StandardCharsets.UTF_8);
         return new DirectoryStorage(path);
     }
 
-    private static @NotNull FileSystem openZipFilesystem(@NotNull Path zip, boolean create) throws IOException {
-        URI uri = URI.create("jar:" + zip.toUri());
-        Map<String, String> env = new HashMap<>();
-        if (create) {
-            env.put("create", "true");
+    private static ResourceStorage zip(Path path, boolean create, String description) throws IOException {
+        if (create && path.getParent() != null) Files.createDirectories(path.getParent());
+        FileSystem fs = FileSystems
+            .newFileSystem(URI.create("jar:" + path.toUri()), create ? Map.of("create", "true") : Map.of());
+        try {
+            if (create) Files
+                .writeString(fs.getPath("/", PackMcmeta.PATH), PackMcmeta.build(description), StandardCharsets.UTF_8);
+            return new ZipPackStorage(path, fs);
+        } catch (Exception ex) {
+            fs.close();
+            throw ex;
         }
-        return FileSystems.newFileSystem(uri, env);
-    }
-
-    private static @NotNull FileSystem createResourcePackZip(@NotNull Path zip, @NotNull String packDescription)
-        throws IOException {
-        Path parent = zip.getParent();
-        if (parent != null) {
-            Files.createDirectories(parent);
-        }
-        // Write pack.mcmeta then close to flush the zip, then reopen for use.
-        try (FileSystem fs = openZipFilesystem(zip, true)) {
-            Files.writeString(fs.getPath(PackMcmeta.PATH), PackMcmeta.build(packDescription), StandardCharsets.UTF_8);
-        }
-        return openZipFilesystem(zip, false);
     }
 }

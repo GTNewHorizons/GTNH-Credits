@@ -93,91 +93,132 @@ menu_button {
 The default is `false`. If CMM is not installed or has no Credits entry, set
 `B:enabled=true` to add the mod's button to the vanilla main menu instead.
 
-## Resource files
+## Credits content and translations
 
-Credits data is driven by a `credits.json` for the semantic credits
-content and associated `.lang` resource files for localized display
-text. The bundled files are loaded through Minecraft's standard resource
-manager, so they can be included as part of the mod jar or overridden by a
-resource pack.
+The mod owns the format, renderer, editor, and interface text. The modpack owns
+its credits document and English category names, descriptions, and role labels.
+Community translations are maintained through GTNH-Translations / ParaTranz.
 
-If `config/gtnh-credits/credits.json` exists in the Minecraft instance, it replaces
-the bundled `credits.json`. This lets a modpack maintain its credits without
-rebuilding the mod. When the config file is absent, the bundled resource (or
-resource-pack override) is used.
+At runtime the mod reads `gtnhcredits:credits.json` through Minecraft's resource
+manager. A standard resource pack supplies:
 
-### `credits.json`
+```text
+assets/gtnhcredits/credits.json
+assets/gtnhcredits/lang/en_US.lang
+```
 
-ResourceLocation:
-[`assets/gtnhcredits/credits.json`](src/main/resources/assets/gtnhcredits/credits.json)
+For GTNH's existing TX Loader installation, put the same content in the modpack
+repository at:
 
-Defines the credit categories, credited persons, and roles for those
-categories that can be displayed in the credit screen. A category
-groups persons under a common heading and controls what is rendered
-via its `class` markers. A person belongs to one or more categories
-and may carry one or more roles.
+```text
+config/txloader/load/gtnhcredits/credits.json
+config/txloader/load/gtnhcredits/lang/en_US.lang
+```
 
-See **[credits.schema.md](credits.schema.md)** for the full format
-reference.
+The renderer has no dependency on TX Loader. Use its normal `load/` directory so
+translation and other resource packs can override content. Keep behavioral
+settings in `config/gtnh-credits/gtnh-credits.cfg`.
 
-#### Minimal example
+The old standalone `config/gtnh-credits/credits.json` is no longer loaded. Its
+presence produces a migration warning; it is never moved or deleted automatically.
+See [Upgrading an existing pack](#upgrading-an-existing-pack) before upgrading.
+
+The release jar contains UI labels and no production roster or credits wording.
+If no credits resource is available, the screen displays an empty-state message.
+Resource reloads refresh the document and the displayed translations.
+
+### Upgrading an existing pack
+
+1. Move the standalone credits JSON and its credits-owned English language keys
+   into the TX Loader paths shown above. Leave behavioral settings in their cfg.
+   Keep `gui.credits.*` interface translations in the mod and update the
+   GTNH-Translations extraction source for pack-owned text.
+2. Replace machine-name role ids with `{ "translationKey": "..." }` references
+   using the defining mod's exact name keys. Set the document version to `3`
+   when using references, then remove the duplicated machine names from the
+   credits language files. Retain category and ordinary role ids.
+3. Validate with the updated editor's `--validate /path/to/modpack` command.
+   Supply `--instance=/path/to/minecraft` to check against installed language
+   resources and saved GregTech defaults. If base-game resources cannot be located,
+   external existence checks are reported as unchecked. Check the screen in English and another
+   language, including resource reloads.
+4. Ship the content move with the updated mod. Arrange removal of the obsolete
+   standalone JSON through the pack updater; the mod only warns about that file.
+
+Keep the preceding content and matching mod release for rollback. Older readers
+cannot consume external-reference objects; restore the previous content and
+reader together. Opening or validating with the updated editor does not rewrite
+files. Saving emits version 3, expands legacy combined membership maps and omits
+ignored version-2 `username` metadata, so retain any needed metadata separately.
+
+### Document format
+
+See [credits.schema.md](credits.schema.md) for the complete contract and
+[credits.schema.json](credits.schema.json) for the machine-readable schema.
+Version 2 remains readable; saving JSON produces version 3. Unsupported versions
+are rejected explicitly. The schema also ships inside the editor distribution.
 
 ```json
 {
+  "version": 3,
   "category": [
-    {
-      "id": "dev",
-      "class": [
-        "detail",
-        "person",
-        "role"
-      ]
-    }
+    { "id": "development", "class": ["detail", "person", "role"] },
+    { "id": "gt_multiblocks", "class": ["detail", "person", "role"] }
   ],
   "person": [
     {
-      "name": "Alice",
-      "category": "dev",
-      "role": "core-dev"
+      "name": "Example Contributor",
+      "category": [
+        { "development": "coordinator" },
+        {
+          "gt_multiblocks": {
+            "translationKey": "gt.blockmachines.multimachine.nanochipassemblycomplex.name"
+          }
+        }
+      ]
     }
   ]
 }
 ```
 
-#### Category `class` markers
+Category markers are `detail` (description), `person` (people), and `role` (labels
+beside people). The category title is always displayed; unknown markers are ignored.
+People can have multiple category memberships, each with its own role labels.
 
-| Value    | Effect                                                                                                              |
-|:---------|:--------------------------------------------------------------------------------------------------------------------|
-| `detail` | Renders the category description from the lang file; the category name is always shown as a centered title above it |
-| `person` | Renders the list of persons belonging to this category, sorted alphabetically and deduplicated                      |
-| `role`   | Renders persons' role alongside their name                                                                          |
+### Credits-owned language keys
 
-A single value may be given as a bare string; multiple values as an
-array. Unknown values are silently ignored.
+```properties
+credits.category.development=Development
+credits.category.development.detail=People who develop and maintain the pack.
+credits.category.gt_multiblocks=GT Multiblocks
+credits.category.gt_multiblocks.detail=Original machine authors and structure designers.
+credits.person.role.coordinator=Coordinator
+```
 
-### Lang files
+Category and local-role ids are stable identifiers. Their language-key suffixes
+remove dots and hyphens, replace runs of spaces with `_`, and lowercase using
+`Locale.ROOT`. Validation reports ids that would collide after this normalization.
+Change wording in the language file while retaining the id.
 
-Location:
-[`assets/gtnhcredits/lang/<locale>.lang`](src/main/resources/assets/gtnhcredits/lang/en_US.lang)
+Descriptions may use a plain `credits.category.<id>.detail` value with literal
+`\n` paragraph separators, indexed `detail.<suffix>` entries, or both. Indexed
+suffixes use natural numeric-aware ordering; plain paragraphs precede indexed ones.
 
-Provides display text for categories, roles, and UI labels. All keys
-are optional. If no translation is provided, the raw id is used as a
-fallback.
+### External translation references
 
-Category and role ids are sanitized to form the translation key suffix:
-dots and hyphens are removed, runs of spaces collapse to `_`, and the
-result is lowercased. For example `"Core Team"` → `core_team`, `"Core.Mod"` → `coremod`.
+A `{ "translationKey": "..." }` role uses that exact Minecraft translation key.
+Its spelling and case are preserved and it receives no credits prefix. Machine
+names stay owned and translated by their defining mod; do not duplicate them in
+credits language files. The player's selected language and Minecraft's English
+fallback are used. Unresolved references display the key and are logged.
 
-| Key pattern                             | Purpose                                                                                           |
-|:----------------------------------------|:--------------------------------------------------------------------------------------------------|
-| `credits.category.<id>`                 | Display name for a category                                                                       |
-| `credits.category.<id>.detail`          | Description text shown when the `detail` class is set. Use `\n` to separate paragraphs.           |
-| `credits.category.<id>.detail.<suffix>` | Alternative: one key per paragraph, rendered in natural (numeric-aware) sort order of the suffix. |
-| `credits.person.role.<role>`            | Display name for a role                                                                           |
-| `gui.credits.filter.hint`               | Placeholder text for the person filter field                                                      |
+UI translations such as `gui.credits.button.back` remain bundled with the mod.
+Missing local category/role translations display the original id; content
+validation requires the source English labels and requested descriptions.
 
-The two `detail` forms are mutually exclusive per locale: if any `detail.<suffix>` key exists, the plain `detail` key is
-ignored.
+Development examples live under [`fixtures/content/`](fixtures/content/).
+Validation fixtures use [`src/test/resources/`](src/test/resources/).
+Neither is included in release resources.
 
 ## GTNH Credits Editor
 
@@ -210,9 +251,9 @@ pack zip).
 ./gradlew test
 ```
 
-Runs `CreditsJsonValidationTest`, which checks schema compliance,
-category id uniqueness, and that every person references a defined
-category. Runs automatically as part of `check` and `build`.
+Runs schema, parser, semantic validation, editor, and round-trip tests against
+development fixtures. Checks include supported versions, category references,
+translation-key collisions, and external-reference preservation. Runs automatically as part of `check` and `build`.
 
 ### Generate schema documentation
 
