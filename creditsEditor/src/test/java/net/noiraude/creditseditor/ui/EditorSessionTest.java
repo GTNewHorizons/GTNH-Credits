@@ -5,12 +5,15 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 import net.noiraude.libcredits.model.DocumentCategory;
 import net.noiraude.libcredits.pack.CreditsLayout;
@@ -51,6 +54,31 @@ public class EditorSessionTest {
             assertFalse(session.isDirty());
         } finally {
             session.close();
+        }
+    }
+
+    @Test
+    public void unreadableOptionalModDirectories_doNotPreventOpeningCredits() throws Exception {
+        Path dir = contentWithTeam("instance");
+        Path backup = Files.createDirectories(dir.resolve("mods/unreadable-backup"));
+        assumeTrue(
+            Files.getFileStore(backup)
+                .supportsFileAttributeView("posix"));
+        var permissions = Files.getPosixFilePermissions(backup);
+        try {
+            Files.setPosixFilePermissions(backup, Set.of());
+            assumeFalse(Files.isReadable(backup), "requires enforced directory access permissions");
+
+            EditorSession session = EditorSession.open(dir.toString());
+            try {
+                assertEquals("team", session.creditsDoc().categories.getFirst().id);
+                assertFalse(session.hasTranslationCatalog());
+                assertFalse(session.isDirty());
+            } finally {
+                session.close();
+            }
+        } finally {
+            Files.setPosixFilePermissions(backup, permissions);
         }
     }
 

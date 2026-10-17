@@ -1,6 +1,7 @@
 package net.noiraude.creditseditor.ui;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.nio.file.Path;
@@ -75,7 +76,7 @@ final class EditorSession implements DocumentSession, LocaleEditor {
             try {
                 Optional<Path> instance = findInstance(rm.location());
                 if (instance.isPresent()) session.loadTranslations(instance.get());
-            } catch (IOException ex) {
+            } catch (IOException | UncheckedIOException ex) {
                 LOG.log(Level.WARNING, "Could not load optional translation catalogue", ex);
             }
             return session;
