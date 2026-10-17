@@ -27,12 +27,10 @@ public class EditorSessionTest {
     Path temp;
 
     @Test
-    public void openUnrecognizedDirectory_doesNotCreateAProject() throws Exception {
-        Path dir = Files.createDirectory(temp.resolve("root"));
+    public void openMissingDirectory_doesNotCreateAProject() {
+        Path dir = temp.resolve("missing");
         assertThrows(java.io.IOException.class, () -> EditorSession.open(dir.toString()));
-        try (var entries = Files.list(dir)) {
-            assertEquals(0, entries.count());
-        }
+        assertFalse(Files.exists(dir));
     }
 
     @Test
