@@ -81,6 +81,18 @@ public class CreditsFormatTest {
     }
 
     @Test
+    public void emptyMembershipObjectsCannotHideInCategoryLists() {
+        for (int version : new int[] { 2, 3 }) {
+            String source = "{\"version\":" + version
+                + ",\"category\":[{\"id\":\"dev\"}],\"person\":[{\"name\":\"Alice\",\"category\":[{},\"dev\"]}]}";
+            assertThrows(
+                "version " + version + " must reject an empty membership object",
+                CreditsParseException.class,
+                () -> CreditsParser.parse(new ByteArrayInputStream(source.getBytes(StandardCharsets.UTF_8))));
+        }
+    }
+
+    @Test
     public void mixedSourcesPreserveExactKeysOrderAndIdentityThroughRoundTrip() throws Exception {
         CreditsDocument document = read(
             3,

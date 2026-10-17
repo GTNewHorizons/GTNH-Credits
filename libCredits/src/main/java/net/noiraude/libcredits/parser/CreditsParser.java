@@ -112,6 +112,10 @@ public final class CreditsParser {
         }
         JsonObject object = element.getAsJsonObject();
         if (
+            object.entrySet()
+                .isEmpty()
+        ) throw new CreditsParseException("category membership must contain at least one category");
+        if (
             version != 2 && object.entrySet()
                 .size() != 1
         ) throw new CreditsParseException("category membership must contain exactly one category");
