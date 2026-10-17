@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -20,6 +21,8 @@ import net.noiraude.libcredits.pack.CreditsLayout.Format;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
 class ContentLocationsTest {
 
@@ -154,6 +157,10 @@ class ContentLocationsTest {
             json,
             Files.readString(json)
                 .replace("tile.furnace.name", "missing.machine"));
+        archive(
+            instance.resolve("mods/1.12.2/inactive.jar"),
+            "assets/example/lang/en_US.lang",
+            "missing.machine=Inactive\n");
         assertEquals(
             1,
             CreditsEditorApp
@@ -161,31 +168,6 @@ class ContentLocationsTest {
         assertTrue(
             errors.toString()
                 .contains("missing external translation: missing.machine"));
-    }
-
-    @Test
-    void headlessValidationRejectsReferencesDefinedOnlyInInactiveArchives() throws Exception {
-        writeContent(temporary);
-        Path instance = temporary.resolve("instance");
-        archive(
-            instance.resolve("mods/1.12.2/inactive.jar"),
-            "assets/example/lang/en_US.lang",
-            "machine.Name=Inactive\n");
-        archive(
-            instance.resolve("versions/1.7.10/1.7.10.jar"),
-            "assets/minecraft/lang/en_US.lang",
-            "tile.furnace.name=Furnace\n");
-        ByteArrayOutputStream errors = new ByteArrayOutputStream();
-        assertEquals(
-            1,
-            CreditsEditorApp.validate(
-                temporary.toString(),
-                instance.toString(),
-                new PrintStream(new ByteArrayOutputStream()),
-                new PrintStream(errors)));
-        assertTrue(
-            errors.toString()
-                .contains("missing external translation: machine.Name"));
     }
 
     @Test
@@ -208,28 +190,54 @@ class ContentLocationsTest {
                 .contains("base language resources were not found"));
     }
 
-    @Test
-    void contentAndZipExportsKeepForeignLanguageEntries() throws Exception {
+    @ParameterizedTest
+    @EnumSource(Format.class)
+    void exportsPreserveForeignDestinationContent(Format format) throws Exception {
         Path source = temporary.resolve("source");
         writeContent(source);
+        Path destination = temporary.resolve(format == Format.RESOURCE_PACK ? "pack.zip" : "destination");
+        String foreign = "# Keep this comment\nforeign.key=Destination value\n";
+        try (ResourceStorage storage = ResourceStorageFactory.destination(destination.toString(), "test", format)) {
+            try (var output = storage.openWrite("lang/en_US.lang")) {
+                output.write((foreign + "credits.category.obsolete=Remove me\n").getBytes(StandardCharsets.UTF_8));
+            }
+            try (var output = storage.openWrite("textures/keep.txt")) {
+                output.write("unrelated bytes".getBytes(StandardCharsets.UTF_8));
+            }
+        }
         try (ResourceManager original = ResourceManager.open(source.toString())) {
             original.loadDocuments();
-            for (Path destination : List.of(temporary.resolve("content"), temporary.resolve("pack.zip"))) {
-                Format format = destination.toString()
-                    .endsWith(".zip") ? Format.RESOURCE_PACK : Format.CONTENT_DIRECTORY;
-                try (ResourceManager copy = ResourceManager.destination(destination.toString(), "test", format)) {
-                    copy.adoptDocuments(original.getCreditsDoc(), original.langDocs());
-                    copy.writeCredits();
-                    copy.writeAllLang();
+            try (ResourceManager copy = ResourceManager.destination(destination.toString(), "test", format)) {
+                copy.adoptDocuments(original.getCreditsDoc(), original.langDocs());
+                copy.writeCredits();
+                copy.writeAllLang();
+            }
+            try (ResourceStorage storage = ResourceStorage.open(destination.toString())) {
+                ResourceManager reopened = new ResourceManager(storage);
+                reopened.loadDocuments();
+                assertEquals(original.getCreditsDoc().categories, reopened.getCreditsDoc().categories);
+                assertEquals(original.getCreditsDoc().persons, reopened.getCreditsDoc().persons);
+                assertEquals(
+                    "Developers",
+                    reopened.getLangDoc()
+                        .get("credits.category.dev"));
+                assertEquals(
+                    "Destination value",
+                    reopened.getLangDoc()
+                        .get("foreign.key"));
+                assertFalse(
+                    reopened.getLangDoc()
+                        .contains("credits.category.obsolete"));
+                assertFalse(
+                    reopened.getLangDoc()
+                        .contains("machine.Name"));
+                try (var input = storage.openRead("lang/en_US.lang")) {
+                    assertTrue(new String(input.readAllBytes(), StandardCharsets.UTF_8).contains(foreign));
                 }
-                try (ResourceManager reopened = ResourceManager.open(destination.toString())) {
-                    reopened.loadDocuments();
-                    assertEquals(original.getCreditsDoc().persons, reopened.getCreditsDoc().persons);
+                try (var input = storage.openRead("textures/keep.txt")) {
+                    assertEquals("unrelated bytes", new String(input.readAllBytes(), StandardCharsets.UTF_8));
                 }
             }
         }
-        assertEquals(
-            "credits.category.dev=Developers\nforeign.key=Untouched\n",
-            Files.readString(source.resolve("lang/en_US.lang")));
     }
 }

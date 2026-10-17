@@ -50,7 +50,9 @@ public class RoleIndexTest {
         assertEquals("lead", e.raw.value());
         assertEquals("credits.person.role.lead", e.langKey);
         assertEquals(1, e.count);
-        assertTrue(e.categoryIds.contains("team"));
+        assertEquals(List.of("team"), e.categoryIds);
+        assertTrue(index.contains(DocumentRole.local("lead")));
+        assertFalse(index.contains(DocumentRole.local("unknown")));
     }
 
     @Test
@@ -98,26 +100,7 @@ public class RoleIndexTest {
             .entries()
             .getFirst();
         assertEquals(1, e.count);
-        assertEquals(2, e.categoryIds.size());
-    }
-
-    // -----------------------------------------------------------------------
-    // Categories per role
-    // -----------------------------------------------------------------------
-
-    @Test
-    public void build_roleInMultipleCategories_allCategoryIdsPresent() {
-        CreditsDocument doc = CreditsDocument.empty();
-        DocumentPerson p = new DocumentPerson("Alice");
-        p.memberships.add(new DocumentMembership("team", localRoles("dev")));
-        p.memberships.add(new DocumentMembership("contrib", localRoles("dev")));
-        doc.persons.add(p);
-
-        RoleIndex.Entry e = RoleIndex.build(doc)
-            .entries()
-            .getFirst();
-        assertTrue(e.categoryIds.contains("team"));
-        assertTrue(e.categoryIds.contains("contrib"));
+        assertEquals(List.of("team", "dev"), e.categoryIds);
     }
 
     // -----------------------------------------------------------------------
@@ -165,26 +148,38 @@ public class RoleIndexTest {
                 .isEmpty());
     }
 
-    // -----------------------------------------------------------------------
-    // contains
-    // -----------------------------------------------------------------------
-
     @Test
-    public void contains_existingRole_returnsTrue() {
+    public void matchingLocalAndExternalValuesRemainSeparateEntries() {
         CreditsDocument doc = CreditsDocument.empty();
         DocumentPerson p = new DocumentPerson("Alice");
-        p.memberships.add(new DocumentMembership("team", localRoles("lead")));
+        DocumentRole local = DocumentRole.local("Exact.Key");
+        DocumentRole external = DocumentRole.translation("Exact.Key");
+        p.memberships.add(new DocumentMembership("team", List.of(external, local)));
+        p.memberships.add(new DocumentMembership("dev", List.of(external)));
         doc.persons.add(p);
-        assertTrue(
-            RoleIndex.build(doc)
-                .contains(DocumentRole.local("lead")));
-    }
 
-    @Test
-    public void contains_unknownRole_returnsFalse() {
-        assertFalse(
-            RoleIndex.build(CreditsDocument.empty())
-                .contains(DocumentRole.local("lead")));
+        RoleIndex index = RoleIndex.build(doc);
+
+        assertEquals(
+            List.of(local, external),
+            index.entries()
+                .stream()
+                .map(entry -> entry.raw)
+                .toList());
+        assertEquals(
+            "credits.person.role.exactkey",
+            index.entries()
+                .getFirst().langKey);
+        assertEquals(
+            "Exact.Key",
+            index.entries()
+                .get(1).langKey);
+        assertEquals(
+            1,
+            index.entries()
+                .get(1).count);
+        assertEquals(Set.of(external), index.rolesForCategory("dev"));
+        assertTrue(index.contains(external));
     }
 
     private static java.util.List<DocumentRole> localRoles(String... values) {

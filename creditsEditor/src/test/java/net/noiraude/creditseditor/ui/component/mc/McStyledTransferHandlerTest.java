@@ -6,9 +6,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 import java.awt.GraphicsEnvironment;
+import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.StringSelection;
-import java.awt.datatransfer.Transferable;
 
 import javax.swing.TransferHandler;
 import javax.swing.text.AttributeSet;
@@ -33,14 +33,10 @@ public class McStyledTransferHandlerTest {
     }
 
     private static String exported(McWysiwygPane pane) throws Exception {
-        Transferable t = invokeCreateTransferable(pane);
-        return (String) t.getTransferData(DataFlavor.stringFlavor);
-    }
-
-    private static Transferable invokeCreateTransferable(McWysiwygPane pane) throws Exception {
-        var m = TransferHandler.class.getDeclaredMethod("createTransferable", javax.swing.JComponent.class);
-        m.setAccessible(true);
-        return (Transferable) m.invoke(pane.getTransferHandler(), pane);
+        Clipboard clipboard = new Clipboard("test");
+        pane.getTransferHandler()
+            .exportToClipboard(pane, clipboard, TransferHandler.COPY);
+        return (String) clipboard.getData(DataFlavor.stringFlavor);
     }
 
     @Test

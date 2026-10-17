@@ -172,16 +172,10 @@ public class CompoundCommandTest {
 
         compound.execute();
         assertEquals(1, person.memberships.size());
-        assertEquals(localRoles("lead"), person.memberships.getFirst().roles);
+        assertEquals(java.util.List.of(DocumentRole.local("lead")), person.memberships.getFirst().roles);
 
         compound.undo();
         assertTrue(person.memberships.isEmpty());
-    }
-
-    private static java.util.List<DocumentRole> localRoles(String... values) {
-        return java.util.Arrays.stream(values)
-            .map(DocumentRole::local)
-            .collect(java.util.stream.Collectors.toList());
     }
 
 }

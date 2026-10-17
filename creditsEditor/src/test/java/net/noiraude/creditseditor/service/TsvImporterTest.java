@@ -1,12 +1,17 @@
 package net.noiraude.creditseditor.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 
+import net.noiraude.creditseditor.bus.DocumentBus;
+import net.noiraude.creditseditor.bus.TestDocumentSession;
 import net.noiraude.creditseditor.service.TsvImporter.Action;
 import net.noiraude.creditseditor.service.TsvImporter.ImportLine;
 import net.noiraude.libcredits.model.CreditsDocument;
@@ -220,27 +225,45 @@ public class TsvImporterTest {
     }
 
     @Test
-    public void parse_existingPersonWithRoles_noNewRoles_noChange() throws IOException {
-        CreditsDocument doc = docWithCategory("dev");
-        DocumentPerson greg = new DocumentPerson("Greg Ewing");
-        greg.memberships.add(new DocumentMembership("dev", localRoles("lead", "coder")));
-        doc.persons.add(greg);
+    public void referenceImportMergesBySourceAndSupportsUndo() throws Exception {
+        CreditsDocument document = docWithCategory("dev");
+        DocumentRole existing = DocumentRole.translation("machine.Original");
+        DocumentRole external = DocumentRole.translation("Exact.Key");
+        DocumentRole local = DocumentRole.local("Exact.Key");
+        DocumentPerson person = new DocumentPerson("Alice");
+        DocumentMembership membership = new DocumentMembership("dev", List.of(existing));
+        person.memberships.add(membership);
+        document.persons.add(person);
+        DocumentBus bus = new DocumentBus(() -> Optional.of(TestDocumentSession.of(document)));
 
-        String tsv = "Greg Ewing\tlead\tcoder\n";
-        List<ImportLine> lines = TsvImporter.parse(new StringReader(tsv), doc, "dev");
+        var lines = TsvImporter.parse(
+            new StringReader(
+                "Alice\t{\"translationKey\":\"Exact.Key\"}\tExact.Key\nAlice\t{\"translationKey\":\"Exact.Key\"}\n"),
+            document,
+            "dev");
+        assertEquals(List.of(existing, external, local), lines.getFirst().roles);
+        assertEquals(List.of(external, local), lines.getFirst().newRoles);
+        assertEquals(List.of(existing), membership.roles, "planning must not mutate the document");
 
-        assertEquals(1, lines.size());
-        assertEquals(Action.NO_CHANGE, lines.getFirst().action);
-        assertEquals(localRoles("lead", "coder"), lines.getFirst().roles);
-        assertTrue(lines.getFirst().newRoles.isEmpty());
+        var command = Objects.requireNonNull(TsvImportCommandFactory.build(bus, "dev", lines));
+        command.execute();
+        assertEquals(List.of(existing, external, local), membership.roles);
+        command.undo();
+        assertEquals(List.of(existing), membership.roles);
+        command.execute();
+        assertEquals(List.of(existing, external, local), membership.roles);
     }
 
     @Test
-    public void explicitTranslationReferencesImportWithoutBecomingLocalIds() throws Exception {
+    public void invalidReferenceFailsBeforeImportCanMutateTheDocument() {
         CreditsDocument document = docWithCategory("dev");
-        List<ImportLine> lines = TsvImporter
-            .parse(new StringReader("Alice\t{\"translationKey\":\"machine.Exact-Key\"}\n"), document, "dev");
-        assertEquals(DocumentRole.translation("machine.Exact-Key"), lines.getFirst().roles.getFirst());
+        assertThrows(
+            IOException.class,
+            () -> TsvImporter.parse(
+                new StringReader("Alice\tdeveloper\nBob\t{\"translationKey\":\"has spaces\"}\n"),
+                document,
+                "dev"));
+        assertTrue(document.persons.isEmpty());
     }
 
     private static java.util.List<DocumentRole> localRoles(String... values) {

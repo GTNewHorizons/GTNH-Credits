@@ -48,6 +48,14 @@ class TranslationCatalogTest {
                 "machine.Name=English name\nonly.english=English fallback\n",
                 "assets/example/lang/fr_FR.lang",
                 "machine.Name=Nom français\n"));
+        Path load = instance.resolve("config/txloader/load/example/lang/en_US.lang");
+        Files.createDirectories(load.getParent());
+        Files.writeString(load, "machine.Name=TX Loader\n");
+        assertEquals(
+            "TX Loader",
+            TranslationCatalog.load(instance)
+                .resolve("machine.Name", "en_US")
+                .orElseThrow());
         archive(
             instance.resolve("resourcepacks/enabled.zip"),
             Map.of("assets/example/lang/en_US.lang", "machine.Name=Selected pack\n"));
@@ -55,6 +63,11 @@ class TranslationCatalogTest {
             instance.resolve("resourcepacks/disabled.zip"),
             Map.of("assets/example/lang/en_US.lang", "machine.Name=Must not load\n"));
         Files.writeString(instance.resolve("options.txt"), "resourcePacks:[\"enabled.zip\"]\n");
+        assertEquals(
+            "Selected pack",
+            TranslationCatalog.load(instance)
+                .resolve("machine.Name", "en_US")
+                .orElseThrow());
         Path force = instance.resolve("config/txloader/forceload/example/lang/en_US.lang");
         Files.createDirectories(force.getParent());
         Files.writeString(force, "machine.Name=Forced pack\n");

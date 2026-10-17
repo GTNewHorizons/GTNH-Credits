@@ -16,6 +16,8 @@ import net.noiraude.libcredits.pack.CreditsLayout;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 @SuppressWarnings("SpellCheckingInspection")
 public class EditorSessionTest {
@@ -34,9 +36,9 @@ public class EditorSessionTest {
 
     @Test
     public void editing_marksDirty_andSaveClearsIt() throws Exception {
-        Path dir = Files.createDirectory(temp.resolve("root"));
+        Path dir = temp.resolve("root");
 
-        EditorSession session = fixtureSession(dir.toString());
+        EditorSession session = EditorSession.create(dir.toString(), CreditsLayout.Format.RESOURCE_DIRECTORY);
         try {
             assertFalse(session.isDirty());
             session.creditsDoc().categories.add(new DocumentCategory("dev"));
@@ -56,7 +58,7 @@ public class EditorSessionTest {
         Path zip = temp.resolve("fresh.zip");
         assertFalse(Files.exists(zip));
 
-        EditorSession session = fixtureSession(zip.toString());
+        EditorSession session = EditorSession.create(zip.toString(), CreditsLayout.Format.RESOURCE_PACK);
         try {
             assertTrue(Files.exists(zip));
             assertTrue(session.creditsDoc().categories.isEmpty());
@@ -69,10 +71,10 @@ public class EditorSessionTest {
 
     @Test
     public void saveAs_dirToZip_writesPackAndRetargetsSession() throws Exception {
-        Path sourceDir = Files.createDirectory(temp.resolve("source"));
+        Path sourceDir = temp.resolve("source");
         Path destZip = temp.resolve("fork.zip");
 
-        EditorSession session = fixtureSession(sourceDir.toString());
+        EditorSession session = EditorSession.create(sourceDir.toString(), CreditsLayout.Format.RESOURCE_DIRECTORY);
         session.creditsDoc().categories.add(new DocumentCategory("dev"));
         assertTrue(session.isDirty());
 
@@ -111,7 +113,7 @@ public class EditorSessionTest {
         Path sourceZip = temp.resolve("source.zip");
         Path destDir = temp.resolve("fork");
 
-        EditorSession session = fixtureSession(sourceZip.toString());
+        EditorSession session = EditorSession.create(sourceZip.toString(), CreditsLayout.Format.RESOURCE_PACK);
         session.creditsDoc().categories.add(new DocumentCategory("dev"));
         assertTrue(session.isDirty());
 
@@ -142,7 +144,7 @@ public class EditorSessionTest {
 
     @Test
     public void saveAs_preservesNonEnglishLocale() throws Exception {
-        Path sourceDir = Files.createDirectory(temp.resolve("source"));
+        Path sourceDir = contentWithTeam("source");
         Path langDir = sourceDir.resolve(CreditsLayout.LANG_DIR.get());
         Files.createDirectories(langDir);
         Files.writeString(langDir.resolve("en_US.lang"), "credits.category.team=Team\n", StandardCharsets.UTF_8);
@@ -150,7 +152,7 @@ public class EditorSessionTest {
 
         Path destZip = temp.resolve("fork.zip");
 
-        EditorSession session = fixtureSession(sourceDir.toString());
+        EditorSession session = EditorSession.open(sourceDir.toString());
         session.saveAs(destZip.toString());
         session.close();
 
@@ -174,15 +176,9 @@ public class EditorSessionTest {
 
         // Seed an existing destination zip with content ResourceManager does not manage:
         // a texture and another mod's lang file. Save As must preserve both.
-        // noinspection EmptyTryBlock
-        try (java.io.OutputStream ignored = java.nio.file.Files.newOutputStream(destZip)) {
-            // create empty file then immediately remove so the zip filesystem can create it.
-        }
-        java.nio.file.Files.delete(destZip);
         java.net.URI uri = java.net.URI.create("jar:" + destZip.toUri());
-        java.util.Map<String, String> env = new java.util.HashMap<>();
-        env.put("create", "true");
-        try (java.nio.file.FileSystem fs = java.nio.file.FileSystems.newFileSystem(uri, env)) {
+        try (java.nio.file.FileSystem fs = java.nio.file.FileSystems
+            .newFileSystem(uri, java.util.Map.of("create", "true"))) {
             java.nio.file.Path texture = fs.getPath("/assets/gtnhcredits/textures/foo.png");
             java.nio.file.Files.createDirectories(texture.getParent());
             java.nio.file.Files.writeString(texture, "fake-png-bytes", StandardCharsets.UTF_8);
@@ -192,8 +188,8 @@ public class EditorSessionTest {
         }
 
         // Save a different project over the existing zip.
-        Path freshSource = Files.createDirectory(temp.resolve("fresh"));
-        EditorSession session = fixtureSession(freshSource.toString());
+        Path freshSource = temp.resolve("fresh");
+        EditorSession session = EditorSession.create(freshSource.toString(), CreditsLayout.Format.RESOURCE_DIRECTORY);
         session.creditsDoc().categories.add(new DocumentCategory("dev"));
         session.saveAs(destZip.toString());
         session.close();
@@ -205,7 +201,7 @@ public class EditorSessionTest {
             assertEquals("fake-png-bytes", java.nio.file.Files.readString(texture, StandardCharsets.UTF_8));
 
             java.nio.file.Path foreignLang = fs.getPath("/assets/othermod/lang/en_US.lang");
-            assertTrue(Files.exists(foreignLang), "Save As must not erase another mod's lang files");
+            assertEquals("othermod.title=Other\n", Files.readString(foreignLang, StandardCharsets.UTF_8));
         }
 
         EditorSession reopened = EditorSession.open(destZip.toString());
@@ -217,41 +213,22 @@ public class EditorSessionTest {
         }
     }
 
-    @Test
-    public void defaultLocale_picksMatchingLangFileForJvmLocale() throws Exception {
-        Path dir = Files.createDirectory(temp.resolve("root"));
+    @ParameterizedTest
+    @CsvSource({ "fr-FR,fr_FR", "de-DE,en_US" })
+    public void defaultLocale_matchesJvmLocaleOrFallsBackToEnglish(String languageTag, String expected)
+        throws Exception {
+        Path dir = contentWithTeam("root");
         Path langDir = dir.resolve(CreditsLayout.LANG_DIR.get());
         Files.createDirectories(langDir);
         Files.writeString(langDir.resolve("en_US.lang"), "", StandardCharsets.UTF_8);
         Files.writeString(langDir.resolve("fr_FR.lang"), "", StandardCharsets.UTF_8);
 
         Locale previous = Locale.getDefault();
-        Locale.setDefault(Locale.FRANCE);
+        Locale.setDefault(Locale.forLanguageTag(languageTag));
         try {
-            EditorSession session = fixtureSession(dir.toString());
+            EditorSession session = EditorSession.open(dir.toString());
             try {
-                assertEquals("fr_FR", session.defaultLocale());
-            } finally {
-                session.close();
-            }
-        } finally {
-            Locale.setDefault(previous);
-        }
-    }
-
-    @Test
-    public void defaultLocale_fallsBackToEnglishWhenJvmLocaleNotPresentOnDisk() throws Exception {
-        Path dir = Files.createDirectory(temp.resolve("root"));
-        Path langDir = dir.resolve(CreditsLayout.LANG_DIR.get());
-        Files.createDirectories(langDir);
-        Files.writeString(langDir.resolve("en_US.lang"), "", StandardCharsets.UTF_8);
-
-        Locale previous = Locale.getDefault();
-        Locale.setDefault(Locale.GERMANY);
-        try {
-            EditorSession session = fixtureSession(dir.toString());
-            try {
-                assertEquals("en_US", session.defaultLocale());
+                assertEquals(expected, session.defaultLocale());
             } finally {
                 session.close();
             }
@@ -269,7 +246,7 @@ public class EditorSessionTest {
             session.creditsDoc().categories.add(new DocumentCategory("dev"));
             assertTrue(session.isDirty());
 
-            assertThrows(Exception.class, session::save, "save should fail when assets is a regular file");
+            assertThrows(java.io.IOException.class, session::save, "credits.json is a directory");
 
             assertTrue(session.isDirty(), "dirty flag must remain set after a failed save");
         } finally {
@@ -277,27 +254,10 @@ public class EditorSessionTest {
         }
     }
 
-    private EditorSession fixtureSession(String pathString) throws Exception {
-        Path path = Path.of(pathString);
-        if (Files.isDirectory(path)) {
-            try (var entries = Files.list(path)) {
-                if (
-                    entries.findAny()
-                        .isEmpty()
-                ) {
-                    Files.delete(path);
-                    return EditorSession.create(pathString, CreditsLayout.Format.RESOURCE_PACK);
-                }
-            }
-            if (
-                !Files.exists(path.resolve("credits.json"))
-                    && !Files.exists(path.resolve("assets/gtnhcredits/credits.json"))
-            ) {
-                Files.writeString(path.resolve("credits.json"), "{\"version\":2,\"category\":[{\"id\":\"team\"}]}");
-            }
-        }
-        if (Files.exists(path)) return EditorSession.open(pathString);
-        return EditorSession.create(pathString, CreditsLayout.Format.RESOURCE_PACK);
+    private Path contentWithTeam(String name) throws Exception {
+        Path path = Files.createDirectory(temp.resolve(name));
+        Files.writeString(path.resolve("credits.json"), "{\"version\":2,\"category\":[{\"id\":\"team\"}]}");
+        return path;
     }
 
 }
