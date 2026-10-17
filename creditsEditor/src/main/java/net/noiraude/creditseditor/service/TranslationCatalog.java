@@ -56,9 +56,13 @@ public final class TranslationCatalog {
             throw new IOException("Not a Minecraft instance (missing mods directory): " + instance);
         }
         TranslationCatalog result = new TranslationCatalog();
-        result.available = result.minecraftLanguages(
-            instance.toAbsolutePath()
-                .normalize());
+        try {
+            result.available = result.minecraftLanguages(
+                instance.toAbsolutePath()
+                    .normalize());
+        } catch (RuntimeException ex) {
+            throw new IOException("Invalid Minecraft resource metadata for " + instance, ex);
+        }
         result.gregTechDefaults(instance.resolve("GregTech.lang"));
         result.modArchives(instance.resolve("mods"));
         result.modArchives(

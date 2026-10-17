@@ -35,6 +35,27 @@ public class EditorSessionTest {
     }
 
     @Test
+    public void malformedOptionalTranslations_doNotPreventOpeningCredits() throws Exception {
+        Path dir = contentWithTeam("instance");
+        Path mods = Files.createDirectory(dir.resolve("mods"));
+        try (var archive = new java.util.zip.ZipOutputStream(Files.newOutputStream(mods.resolve("example.jar")))) {
+            archive.finish();
+        }
+        Path index = dir.resolve("assets/indexes/1.7.10.json");
+        Files.createDirectories(index.getParent());
+        Files.writeString(index, "{}");
+
+        EditorSession session = EditorSession.open(dir.toString());
+        try {
+            assertEquals("team", session.creditsDoc().categories.getFirst().id);
+            assertFalse(session.hasTranslationCatalog());
+            assertFalse(session.isDirty());
+        } finally {
+            session.close();
+        }
+    }
+
+    @Test
     public void editing_marksDirty_andSaveClearsIt() throws Exception {
         Path dir = temp.resolve("root");
 

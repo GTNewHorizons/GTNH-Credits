@@ -245,6 +245,31 @@ class TranslationCatalogTest {
     }
 
     @ParameterizedTest
+    @ValueSource(
+        strings = { "{}", "{\"objects\":[]}", "{\"objects\":{\"minecraft/lang/fr_FR.lang\":{}}}",
+            "{\"objects\":{\"minecraft/lang/fr_FR.lang\":{\"hash\":[]}}}" })
+    void malformedAssetMetadataProducesAnIoError(String metadata) throws Exception {
+        Files.createDirectory(instance.resolve("mods"));
+        Path index = instance.resolve("assets/indexes/1.7.10.json");
+        Files.createDirectories(index.getParent());
+        Files.writeString(index, metadata);
+
+        var error = assertThrows(java.io.IOException.class, () -> TranslationCatalog.load(instance));
+        assertTrue(
+            error.getMessage()
+                .contains(instance.toString()));
+    }
+
+    @Test
+    void malformedPrismComponentProducesAnIoError() throws Exception {
+        Path game = instance.resolve(".minecraft");
+        Files.createDirectories(game.resolve("mods"));
+        Files.writeString(instance.resolve("mmc-pack.json"), "{\"components\":[{\"uid\":[],\"version\":\"1.7.10\"}]}");
+
+        assertThrows(java.io.IOException.class, () -> TranslationCatalog.load(game));
+    }
+
+    @ParameterizedTest
     @ValueSource(strings = { "Stale saved name", "" })
     void usesGregTechDefaultsOnlyForMissingEnglishTranslations(String savedName) throws Exception {
         Files.createDirectory(instance.resolve("mods"));
