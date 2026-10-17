@@ -3,6 +3,7 @@ package net.noiraude.creditseditor.ui;
 import java.awt.Component;
 import java.io.File;
 import java.nio.file.Path;
+import java.util.Locale;
 import java.util.Optional;
 
 import javax.swing.JFileChooser;
@@ -49,6 +50,7 @@ public final class CreditsResourceChooser {
             .toPath();
         if (
             chooser.getFileFilter() == zip && !path.toString()
+                .toLowerCase(Locale.ROOT)
                 .endsWith(".zip")
         ) path = Path.of(path + ".zip");
         return Optional.of(
