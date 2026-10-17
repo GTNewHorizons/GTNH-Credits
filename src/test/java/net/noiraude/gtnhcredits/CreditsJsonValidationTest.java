@@ -62,10 +62,12 @@ public class CreditsJsonValidationTest {
     }
 
     @Test
-    public void version_mustBeAtLeastOne() {
-        JsonObject root = minimalValid();
-        root.addProperty("version", 0);
-        assertInvalid(root);
+    public void unsupportedVersions_areRejected() {
+        for (int version : new int[] { 0, 1, 4 }) {
+            JsonObject root = minimalValid();
+            root.addProperty("version", version);
+            assertInvalid(root);
+        }
     }
 
     @Test
@@ -79,35 +81,31 @@ public class CreditsJsonValidationTest {
         assertInvalid(root);
     }
 
-    @Test
-    public void version_mustBeAtLeastTwo() {
-        JsonObject root = minimalValid();
-        root.addProperty("version", 1);
-        assertInvalid(root);
-    }
-
     // -------------------------------------------------------------------------
     // category array
     // -------------------------------------------------------------------------
 
     @Test
     public void category_isRequired() {
-        assertInvalid(new JsonObject());
+        JsonObject root = minimalValid();
+        root.remove("category");
+        assertInvalid(root);
     }
 
     @Test
     public void category_mustBeArray() {
-        JsonObject root = new JsonObject();
+        JsonObject root = minimalValid();
         root.addProperty("category", "not-an-array");
         assertInvalid(root);
     }
 
     @Test
     public void categoryId_mustBePresent() {
-        JsonObject root = new JsonObject();
-        JsonArray cats = new JsonArray();
-        cats.add(new JsonObject());
-        root.add("category", cats);
+        JsonObject root = minimalValid();
+        root.getAsJsonArray("category")
+            .get(0)
+            .getAsJsonObject()
+            .remove("id");
         assertInvalid(root);
     }
 
@@ -342,10 +340,26 @@ public class CreditsJsonValidationTest {
     }
 
     @Test
-    public void futureVersions_areRejected() {
-        JsonObject root = minimalValid();
-        root.addProperty("version", 4);
-        assertInvalid(root);
+    public void schemaChecksMembershipIdsInBothVersions() {
+        for (int version : new int[] { 2, 3 }) {
+            JsonObject root = new JsonParser().parse(
+                "{\"version\":" + version
+                    + ",\"category\":[{\"id\":\"cats\"}],\"person\":[{\"name\":\"Alice\",\"category\":{\"cats\":\"developer\"}}]}")
+                .getAsJsonObject();
+            assertTrue(
+                CreditsValidator.validateSchema(root)
+                    .isEmpty());
+            JsonObject membership = root.getAsJsonArray("person")
+                .get(0)
+                .getAsJsonObject()
+                .getAsJsonObject("category");
+            membership.remove("cats");
+            membership.addProperty("1bad", "developer");
+            assertFalse(
+                "version " + version + " schema must reject invalid membership ids",
+                CreditsValidator.validateSchema(root)
+                    .isEmpty());
+        }
     }
 
     @Test

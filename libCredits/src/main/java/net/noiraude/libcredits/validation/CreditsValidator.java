@@ -75,7 +75,8 @@ public final class CreditsValidator {
             if (
                 category.classes.contains("detail") && !new DetailLangKey(prefix).read(english)
                     .filter(
-                        value -> !value.trim()
+                        value -> !value.replace("\\n", "")
+                            .trim()
                             .isEmpty())
                     .isPresent()
             ) {

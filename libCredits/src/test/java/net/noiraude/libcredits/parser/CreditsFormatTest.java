@@ -149,6 +149,27 @@ public class CreditsFormatTest {
     }
 
     @Test
+    public void descriptionsRequireTextBeyondParagraphSeparators() throws Exception {
+        CreditsDocument document = read(3, "\"developer\"");
+        document.categories.get(0).classes.add("detail");
+        LangDocument english = LangParser.empty();
+        english.set("credits.category.dev", "Developers");
+        english.set("credits.person.role.developer", "Developer");
+        english.set("credits.category.dev.detail", " ");
+        english.set("credits.category.dev.detail.1", "");
+        english.set("credits.category.dev.detail.2", " ");
+
+        assertEquals(
+            Arrays.asList("missing English description: credits.category.dev.detail"),
+            CreditsValidator.validateContent(document, english, null));
+
+        english.set("credits.category.dev.detail.2", "The people who develop the pack.");
+        assertTrue(
+            CreditsValidator.validateContent(document, english, null)
+                .isEmpty());
+    }
+
+    @Test
     public void malformedJsonAndWrongFieldTypesHaveCheckedParseErrors() {
         for (String source : Arrays.asList(
             "[]",

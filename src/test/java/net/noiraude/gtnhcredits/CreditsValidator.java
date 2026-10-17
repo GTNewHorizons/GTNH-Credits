@@ -38,6 +38,22 @@ public final class CreditsValidator {
      * An empty list means the document is valid.
      */
     public static List<String> validate(JsonObject root) {
+        List<String> errors = validateSchema(root);
+        if (!errors.isEmpty()) return errors;
+
+        try {
+            net.noiraude.libcredits.parser.CreditsParser.parse(
+                new java.io.ByteArrayInputStream(
+                    GSON.toJson(root)
+                        .getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+        } catch (Exception ex) {
+            errors.add(ex.getMessage());
+        }
+        return errors;
+    }
+
+    /** Checks the published schema independently of stricter reader validation. */
+    static List<String> validateSchema(JsonObject root) {
         List<String> errors = new ArrayList<>();
 
         try (InputStream schemaStream = new FileInputStream("credits.schema.json")) {
@@ -48,18 +64,6 @@ public final class CreditsValidator {
             }
         } catch (Exception e) {
             errors.add("schema validation error: " + e.getMessage());
-            return errors;
-        }
-
-        if (!errors.isEmpty()) return errors;
-
-        try {
-            net.noiraude.libcredits.parser.CreditsParser.parse(
-                new java.io.ByteArrayInputStream(
-                    GSON.toJson(root)
-                        .getBytes(java.nio.charset.StandardCharsets.UTF_8)));
-        } catch (Exception ex) {
-            errors.add(ex.getMessage());
         }
         return errors;
     }

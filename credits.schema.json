@@ -94,6 +94,9 @@
           "type": "object",
           "minProperties": 1,
           "maxProperties": 1,
+          "propertyNames": {
+            "$ref": "#/definitions/key"
+          },
           "additionalProperties": {
             "description": "Role labels for this category: credits-owned ids or exact external translation references. One role may be given directly; multiple roles as an array.",
             "x-type-label": "[`Role`](#role) or `Role[]`",
