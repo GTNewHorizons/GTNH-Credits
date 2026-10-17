@@ -261,8 +261,11 @@ public final class TranslationCatalog {
 
     private void directory(Path root) throws IOException {
         if (!Files.isDirectory(root)) return;
-        try (Stream<Path> entries = Files.walk(root)) {
+        try (Stream<Path> entries = Files.walk(root, 3)) {
             for (Path file : entries.filter(Files::isRegularFile)
+                .filter(
+                    p -> root.relativize(p)
+                        .getNameCount() == 3)
                 .filter(
                     p -> p.toString()
                         .endsWith(".lang"))

@@ -98,6 +98,48 @@ class TranslationCatalogTest {
         assertArrayEquals(jar, Files.readAllBytes(instance.resolve("mods/example.jar")));
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = { "enabled", "enabled.zip" })
+    void resourcePacksOnlyLoadLanguagesDirectlyUnderTheirNamespace(String packName) throws Exception {
+        Files.createDirectory(instance.resolve("mods"));
+        archive(
+            instance.resolve("versions/1.7.10/1.7.10.jar"),
+            Map.of("assets/minecraft/lang/en_US.lang", "tile.furnace.name=Furnace\n"));
+        Map<String, String> files = Map.of(
+            "assets/example/lang/en_US.lang",
+            "machine.Name=Machine\n",
+            "assets/example/backup/lang/en_US.lang",
+            "backup.only=Inactive\n",
+            "assets/lang/en_US.lang",
+            "no.namespace=Inactive\n");
+        Path pack = instance.resolve("resourcepacks")
+            .resolve(packName);
+        if (packName.endsWith(".zip")) {
+            archive(pack, files);
+        } else {
+            for (var entry : files.entrySet()) {
+                Path file = pack.resolve(entry.getKey());
+                Files.createDirectories(file.getParent());
+                Files.writeString(file, entry.getValue());
+            }
+        }
+        Files.writeString(instance.resolve("options.txt"), "resourcePacks:[\"" + packName + "\"]\n");
+
+        TranslationCatalog catalogue = TranslationCatalog.load(instance);
+
+        assertTrue(catalogue.isAvailable());
+        assertEquals(
+            "Machine",
+            catalogue.resolve("machine.Name", "en_US")
+                .orElseThrow());
+        assertTrue(
+            catalogue.resolve("backup.only", "en_US")
+                .isEmpty());
+        assertTrue(
+            catalogue.resolve("no.namespace", "en_US")
+                .isEmpty());
+    }
+
     @Test
     void readsPrismBaseGameAndIndexedLanguagesFromTheSelectedVersion() throws Exception {
         Path game = instance.resolve("launcher/instances/pack/.minecraft");
