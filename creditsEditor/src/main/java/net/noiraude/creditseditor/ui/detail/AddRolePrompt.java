@@ -27,6 +27,7 @@ import net.noiraude.creditseditor.ui.component.KeyHintLabel;
 import net.noiraude.libcredits.model.CreditsDocument;
 import net.noiraude.libcredits.model.DocumentMembership;
 import net.noiraude.libcredits.model.DocumentRole;
+import net.noiraude.libcredits.validation.CreditsValidator;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -39,6 +40,7 @@ import org.jetbrains.annotations.Nullable;
 final class AddRolePrompt {
 
     private final @NotNull DocumentMembership membership;
+    private final @Nullable CreditsDocument creditsDoc;
     private final @Nullable RoleIndex index;
     private final @NotNull JComboBox<String> combo = new JComboBox<>();
     private final @NotNull JCheckBox showAll = new JCheckBox(I18n.get("dialog.add_role.show_all"));
@@ -51,9 +53,11 @@ final class AddRolePrompt {
     AddRolePrompt(@NotNull DocumentMembership membership, @Nullable CreditsDocument creditsDoc,
         @NotNull DocumentBus bus) {
         this.membership = membership;
+        this.creditsDoc = creditsDoc;
         this.bus = bus;
         this.translationKeys = bus.externalTranslationKeys();
         this.index = creditsDoc != null ? RoleIndex.build(creditsDoc) : null;
+        combo.setName("addRoleValue");
         combo.setEditable(true);
 
         JPanel below = new JPanel();
@@ -130,7 +134,12 @@ final class AddRolePrompt {
             .getItem()).strip();
         if (role.isEmpty()) return Optional.empty();
         try {
-            return Optional.of(external.isSelected() ? DocumentRole.translation(role) : DocumentRole.local(role));
+            DocumentRole candidate = external.isSelected() ? DocumentRole.translation(role) : DocumentRole.local(role);
+            if (creditsDoc != null) {
+                List<String> errors = CreditsValidator.validateRoleAdditions(creditsDoc, List.of(candidate));
+                if (!errors.isEmpty()) throw new IllegalArgumentException(String.join("\n", errors));
+            }
+            return Optional.of(candidate);
         } catch (IllegalArgumentException ex) {
             JOptionPane.showMessageDialog(
                 parent,

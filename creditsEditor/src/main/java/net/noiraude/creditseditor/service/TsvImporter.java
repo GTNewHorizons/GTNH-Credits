@@ -13,6 +13,7 @@ import net.noiraude.libcredits.model.CreditsDocument;
 import net.noiraude.libcredits.model.DocumentMembership;
 import net.noiraude.libcredits.model.DocumentPerson;
 import net.noiraude.libcredits.model.DocumentRole;
+import net.noiraude.libcredits.validation.CreditsValidator;
 
 import org.jetbrains.annotations.Blocking;
 import org.jetbrains.annotations.Contract;
@@ -73,7 +74,7 @@ public final class TsvImporter {
      * @param doc        the current document (for computing actions)
      * @param categoryId the target category id
      * @return list of parsed lines with their actions
-     * @throws IOException on read failure or an invalid role value
+     * @throws IOException on read failure, an invalid role value or colliding local role keys
      */
     @Blocking
     public static @NotNull @UnmodifiableView List<ImportLine> parse(@NotNull Reader reader,
@@ -107,6 +108,14 @@ public final class TsvImporter {
                 }
             }
         }
+
+        List<String> errors = CreditsValidator.validateRoleAdditions(
+            doc,
+            merged.values()
+                .stream()
+                .flatMap(List::stream)
+                .toList());
+        if (!errors.isEmpty()) throw new IOException(String.join("\n", errors));
 
         List<ImportLine> lines = new ArrayList<>();
         for (Map.Entry<String, List<DocumentRole>> entry : merged.entrySet()) {

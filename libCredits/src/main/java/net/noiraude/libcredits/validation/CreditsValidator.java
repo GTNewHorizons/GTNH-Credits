@@ -54,12 +54,34 @@ public final class CreditsValidator {
                 if (new HashSet<>(membership.roles).size() != membership.roles.size()) {
                     errors.add("duplicate roles for " + person.name + " in " + membership.categoryId);
                 }
-                for (DocumentRole role : membership.roles) {
-                    if (!role.isExternal()) collision(roleKeys, role.value(), "role", errors);
-                }
+                checkRoleCollisions(roleKeys, membership.roles, errors);
             }
         }
         return errors;
+    }
+
+    /**
+     * Checks local role keys across the document and proposed additions without mutating either.
+     * Reusing an identical local id is allowed; external translation keys are ignored.
+     * Other document constraints are deliberately unchecked while editing.
+     */
+    public static List<String> validateRoleAdditions(CreditsDocument document, Iterable<DocumentRole> additions) {
+        Map<String, String> roleKeys = new LinkedHashMap<>();
+        List<String> errors = new ArrayList<>();
+        for (DocumentPerson person : document.persons) {
+            for (DocumentMembership membership : person.memberships) {
+                checkRoleCollisions(roleKeys, membership.roles, errors);
+            }
+        }
+        checkRoleCollisions(roleKeys, additions, errors);
+        return errors;
+    }
+
+    private static void checkRoleCollisions(Map<String, String> keys, Iterable<DocumentRole> roles,
+        List<String> errors) {
+        for (DocumentRole role : roles) {
+            if (!role.isExternal()) collision(keys, role.value(), "role", errors);
+        }
     }
 
     /**

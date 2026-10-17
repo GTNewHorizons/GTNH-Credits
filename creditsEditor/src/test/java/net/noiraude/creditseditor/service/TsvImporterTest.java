@@ -1,6 +1,7 @@
 package net.noiraude.creditseditor.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -22,6 +23,8 @@ import net.noiraude.libcredits.model.DocumentRole;
 
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 @SuppressWarnings("SpellCheckingInspection")
 public class TsvImporterTest {
@@ -264,6 +267,57 @@ public class TsvImporterTest {
                 document,
                 "dev"));
         assertTrue(document.persons.isEmpty());
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = { true, false })
+    public void collidingLocalRolesFailBeforeImportCanMutateTheDocument(boolean collisionWithExistingRole) {
+        CreditsDocument document = docWithCategory("dev");
+        document.categories.add(new DocumentCategory("art"));
+        if (collisionWithExistingRole) {
+            DocumentPerson alice = new DocumentPerson("Alice");
+            alice.memberships.add(new DocumentMembership("art", localRoles("Core.Dev")));
+            document.persons.add(alice);
+        }
+        document.markClean();
+        String tsv = collisionWithExistingRole ? "Bob\tCoreDev\n" : "Alice\tCore.Dev\nBob\tCoreDev\n";
+
+        IOException failure = assertThrows(
+            IOException.class,
+            () -> TsvImporter.parse(new StringReader(tsv), document, "dev"));
+
+        assertTrue(
+            failure.getMessage()
+                .contains("translation-key collision"));
+        assertTrue(
+            failure.getMessage()
+                .contains("Core.Dev"));
+        assertTrue(
+            failure.getMessage()
+                .contains("CoreDev"));
+        assertFalse(document.isDirty(), "a rejected import must leave the document unchanged");
+    }
+
+    @Test
+    public void localRoleReuseAndExternalKeysWithSimilarSpellingRemainAllowed() throws IOException {
+        CreditsDocument document = docWithCategory("dev");
+        document.categories.add(new DocumentCategory("art"));
+        DocumentPerson alice = new DocumentPerson("Alice");
+        alice.memberships.add(new DocumentMembership("art", localRoles("CoreDev")));
+        document.persons.add(alice);
+        document.markClean();
+
+        List<ImportLine> lines = TsvImporter.parse(
+            new StringReader("Bob\tCoreDev\t{\"translationKey\":\"Core.Dev\"}\nCarol\tCoreDev\n"),
+            document,
+            "dev");
+
+        assertEquals(2, lines.size());
+        assertEquals(
+            List.of(DocumentRole.local("CoreDev"), DocumentRole.translation("Core.Dev")),
+            lines.getFirst().newRoles);
+        assertEquals(localRoles("CoreDev"), lines.get(1).newRoles);
+        assertFalse(document.isDirty(), "planning must not mutate the document");
     }
 
     private static java.util.List<DocumentRole> localRoles(String... values) {
